@@ -1,58 +1,78 @@
 import { ObjectId } from "mongodb";
 
+// texts collection
 export type TextDoc = {
-  _id: ObjectId;
-
-  language: "en" | "ar"; // TODO: add more languages support (Arabic) later on.
-  category: "lyrics" | "general" | "quotes" | "code";
-  difficulty: "easy" | "medium" | "hard";
+  _id: string | ObjectId;
 
   text: string;
+  language: "en" | "ar"; // TODO: add more languages support (Arabic) later on.
   wordCount: number;
   charCount: number;
+  category: TextCategory;
+  difficulty: TextDifficulty;
 
   createdAt: Date;
 };
 
+// anonymous_users collection
 export type AnonUserDoc = {
-  _id: ObjectId;
+  _id: string | ObjectId;
 
-  anonUserId: string; // UUID v4
+  anonUserId: string; // UUID v4 (in localStorage)
+  bestWmp: number;
+  bestAccuracy: number;
+  totalSessions: number;
+
   createdAt: Date;
+  updatedAt: Date;
 };
 
+// typing_sessions collection
 export type TypingSessionDoc = {
-  _id: ObjectId;
+  _id: string | ObjectId;
 
-  anonUserId: string; // UUID v4 (foreign key)
-  textId: ObjectId; // references texts._id
+  anonUserId: string; // references AnonUserDoc._id
+  textId: string | ObjectId; // references TextDoc._id
 
-  category: "lyrics" | "general" | "quotes" | "code";
-  difficulty: "easy" | "medium" | "hard";
-  mode: "timed" | "passage";
+  category: TextCategory;
+  difficulty: TextDifficulty;
+  mode: TextMode;
 
-  durationMs: number;
   wpm: number;
   accuracy: number;
   errorCount: number;
+  durationMs: number;
 
   startedAt: Date;
   finishedAt: Date;
 };
 
+// keystrokes collection
 export type KeystrokeDoc = {
-  _id: ObjectId;
+  _id: string | ObjectId;
 
-  textId: ObjectId;
-  sessionId: ObjectId; // references typing_sessions._id
+  textId: string | ObjectId;
+  sessionId: string | ObjectId;
   anonUserId: string;
+  createdAt: Date;
+} & Keystroke;
 
-  charIndex: number; // char index in the source text
+export type Keystroke = {
+  charIndex: number;
   expectedChar: string;
   typedChar: string;
-  positionGroup: number; // Math.floor(charIndex / 10)
+  positionGroup?: number; // Math.floor(charIndex / 10)
   isCorrect: boolean;
-
   timestampMs: number; // offset from session start
-  createdAt: Date;
 };
+
+export type TextDifficulty = "easy" | "medium" | "hard";
+export type TextCategory = "lyrics" | "general" | "quotes" | "code";
+export type TextMode = "t:15" | "t:30" | "t:60" | "t:120" | "t:180" | "passage";
+
+export type CharState = {
+  state: "not-typed" | "correct" | "incorrect";
+  typedChar: string;
+};
+
+export type EngineStatus = "idle" | "typing" | "paused" | "finished";

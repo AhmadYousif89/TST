@@ -18,31 +18,31 @@ import {
   EngineStatus,
 } from "@/lib/types";
 import { updateLocalStats } from "@/lib/utils";
-
-const getInitialTime = (m: TextMode) => {
-  if (m === "passage") return 0;
-  return parseInt(m.split(":")[1]) || 60;
-};
+import {
+  calculateWpm,
+  calculateAccuracy,
+  getInitialTime,
+} from "@/lib/engine-logic";
 
 type EngineContextType = {
-  // Settings
+  //  Settings
   difficulty: TextDifficulty;
   category: TextCategory;
   mode: TextMode;
 
-  // State
+  //  State
   status: EngineStatus;
   cursor: number;
   textData: TextDoc | null;
   keystrokes: React.RefObject<Keystroke[]>;
 
-  // Metrics
+  //  Metrics
   wpm: number;
   accuracy: number;
   timeLeft: number;
   progress: number;
 
-  // Actions
+  //  Actions
   setDifficulty: (d: TextDifficulty) => void;
   setCategory: (c: TextCategory) => void;
   setMode: (m: TextMode) => void;
@@ -50,25 +50,30 @@ type EngineContextType = {
   setStatus: (s: EngineStatus) => void;
   resetSession: () => void;
   startSession: () => void;
+  pauseSession: () => void;
+  resumeSession: () => void;
   endSession: () => void;
+  getTimeElapsed: () => number;
 };
 
 const EngineContext = createContext<EngineContextType | undefined>(undefined);
 
 type EngineProviderProps = {
   children: React.ReactNode;
-  data: TextDoc | null;
+  data: { textData: TextDoc | null; mode: TextMode };
 };
 
 export const EngineProvider = ({ children, data }: EngineProviderProps) => {
+  const { textData, mode: initialMode } = data;
+
   const [cursor, setCursor] = useState(0);
   const [difficulty, setDifficulty] = useState<TextDifficulty>(
-    data?.difficulty || "easy",
+    textData?.difficulty || "easy",
   );
   const [category, setCategory] = useState<TextCategory>(
-    data?.category || "general",
+    textData?.category || "general",
   );
-  const [mode, setMode] = useState<TextMode>("t:60");
+  const [mode, setMode] = useState<TextMode>(initialMode || "t:60");
   const [status, setStatus] = useState<EngineStatus>("idle");
 
   const [wpm, setWpm] = useState(0);
@@ -78,13 +83,24 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   const keystrokes = useRef<Keystroke[]>([]);
   const startedAtRef = useRef<number | null>(null);
+  const accumulatedTimeRef = useRef(0);
+  const hasUpdatedStatsRef = useRef(false);
 
-  // Sync progress with cursor
+  //  Sync progress with cursor
   useEffect(() => {
-    if (data?.charCount) {
-      setProgress(Math.min((cursor / data.charCount) * 100, 100));
+    if (textData?.charCount) {
+      setProgress(Math.min((cursor / textData.charCount) * 100, 100));
     }
-  }, [cursor, data?.charCount]);
+  }, [cursor, textData?.charCount]);
+
+  //  Sync timeLeft when mode changes
+  useEffect(() => {
+    if (status === "idle") {
+      setTimeLeft(getInitialTime(mode));
+    }
+  }, [mode, status]);
+
+  /* -------------------- ACTIONS -------------------- */
 
   const resetSession = useCallback(() => {
     setWpm(0);
@@ -95,94 +111,103 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     setTimeLeft(getInitialTime(mode));
     keystrokes.current = [];
     startedAtRef.current = null;
+    accumulatedTimeRef.current = 0;
+    hasUpdatedStatsRef.current = false;
   }, [mode]);
 
   const startSession = useCallback(() => {
     setStatus("typing");
     startedAtRef.current = Date.now();
+    accumulatedTimeRef.current = 0;
+    hasUpdatedStatsRef.current = false;
   }, []);
 
-  const endSession = useCallback(() => {
-    if (status === "finished") return;
-    setStatus("finished");
+  const pauseSession = useCallback(() => {
+    if (status !== "typing") return;
+    setStatus("paused");
+    if (startedAtRef.current) {
+      accumulatedTimeRef.current += Date.now() - startedAtRef.current;
+      startedAtRef.current = null;
+    }
+  }, [status]);
 
-    // Word Metric Validation
+  const resumeSession = useCallback(() => {
+    if (status !== "paused") return;
+    setStatus("typing");
+    startedAtRef.current = Date.now();
+  }, [status]);
+
+  const endSession = useCallback(() => {
+    if (status !== "typing" && status !== "paused") return;
+    if (status === "typing" && startedAtRef.current) {
+      accumulatedTimeRef.current += Date.now() - startedAtRef.current;
+    }
+    setStatus("finished");
+    startedAtRef.current = null;
+  }, [status]);
+
+  const getTimeElapsed = useCallback(() => {
+    const currentElapsed = startedAtRef.current
+      ? Date.now() - startedAtRef.current
+      : 0;
+    return accumulatedTimeRef.current + currentElapsed;
+  }, []);
+
+  /* -------------------- TIMER & METRICS -------------------- */
+
+  //  Update metrics when session ends
+  useEffect(() => {
+    if (status !== "finished" || hasUpdatedStatsRef.current) return;
+    hasUpdatedStatsRef.current = true;
+
     const ks = keystrokes.current;
     const totalTyped = ks.filter((k) => k.typedChar !== "Backspace").length;
     const correctKeys = ks.filter((k) => k.isCorrect).length;
-    const finalAccuracy =
-      totalTyped === 0 ? 100 : Math.round((correctKeys / totalTyped) * 100);
 
-    const elapsedMs = startedAtRef.current
-      ? Date.now() - startedAtRef.current
-      : 0;
-    const elapsedMinutes = elapsedMs / 60000;
-
-    // Calculate final WPM based on the Actual text wordCount if session finished naturally
-    // Otherwise use the standard (correctChars / 5) formula
-    let finalWpm = 0;
-    if (elapsedMinutes > 0) {
-      if (cursor >= (data?.charCount || 0)) {
-        // User finished the whole text
-        finalWpm = Math.round((data?.wordCount || 0) / elapsedMinutes);
-      } else {
-        finalWpm = Math.round(correctKeys / 5 / elapsedMinutes);
-      }
-    }
+    const finalWpm = calculateWpm(correctKeys, getTimeElapsed());
+    const finalAccuracy = calculateAccuracy(correctKeys, totalTyped);
 
     updateLocalStats({ wpm: finalWpm, accuracy: finalAccuracy });
     setWpm(finalWpm);
     setAccuracy(finalAccuracy);
-  }, [data, cursor]);
+  }, [status, cursor, data, getTimeElapsed]);
 
-  /* -------------------- TIMER & METRICS -------------------- */
-
+  //  Update metrics every second
   useEffect(() => {
     if (status !== "typing") return;
 
     const interval = setInterval(() => {
-      if (!startedAtRef.current) return;
-
-      // Update timer
-      if (mode !== "passage") {
+      if (mode === "passage") {
+        //  Count up
+        setTimeLeft((prev) => prev + 1);
+      } else {
+        //  Count down
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            setStatus("finished");
+            endSession();
             return 0;
           }
           return prev - 1;
         });
       }
 
-      const elapsedMs = Date.now() - startedAtRef.current;
-      const elapsedMinutes = elapsedMs / 60000;
-      if (elapsedMinutes <= 0) return;
+      const currentElapsed = startedAtRef.current
+        ? Date.now() - startedAtRef.current
+        : 0;
+      const totalElapsedMs = accumulatedTimeRef.current + currentElapsed;
 
-      // Calc WPM
-      // Standard formula: (Correct Characters / 5) / Time (min)
-      const correctTyped = keystrokes.current.filter((k) => k.isCorrect).length;
-      const calculatedWpm = Math.round(correctTyped / 5 / elapsedMinutes);
+      const ks = keystrokes.current;
+      const correctKeys = ks.filter((k) => k.isCorrect).length;
+      const calculatedWpm = calculateWpm(correctKeys, totalElapsedMs);
       setWpm(calculatedWpm);
 
-      // Calc Accuracy
-      const totalTyped = keystrokes.current.filter(
-        (k) => k.typedChar !== "Backspace",
-      ).length;
-      const correctKeys = keystrokes.current.filter((k) => k.isCorrect).length;
-      const calculatedAccuracy =
-        totalTyped === 0 ? 100 : Math.round((correctKeys / totalTyped) * 100);
+      const totalTyped = ks.filter((k) => k.typedChar !== "Backspace").length;
+      const calculatedAccuracy = calculateAccuracy(correctKeys, totalTyped);
       setAccuracy(calculatedAccuracy);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [status, mode]);
-
-  // Sync timeLeft when mode changes
-  useEffect(() => {
-    if (status === "idle") {
-      setTimeLeft(getInitialTime(mode));
-    }
-  }, [mode, status]);
+  }, [status, mode, endSession]);
 
   return (
     <EngineContext.Provider
@@ -193,7 +218,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
         status,
         cursor,
         keystrokes,
-        textData: data,
+        textData,
         wpm,
         accuracy,
         timeLeft,
@@ -205,7 +230,10 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
         setStatus,
         resetSession,
         startSession,
+        pauseSession,
+        resumeSession,
         endSession,
+        getTimeElapsed,
       }}
     >
       {children}
