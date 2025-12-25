@@ -5,18 +5,21 @@ import { cn } from "@/lib/utils";
 import { useEngine } from "@/app/(home)/engine.context";
 import { CharState, Keystroke } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { getCharStates, calculateNextCursor } from "@/lib/engine-logic";
 
 type CharacterProps = {
   char: string;
   isCursor: boolean;
+  className?: string;
 } & CharState;
 
 const Character = memo(
-  ({ char, state, typedChar, isCursor }: CharacterProps) => {
+  ({ char, state, typedChar, isCursor, className }: CharacterProps) => {
     return (
       <span
         className={cn(
-          "text-muted-foreground relative isolate mr-2 whitespace-pre transition-colors duration-100",
+          className,
+          "text-muted-foreground relative isolate mr-2 whitespace-pre transition-colors duration-100 ease-out",
           "before:absolute before:inset-0 before:-z-10 before:-mx-0.5 before:rounded before:bg-transparent before:transition-colors",
           isCursor &&
             `text-foreground after:bg-input after:absolute after:inset-0 after:-z-10 after:-mx-0.5 after:animate-pulse after:rounded`,
@@ -53,7 +56,9 @@ export const TypingEngine = () => {
   } = useEngine();
 
   const [isFocused, setIsFocused] = useState(false);
+  const [showPauseOverlay, setShowPauseOverlay] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wordsContainerRef = useRef<HTMLDivElement>(null);
 
   const characters = useMemo(
     () => textData?.text.split("") || [],
@@ -81,6 +86,37 @@ export const TypingEngine = () => {
     [cursor, characters, keystrokes],
   );
 
+  // Scroll to cursor when it changes
+  useEffect(() => {
+    if (isFocused && status === "typing") {
+      const cursorElement =
+        wordsContainerRef.current?.querySelector<HTMLElement>(".is-cursor");
+      if (cursorElement) {
+        cursorElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }
+  }, [cursor, isFocused, status]);
+
+  // Reset scroll when session is reset
+  useEffect(() => {
+    if (status === "idle") {
+      wordsContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [status]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!isFocused && status === "paused") {
+      timer = setTimeout(() => setShowPauseOverlay(true), 100);
+    } else {
+      setShowPauseOverlay(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isFocused, status]);
+
   const handleKeydown = (e: React.KeyboardEvent) => {
     // Ignore system shortcuts (command/ctrl keys)
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -88,18 +124,19 @@ export const TypingEngine = () => {
     if (status === "finished") return;
     if (cursor >= characters.length) return;
 
-    if (e.key === " ") e.preventDefault();
-
-    if (status === "idle") {
-      startSession();
-    }
-
     const typedChar = e.key;
     const expectedChar = characters[cursor];
     const timestampMs = getTimeElapsed();
 
     // Ignore non-character keys except backspace
     if (typedChar.length !== 1 && typedChar !== "Backspace") return;
+
+    // Prevent browser shortcuts (like ' or / for Firefox search)
+    e.preventDefault();
+
+    if (status === "idle") {
+      startSession();
+    }
 
     // Ignore backspace at the start
     if (typedChar === "Backspace" && cursor === 0) return;
@@ -113,8 +150,10 @@ export const TypingEngine = () => {
         isCorrect: false,
         timestampMs,
       });
-
-      setCursor((ps) => (ps > 0 ? ps - 1 : ps));
+      // Set cursor to the previous character
+      setCursor((ps) =>
+        calculateNextCursor(ps, "Backspace", characters.length),
+      );
       return;
     }
 
@@ -128,25 +167,30 @@ export const TypingEngine = () => {
       isCorrect,
       timestampMs,
     });
-
-    setCursor((ps) => ps + 1);
+    // Set cursor to the next character
+    setCursor((ps) => calculateNextCursor(ps, typedChar, characters.length));
+    // End session if the cursor is at the end of the text
     if (cursor + 1 >= characters.length) endSession();
   };
 
   if (!textData) return null;
 
+  const handleFocus = () => {
+    setIsFocused(true);
+    resumeSession();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    pauseSession();
+  };
+
   return (
     <div
       tabIndex={0}
       ref={containerRef}
-      onFocus={() => {
-        setIsFocused(true);
-        resumeSession();
-      }}
-      onBlur={() => {
-        setIsFocused(false);
-        pauseSession();
-      }}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
       onKeyDown={handleKeydown}
       className="relative isolate flex grow flex-col gap-4 outline-none"
     >
@@ -159,8 +203,11 @@ export const TypingEngine = () => {
       </div>
 
       <div
+        ref={wordsContainerRef}
         className={cn(
-          "text-2 md:text-1-regular flex flex-wrap gap-y-1 pt-8 leading-relaxed transition-opacity duration-300",
+          "max-h-[calc(100vh-31rem)] overflow-y-auto scroll-smooth",
+          "text-1-regular-mobile md:text-1-regular break-word flex flex-wrap gap-y-1 pt-8",
+          "transition-opacity duration-300 ease-out",
           !isFocused &&
             (status === "idle" || status === "paused") &&
             "opacity-50 blur-xs select-none",
@@ -172,6 +219,7 @@ export const TypingEngine = () => {
               <Character
                 key={index}
                 char={char}
+                className={cn(index === cursor && "is-cursor")}
                 state={charStates[index].state}
                 typedChar={charStates[index].typedChar}
                 isCursor={index === cursor && isFocused}
@@ -181,18 +229,16 @@ export const TypingEngine = () => {
         ))}
       </div>
 
+      {/* Start Button Backdrop overlay */}
       {!isFocused && status === "idle" && (
         <div
-          className="absolute inset-0 z-20 flex items-center justify-center"
+          className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
           onClick={() => containerRef.current?.focus()}
         >
           <div className="flex flex-col items-center gap-5">
             <Button
+              onPointerDown={() => containerRef.current?.focus()}
               className="text-3-semibold hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 hover:bg-blue-400"
-              onClick={(e) => {
-                e.stopPropagation();
-                containerRef.current?.focus();
-              }}
             >
               Start Typing Test
             </Button>
@@ -203,46 +249,18 @@ export const TypingEngine = () => {
         </div>
       )}
 
-      {!isFocused && status === "paused" && (
+      {/* Pause Button Backdrop overlay */}
+      {showPauseOverlay && (
         <div
-          className="bg-background/40 absolute inset-0 z-20 flex items-center justify-center backdrop-blur-sm"
+          className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
           onClick={() => containerRef.current?.focus()}
         >
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-foreground text-1-semibold animate-pulse">
-              Test Paused
-            </p>
-            <p className="text-muted-foreground text-3-medium">
-              Click here to resume
-            </p>
+          <div className="text-3-semibold flex flex-col items-center gap-3">
+            <p className="text-yellow animate-pulse">Test Paused</p>
+            <p className="text-muted-foreground">Click here to resume</p>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-// Compute all character states in a single O(K) pass instead of O(N*K)
-export const getCharStates = (
-  characters: string[],
-  keystrokes: Keystroke[],
-) => {
-  const states: CharState[] = new Array(characters.length)
-    .fill(null)
-    .map(() => ({
-      state: "not-typed",
-      typedChar: "",
-    }));
-
-  for (const k of keystrokes || []) {
-    if (k.typedChar === "Backspace") {
-      states[k.charIndex] = { state: "not-typed", typedChar: "" };
-    } else {
-      states[k.charIndex] = {
-        state: k.isCorrect ? "correct" : "incorrect",
-        typedChar: k.typedChar,
-      };
-    }
-  }
-  return states;
 };
