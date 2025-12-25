@@ -1,11 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { getCharState, type Keystroke } from "./engine";
+import { getCharStates } from "./engine";
+import { Keystroke } from "@/lib/types";
 
-describe("getCharState", () => {
-  it("returns 'not-typed' for characters ahead of the cursor", () => {
+describe("getCharStates", () => {
+  const chars = "The quick brown fox".split("");
+
+  it("returns 'not-typed' for characters without keystrokes", () => {
     const keystrokes: Keystroke[] = [];
-    expect(getCharState(keystrokes, 5, 0)).toBe("not-typed");
-    expect(getCharState(keystrokes, 1, 0)).toBe("not-typed");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "not-typed",
+      typedChar: "",
+    });
+    expect(states[5]).toEqual({
+      state: "not-typed",
+      typedChar: "",
+    });
   });
 
   it("returns 'correct' for a correctly typed character", () => {
@@ -18,7 +28,11 @@ describe("getCharState", () => {
         timestampMs: 100,
       },
     ];
-    expect(getCharState(keystrokes, 0, 1)).toBe("correct");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "correct",
+      typedChar: "T",
+    });
   });
 
   it("returns 'incorrect' for an incorrectly typed character", () => {
@@ -31,9 +45,11 @@ describe("getCharState", () => {
         timestampMs: 100,
       },
     ];
-    // Mismatched chars don't move the cursor forward automatically
-    // getCharState should still report 'incorrect' if we are at that index
-    expect(getCharState(keystrokes, 0, 0)).toBe("incorrect");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "incorrect",
+      typedChar: "x",
+    });
   });
 
   it("neutralizes color (returns 'not-typed') after backspace", () => {
@@ -53,8 +69,11 @@ describe("getCharState", () => {
         timestampMs: 200,
       },
     ];
-    // After backspacing index 0, cursor would be back at 0
-    expect(getCharState(keystrokes, 0, 0)).toBe("not-typed");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "not-typed",
+      typedChar: "",
+    });
   });
 
   it("handles re-typing correctly after backspace", () => {
@@ -81,7 +100,11 @@ describe("getCharState", () => {
         timestampMs: 300,
       },
     ];
-    expect(getCharState(keystrokes, 0, 1)).toBe("correct");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "correct",
+      typedChar: "T",
+    });
   });
 
   it("handles backspacing multiple times at the same index", () => {
@@ -122,55 +145,11 @@ describe("getCharState", () => {
         timestampMs: 500,
       },
     ];
-    expect(getCharState(keystrokes, 0, 1)).toBe("correct");
-  });
-
-  it("neutralizes color when the LAST action at an index was a backspace, even if there were multiple", () => {
-    const keystrokes: Keystroke[] = [
-      {
-        charIndex: 0,
-        expectedChar: "T",
-        typedChar: "a",
-        isCorrect: false,
-        timestampMs: 100,
-      },
-      {
-        charIndex: 0,
-        expectedChar: "T",
-        typedChar: "Backspace",
-        isCorrect: false,
-        timestampMs: 200,
-      },
-      {
-        charIndex: 0,
-        expectedChar: "T",
-        typedChar: "b",
-        isCorrect: false,
-        timestampMs: 300,
-      },
-      {
-        charIndex: 0,
-        expectedChar: "T",
-        typedChar: "Backspace",
-        isCorrect: false,
-        timestampMs: 400,
-      },
-    ];
-    // Cursor would be at 0 Color should be neutralized.
-    expect(getCharState(keystrokes, 0, 0)).toBe("not-typed");
-  });
-
-  it("treats untyped characters beyond cursor as 'not-typed'", () => {
-    const keystrokes: Keystroke[] = [
-      {
-        charIndex: 0,
-        expectedChar: "T",
-        typedChar: "T",
-        isCorrect: true,
-        timestampMs: 100,
-      },
-    ];
-    expect(getCharState(keystrokes, 1, 1)).toBe("not-typed");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "correct",
+      typedChar: "T",
+    });
   });
 
   it("keystroke order determines character state not the timestamps", () => {
@@ -190,8 +169,11 @@ describe("getCharState", () => {
         timestampMs: 100,
       },
     ];
-
-    expect(getCharState(keystrokes, 0, 0)).toBe("not-typed");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "not-typed",
+      typedChar: "",
+    });
   });
 
   it("does not affect previous correct characters when later characters are incorrect", () => {
@@ -211,9 +193,15 @@ describe("getCharState", () => {
         timestampMs: 200,
       },
     ];
-
-    expect(getCharState(keystrokes, 0, 1)).toBe("correct");
-    expect(getCharState(keystrokes, 1, 1)).toBe("incorrect");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "correct",
+      typedChar: "T",
+    });
+    expect(states[1]).toEqual({
+      state: "incorrect",
+      typedChar: "x",
+    });
   });
 
   it("does not neutralize earlier characters when backspacing a later index", () => {
@@ -240,22 +228,14 @@ describe("getCharState", () => {
         timestampMs: 300,
       },
     ];
-
-    expect(getCharState(keystrokes, 0, 1)).toBe("correct");
-    expect(getCharState(keystrokes, 1, 1)).toBe("not-typed");
-  });
-
-  it("returns not-typed when index is greater than cursor even with keystrokes present", () => {
-    const keystrokes: Keystroke[] = [
-      {
-        charIndex: 2,
-        expectedChar: "x",
-        typedChar: "x",
-        isCorrect: true,
-        timestampMs: 100,
-      },
-    ];
-
-    expect(getCharState(keystrokes, 2, 1)).toBe("not-typed");
+    const states = getCharStates(chars, keystrokes);
+    expect(states[0]).toEqual({
+      state: "correct",
+      typedChar: "T",
+    });
+    expect(states[1]).toEqual({
+      state: "not-typed",
+      typedChar: "",
+    });
   });
 });
