@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useMemo, memo, useState } from "react";
+
 import { cn } from "@/lib/utils";
-import { useEngine } from "@/app/(home)/engine.context";
-import { CharState, Keystroke } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import { CharState } from "@/lib/types";
 import { getCharStates, calculateNextCursor } from "@/lib/engine-logic";
+import { useEngine } from "../../engine.context";
+import { Button } from "@/components/ui/button";
 
 type CharacterProps = {
   char: string;
@@ -19,7 +20,7 @@ const Character = memo(
       <span
         className={cn(
           className,
-          "text-muted-foreground relative isolate mr-2 whitespace-pre transition-colors duration-100 ease-out",
+          "text-muted-foreground relative isolate ml-2 whitespace-pre transition-colors duration-100 ease-out",
           "before:absolute before:inset-0 before:-z-10 before:-mx-0.5 before:rounded before:bg-transparent before:transition-colors",
           isCursor &&
             `text-foreground after:bg-input after:absolute after:inset-0 after:-z-10 after:-mx-0.5 after:animate-pulse after:rounded`,
@@ -40,7 +41,7 @@ const Character = memo(
 
 Character.displayName = "Character";
 
-export const TypingEngine = () => {
+export const EngineContainer = () => {
   const {
     cursor,
     status,
@@ -56,7 +57,7 @@ export const TypingEngine = () => {
   } = useEngine();
 
   const [isFocused, setIsFocused] = useState(false);
-  const [showPauseOverlay, setShowPauseOverlay] = useState(false);
+  const [maxHeight, setMaxHeight] = useState<number | string>("none");
   const containerRef = useRef<HTMLDivElement>(null);
   const wordsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -91,10 +92,35 @@ export const TypingEngine = () => {
     if (isFocused && status === "typing") {
       const cursorElement =
         wordsContainerRef.current?.querySelector<HTMLElement>(".is-cursor");
-      if (cursorElement) {
-        cursorElement.scrollIntoView({
+      if (cursorElement && wordsContainerRef.current) {
+        const container = wordsContainerRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const cursorRect = cursorElement.getBoundingClientRect();
+
+        // Calculate the top position relative to the container and center it
+        const relativeTop =
+          cursorRect.top - containerRect.top + container.scrollTop;
+        const targetTop = relativeTop - containerRect.height / 2;
+
+        // Dynamic horizontal scroll
+        let targetLeft = container.scrollLeft;
+
+        // If cursor is hitting the right boundary, reveal more text
+        if (cursorRect.right > containerRect.right - 40) {
+          targetLeft =
+            container.scrollLeft +
+            (cursorRect.right - containerRect.right + 40);
+        }
+
+        // If cursor moves back towards the left (new line), reset scroll
+        if (cursorRect.left < containerRect.left + 40) {
+          targetLeft = 0;
+        }
+
+        container.scrollTo({
+          top: targetTop,
+          left: targetLeft,
           behavior: "smooth",
-          block: "center",
         });
       }
     }
@@ -103,26 +129,68 @@ export const TypingEngine = () => {
   // Reset scroll when session is reset
   useEffect(() => {
     if (status === "idle") {
-      wordsContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      wordsContainerRef.current?.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "smooth",
+      });
     }
   }, [status]);
 
+  // Calculate dynamic max-height
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (!isFocused && status === "paused") {
-      timer = setTimeout(() => setShowPauseOverlay(true), 100);
-    } else {
-      setShowPauseOverlay(false);
+    const calculateHeight = () => {
+      if (!wordsContainerRef.current) return;
+
+      // Use visualViewport for mobile stability if available
+      const viewportHeight =
+        window.visualViewport?.height || window.innerHeight;
+      const rect = wordsContainerRef.current.getBoundingClientRect();
+      const topOffset = rect.top;
+
+      // Calculate height of all elements (around the engine container) marked as offsets
+      const offsets = document.querySelectorAll("[data-engine-offset]");
+      let totalOffsetHeight = 0;
+      offsets.forEach((el) => {
+        totalOffsetHeight += el.getBoundingClientRect().height;
+      });
+
+      // Approximate accumulation of total gaps/spaces around the engine container
+      const safetyBuffer = 120;
+      const containerMinHeight = 150;
+      const availableHeight =
+        viewportHeight - topOffset - totalOffsetHeight - safetyBuffer;
+
+      setMaxHeight(Math.max(availableHeight, containerMinHeight));
+    };
+
+    calculateHeight();
+    const currentContainer = wordsContainerRef.current;
+    const observer = new ResizeObserver(calculateHeight);
+
+    if (currentContainer?.parentElement) {
+      observer.observe(currentContainer.parentElement);
     }
-    return () => clearTimeout(timer);
-  }, [isFocused, status]);
+    window.addEventListener("resize", calculateHeight);
+
+    return () => {
+      window.removeEventListener("resize", calculateHeight);
+      observer.disconnect();
+    };
+  }, [status]);
 
   const handleKeydown = (e: React.KeyboardEvent) => {
-    // Ignore system shortcuts (command/ctrl keys)
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Prevent browser shortcuts (like ' or / for Firefox search)
+    e.preventDefault();
+    // Ignore system shortcuts and shift key
+    if (e.ctrlKey || e.metaKey || e.altKey || e.key === "Shift") return;
 
-    if (status === "finished") return;
-    if (cursor >= characters.length) return;
+    if (status === "finished" || cursor >= characters.length) {
+      endSession();
+      return;
+    }
+    if (status === "idle") startSession();
+    if (status === "paused") resumeSession();
 
     const typedChar = e.key;
     const expectedChar = characters[cursor];
@@ -130,13 +198,6 @@ export const TypingEngine = () => {
 
     // Ignore non-character keys except backspace
     if (typedChar.length !== 1 && typedChar !== "Backspace") return;
-
-    // Prevent browser shortcuts (like ' or / for Firefox search)
-    e.preventDefault();
-
-    if (status === "idle") {
-      startSession();
-    }
 
     // Ignore backspace at the start
     if (typedChar === "Backspace" && cursor === 0) return;
@@ -159,7 +220,6 @@ export const TypingEngine = () => {
 
     // Handle normal typing
     const isCorrect = typedChar === expectedChar;
-
     keystrokes.current?.push({
       charIndex: cursor,
       expectedChar,
@@ -169,15 +229,12 @@ export const TypingEngine = () => {
     });
     // Set cursor to the next character
     setCursor((ps) => calculateNextCursor(ps, typedChar, characters.length));
-    // End session if the cursor is at the end of the text
-    if (cursor + 1 >= characters.length) endSession();
   };
 
   if (!textData) return null;
 
   const handleFocus = () => {
     setIsFocused(true);
-    resumeSession();
   };
 
   const handleBlur = () => {
@@ -192,7 +249,7 @@ export const TypingEngine = () => {
       onBlur={handleBlur}
       onFocus={handleFocus}
       onKeyDown={handleKeydown}
-      className="relative isolate flex grow flex-col gap-4 outline-none"
+      className="relative isolate flex grow flex-col outline-none"
     >
       {/* Progress Bar */}
       <div className="bg-border h-px w-full overflow-hidden rounded-full">
@@ -204,17 +261,21 @@ export const TypingEngine = () => {
 
       <div
         ref={wordsContainerRef}
+        style={{
+          maxHeight:
+            typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
+        }}
         className={cn(
-          "max-h-[calc(100vh-31rem)] overflow-y-auto scroll-smooth",
-          "text-1-regular-mobile md:text-1-regular break-word flex flex-wrap gap-y-1 pt-8",
+          "scrollbar-none overflow-auto overscroll-none scroll-smooth",
+          "text-1-regular-mobile md:text-1-regular flex flex-wrap gap-y-1 pt-8",
           "transition-opacity duration-300 ease-out",
-          !isFocused &&
-            (status === "idle" || status === "paused") &&
+          (status === "idle" || status === "paused") &&
+            !isFocused &&
             "opacity-50 blur-xs select-none",
         )}
       >
         {words.map((word, wordIndex) => (
-          <div key={wordIndex} className="flex h-fit">
+          <div key={wordIndex}>
             {word.map(({ char, index }) => (
               <Character
                 key={index}
@@ -250,10 +311,13 @@ export const TypingEngine = () => {
       )}
 
       {/* Pause Button Backdrop overlay */}
-      {showPauseOverlay && (
+      {status === "paused" && (
         <div
           className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
-          onClick={() => containerRef.current?.focus()}
+          onClick={() => {
+            containerRef.current?.focus();
+            resumeSession();
+          }}
         >
           <div className="text-3-semibold flex flex-col items-center gap-3">
             <p className="text-yellow animate-pulse">Test Paused</p>
