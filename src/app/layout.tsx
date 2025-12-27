@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Sora } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
-import { Header } from "@/components/header";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -23,17 +22,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${sora.variable}`}>
+      <body className={sora.variable}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          enableSystem
+          enableSystem={false}
+          enableColorScheme={false}
           disableTransitionOnChange
+          themes={["light", "dark", "sepia"]}
         >
-          <div className="container">
-            <Header />
-            {children}
-          </div>
+          {children}
         </ThemeProvider>
       </body>
     </html>
