@@ -55,12 +55,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const accumulatedTimeRef = useRef(0);
   const hasUpdatedStatsRef = useRef(false);
 
-  // Sync timeLeft when mode changes ONLY when idle
-  useEffect(() => {
-    if (state.status === "idle") {
-      dispatch({ type: "RESET", timeLeft: getInitialTime(mode) });
-    }
-  }, [mode, state.status]);
+  /* -------------------- ACTIONS -------------------- */
 
   const getTimeElapsed = useCallback(() => {
     const currentElapsed = startedAtRef.current
@@ -68,8 +63,6 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       : 0;
     return accumulatedTimeRef.current + currentElapsed;
   }, []);
-
-  /* -------------------- ACTIONS -------------------- */
 
   const resetSession = useCallback(() => {
     dispatch({ type: "RESET", timeLeft: getInitialTime(mode) });
@@ -110,10 +103,6 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     startedAtRef.current = null;
   }, [state.status]);
 
-  const updateMetrics = useCallback((wpm: number, accuracy: number) => {
-    dispatch({ type: "UPDATE_METRICS", wpm, accuracy });
-  }, []);
-
   const setStatus = useCallback((status: EngineStatus) => {
     dispatch({ type: "SET_STATUS", status });
   }, []);
@@ -126,6 +115,11 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   );
 
   /* -------------------- TIMER & METRICS -------------------- */
+
+  // Sync timeLeft when mode changes and reset session
+  useEffect(() => {
+    resetSession();
+  }, [resetSession]);
 
   // Update metrics when session ends
   useEffect(() => {
@@ -142,32 +136,39 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
     updateLocalStats({ wpm: finalWpm, accuracy: finalAccuracy });
     dispatch({
-      type: "UPDATE_METRICS",
+      type: "SET_METRICS",
       wpm: finalWpm,
       accuracy: finalAccuracy,
     });
   }, [state.status, getTimeElapsed]);
 
   // Update metrics every second
+  const intervalRef = useRef<NodeJS.Timeout>(undefined);
   useEffect(() => {
     if (state.status !== "typing") return;
+    // Prevent double interval in case of fast re-renders/race conditions
+    if (intervalRef.current) return;
 
-    const interval = setInterval(() => {
-      dispatch({ type: "TICK", mode });
-
+    intervalRef.current = setInterval(() => {
       const elapsed = getTimeElapsed();
       const ks = keystrokes.current;
       const correctKeys = ks.filter((k) => k.isCorrect).length;
       const totalTyped = ks.filter((k) => k.typedChar !== "Backspace").length;
 
       dispatch({
-        type: "UPDATE_METRICS",
+        type: "TICK",
+        mode,
         wpm: calculateWpm(correctKeys, elapsed),
         accuracy: calculateAccuracy(correctKeys, totalTyped),
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = undefined; // Reset to allow re-start
+      }
+    };
   }, [state.status, mode, getTimeElapsed]);
 
   /* -------------------- PROVIDER VALUES -------------------- */
@@ -205,7 +206,6 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       endSession,
       getTimeElapsed,
-      updateMetrics,
       tick: () => dispatch({ type: "TICK", mode }),
     }),
     [
@@ -217,7 +217,6 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       endSession,
       getTimeElapsed,
-      updateMetrics,
       mode,
     ],
   );

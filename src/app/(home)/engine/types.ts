@@ -55,7 +55,6 @@ export type EngineActionsCtxType = {
   resumeSession: () => void;
   endSession: () => void;
   getTimeElapsed: () => number;
-  updateMetrics: (wpm: number, accuracy: number) => void;
   tick: () => void;
 };
 
@@ -71,5 +70,5 @@ export type EngineAction =
       charCount?: number;
     }
   | { type: "SET_STATUS"; status: EngineStatus }
-  | { type: "TICK"; mode: TextMode }
-  | { type: "UPDATE_METRICS"; wpm: number; accuracy: number };
+  | { type: "TICK"; mode: TextMode; wpm?: number; accuracy?: number }
+  | { type: "SET_METRICS"; wpm: number; accuracy: number };

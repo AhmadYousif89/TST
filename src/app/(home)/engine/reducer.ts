@@ -39,6 +39,20 @@ export function engineReducer(
         ...state,
         status: "finished",
       };
+    case "TICK": {
+      const isTimed = action.mode !== "passage";
+      const nextTime = isTimed
+        ? Math.max(0, state.timeLeft - 1)
+        : state.timeLeft + 1;
+      const status = isTimed && nextTime === 0 ? "finished" : state.status;
+      return {
+        ...state,
+        timeLeft: nextTime,
+        status,
+        wpm: action.wpm ?? state.wpm,
+        accuracy: action.accuracy ?? state.accuracy,
+      };
+    }
     case "SET_CURSOR": {
       const nextCursor =
         typeof action.cursor === "function"
@@ -58,19 +72,7 @@ export function engineReducer(
         ...state,
         status: action.status,
       };
-    case "TICK": {
-      const isTimed = action.mode !== "passage";
-      const nextTime = isTimed
-        ? Math.max(0, state.timeLeft - 1)
-        : state.timeLeft + 1;
-      const status = isTimed && nextTime === 0 ? "finished" : state.status;
-      return {
-        ...state,
-        timeLeft: nextTime,
-        status,
-      };
-    }
-    case "UPDATE_METRICS":
+    case "SET_METRICS":
       return {
         ...state,
         wpm: action.wpm,
