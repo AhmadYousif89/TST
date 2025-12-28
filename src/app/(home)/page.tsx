@@ -1,5 +1,5 @@
+import { getUser } from "../dal/user";
 import { getInitialText } from "../dal/data";
-
 import { EngineProvider } from "./engine/engine.context";
 import { MainContent } from "./_components/main/content";
 import { Header } from "./_components/header";
@@ -20,6 +20,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const id = typeof sp.id === "string" ? sp.id : undefined;
 
   const textData = await getInitialText({ id, category, difficulty });
+  const user = await getUser();
 
   if (!textData) {
     return (
@@ -32,7 +33,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   return (
     <EngineProvider key={textData._id.toString()} data={{ textData, mode }}>
       <div className="container">
-        <Header />
+        <Header user={user} />
         <MainContent />
         <Footer />
       </div>
