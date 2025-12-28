@@ -1,52 +1,58 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, MongoClientOptions } from "mongodb";
 
 declare global {
-  var __mongo:
-    | {
-        client: MongoClient | null;
-        promise: Promise<MongoClient> | null;
-        initialized: boolean;
-      }
-    | undefined;
+  var mongoConn: {
+    client: MongoClient | null;
+    promise: Promise<MongoClient> | null;
+  };
 }
 
-const uri = process.env.MONGODB_URI!;
-const dbName = process.env.MONGODB_NAME!;
+const MONGODB_NAME = process.env.MONGODB_NAME!;
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-if (!uri) throw new Error("Please define the MONGODB_URI environment variable");
-if (!dbName) throw new Error("Please define the MONGODB_DB environment variable");
+if (!MONGODB_URI) {
+  throw new Error(
+    "Please define the MONGODB_URI environment variable inside .env",
+  );
+}
 
-const cached = (global.__mongo ??= {
-  client: null,
-  promise: null,
-  initialized: false,
-});
+let cached = global.mongoConn;
 
-export async function getMongoClient(): Promise<MongoClient> {
-  if (cached.client) return cached.client;
-
-  if (!cached.promise) {
-    console.log("Creating MongoDB client...");
-    const client = new MongoClient(uri);
-
-    cached.promise = client.connect().then(async (c) => {
-      if (!cached.initialized) {
-        const db = c.db(dbName);
-        await db.command({ ping: 1 });
-        cached.initialized = true;
-        console.log("MongoDB connected and initialized");
-      }
-      return c;
-    });
-  }
-
-  cached.client = await cached.promise;
-  return cached.client;
+if (!cached) {
+  cached = global.mongoConn = { client: null, promise: null };
 }
 
 async function connectToDB() {
-  const client = await getMongoClient();
-  return { db: client.db(dbName), client };
+  if (cached.client) {
+    return { db: cached.client.db(MONGODB_NAME), client: cached.client };
+  }
+
+  if (!cached.promise) {
+    console.log("Creating new connection promise...");
+    const opts: MongoClientOptions = {
+      appName: "TST",
+      socketTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 10000,
+      writeConcern: { w: "majority" },
+      retryWrites: true,
+    };
+
+    cached.promise = (async () =>
+      await MongoClient.connect(MONGODB_URI, opts))();
+  }
+
+  try {
+    console.log("Connecting to database...");
+    cached.client = await cached.promise;
+  } catch (e) {
+    console.error("Error connecting to database:", e);
+    cached.promise = null; // Allow retry on next call
+    throw e;
+  }
+
+  console.log(`Database ${MONGODB_NAME}: connected.`);
+  return { db: cached.client.db(MONGODB_NAME), client: cached.client };
 }
 
 export default connectToDB;

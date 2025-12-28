@@ -1,4 +1,10 @@
 import { ObjectId } from "mongodb";
+import {
+  Keystroke,
+  TextMode,
+  TextCategory,
+  TextDifficulty,
+} from "@/app/(home)/engine/types";
 
 // texts collection
 export type TextDoc = {
@@ -10,6 +16,8 @@ export type TextDoc = {
   charCount: number;
   category: TextCategory;
   difficulty: TextDifficulty;
+  totalCompletions?: number;
+  averageWpm?: number;
 
   createdAt: Date;
 };
@@ -18,8 +26,8 @@ export type TextDoc = {
 export type AnonUserDoc = {
   _id: string | ObjectId;
 
-  anonUserId: string; // UUID v4 (in localStorage)
-  bestWmp: number;
+  anonUserId: string; // UUID v4 (in a cookie)
+  bestWpm: number;
   bestAccuracy: number;
   totalSessions: number;
 
@@ -56,23 +64,3 @@ export type KeystrokeDoc = {
   anonUserId: string;
   createdAt: Date;
 } & Keystroke;
-
-export type Keystroke = {
-  charIndex: number;
-  expectedChar: string;
-  typedChar: string;
-  positionGroup?: number; // Math.floor(charIndex / 10)
-  isCorrect: boolean;
-  timestampMs: number; // offset from session start
-};
-
-export type TextDifficulty = "easy" | "medium" | "hard";
-export type TextCategory = "lyrics" | "general" | "quotes" | "code";
-export type TextMode = "t:15" | "t:30" | "t:60" | "t:120" | "t:180" | "passage";
-
-export type CharState = {
-  state: "not-typed" | "correct" | "incorrect";
-  typedChar: string;
-};
-
-export type EngineStatus = "idle" | "typing" | "paused" | "finished";
