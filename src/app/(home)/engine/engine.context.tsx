@@ -11,13 +11,11 @@ import React, {
 } from "react";
 
 import { TextDoc } from "@/lib/types";
-import { updateLocalStats } from "@/lib/utils";
 import {
   calculateWpm,
   calculateAccuracy,
   getInitialTime,
 } from "./engine-logic";
-
 import {
   TextMode,
   Keystroke,
@@ -129,18 +127,47 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     const ks = keystrokes.current;
     const totalTyped = ks.filter((k) => k.typedChar !== "Backspace").length;
     const correctKeys = ks.filter((k) => k.isCorrect).length;
+    const errorCount = totalTyped - correctKeys;
 
     const elapsed = getTimeElapsed();
     const finalWpm = calculateWpm(correctKeys, elapsed);
     const finalAccuracy = calculateAccuracy(correctKeys, totalTyped);
 
-    updateLocalStats({ wpm: finalWpm, accuracy: finalAccuracy });
     dispatch({
       type: "SET_METRICS",
       wpm: finalWpm,
       accuracy: finalAccuracy,
     });
-  }, [state.status, getTimeElapsed]);
+
+    // Sync with DB
+    if (textData?._id) {
+      fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          textId: textData._id,
+          category: textData.category,
+          difficulty: textData.difficulty,
+          mode,
+          wpm: finalWpm,
+          accuracy: finalAccuracy,
+          errorCount,
+          durationMs: elapsed,
+          startedAt: startedAtRef.current,
+          finishedAt: Date.now(),
+          keystrokes: ks,
+        }),
+      })
+        .then((res) => {
+          if (res.ok) {
+            // This event is needed to signal the header that the session and the backend logic has finished
+            // and the header can now fetch the best WPM value (so we can't relay solely on the engine status)
+            window.dispatchEvent(new CustomEvent("session-finished"));
+          }
+        })
+        .catch((err) => console.error("Failed to sync session:", err));
+    }
+  }, [state.status, getTimeElapsed, mode, textData]);
 
   // Update metrics every second
   const intervalRef = useRef<NodeJS.Timeout>(undefined);
