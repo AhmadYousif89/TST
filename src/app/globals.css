@@ -41,6 +41,7 @@
 }
 
 @theme inline {
+  --font-mono: var(--font-mono);
   --font-sans: var(--font-sora);
   --text-*: initial;
   --color-*: initial;
@@ -54,6 +55,13 @@
   --color-muted: var(--muted);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-input: var(--input);
+  --color-red: var(--red-500);
+  --color-green: var(--green-500);
+  --color-yellow: var(--yellow-400);
+  --color-blue-400: var(--blue-400);
+  --color-blue-600: var(--blue-600);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -65,6 +73,7 @@
 }
 
 :root {
+  color-scheme: light;
   --radius: 0.625rem;
 
   --neutral-0: oklch(1 0 0);
@@ -75,9 +84,14 @@
   --neutral-800: oklch(0.2686 0 0);
   --neutral-900: oklch(0.1822 0 0);
 
-  --sepia-0: oklch(0.944 0.0278 88.75);
-  --sepia-400: oklch(0.6675 0.0044 286.28);
-  --sepia-800: oklch(0.4271 0.0467 72.27);
+  --sepia-bg: oklch(0.92 0.03 88);
+  --sepia-fg: oklch(0.25 0.04 45);
+  --sepia-muted: oklch(0.55 0.04 65);
+  --sepia-border: oklch(0.82 0.05 85);
+  --sepia-input: oklch(0.4 0.05 45);
+  --sepia-red: oklch(0.58 0.14 28);
+  --sepia-green: oklch(0.62 0.12 145);
+
   --yellow-400: oklch(0.8933 0.1281 96.72);
   --blue-400: oklch(0.7109 0.1563 250.76);
   --blue-600: oklch(0.611 0.2123 257.82);
@@ -90,26 +104,31 @@
   --primary-foreground: var(--neutral-800);
   --muted: var(--neutral-100);
   --muted-foreground: var(--neutral-400);
+  --destructive: var(--red-500);
   --border: var(--neutral-700);
   --ring: var(--blue-400);
+  --input: var(--neutral-500);
 }
 
 .dark {
+  color-scheme: dark;
   --background: var(--neutral-900);
   --foreground: var(--neutral-0);
-  --primary: var(--neutral-800);
+  --primary: var(--neutral-900);
   --primary-foreground: var(--neutral-0);
-  --muted: var(--neutral-800);
-  --muted-foreground: var(--neutral-400);
+  --secondary: var(--neutral-800);
+  --muted: var(--neutral-500);
 }
 
 .sepia {
-  --background: var(--sepia-0);
-  --foreground: var(--sepia-800);
-  --primary: var(--sepia-800);
-  --primary-foreground: var(--sepia-0);
-  --muted: var(--sepia-800);
-  --muted-foreground: var(--sepia-400);
+  color-scheme: light;
+  --background: var(--sepia-bg);
+  --foreground: var(--sepia-fg);
+  --muted-foreground: var(--sepia-muted);
+  --border: var(--sepia-border);
+  --input: var(--sepia-input);
+  --red-500: var(--sepia-red);
+  --green-500: var(--sepia-green);
 }
 
 @layer base {
@@ -127,6 +146,13 @@
 
 @utility container {
   @apply mx-auto flex max-w-360 grow flex-col gap-8 p-4 pb-8 md:gap-10 md:p-8 md:pb-10 xl:gap-16 xl:px-28 xl:py-8;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @utility text-1 {
@@ -204,4 +230,33 @@
   font-weight: 400;
   line-height: 1.2;
   letter-spacing: 0px;
+}
+
+@keyframes mistyped-fly-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
+@utility animate-mistyped {
+  animation: mistyped-fly-out 0.4s ease-out forwards;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@utility animate-blink {
+  animation: blink 1s step-end infinite;
 }
