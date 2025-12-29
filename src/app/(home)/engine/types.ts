@@ -35,7 +35,6 @@ export type EngineStateCtxType = {
   mode: TextMode;
   status: EngineStatus;
   textData: TextDoc | null;
-  keystrokes: React.RefObject<Keystroke[]>;
   wpm: number;
   accuracy: number;
   timeLeft: number;
@@ -44,6 +43,7 @@ export type EngineStateCtxType = {
 export type EngineKeystrokeCtxType = {
   cursor: number;
   progress: number;
+  keystrokes: React.RefObject<Keystroke[]>;
 };
 
 export type EngineActionsCtxType = {

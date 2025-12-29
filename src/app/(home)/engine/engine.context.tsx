@@ -207,7 +207,6 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       mode,
       status: state.status,
       textData,
-      keystrokes,
       wpm: state.wpm,
       accuracy: state.accuracy,
       timeLeft: state.timeLeft,
@@ -219,6 +218,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     () => ({
       cursor: state.cursor,
       progress: state.progress,
+      keystrokes,
     }),
     [state.cursor, state.progress],
   );
@@ -250,11 +250,11 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   return (
     <EngineStateContext.Provider value={stateValue}>
-      <EngineKeystrokeContext.Provider value={keystrokeValue}>
-        <EngineActionsContext.Provider value={actionsValue}>
+      <EngineActionsContext.Provider value={actionsValue}>
+        <EngineKeystrokeContext.Provider value={keystrokeValue}>
           {children}
-        </EngineActionsContext.Provider>
-      </EngineKeystrokeContext.Provider>
+        </EngineKeystrokeContext.Provider>
+      </EngineActionsContext.Provider>
     </EngineStateContext.Provider>
   );
 };
