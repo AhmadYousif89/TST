@@ -49,9 +49,15 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   });
 
   const keystrokes = useRef<Keystroke[]>([]);
+  const statusRef = useRef(state.status);
   const startedAtRef = useRef<number | null>(null);
   const accumulatedTimeRef = useRef(0);
   const hasUpdatedStatsRef = useRef(false);
+
+  // Handle status changes and guard against race conditions and stale state
+  useEffect(() => {
+    statusRef.current = state.status;
+  }, [state.status]);
 
   /* -------------------- ACTIONS -------------------- */
 
@@ -78,28 +84,29 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   }, []);
 
   const pauseSession = useCallback(() => {
-    if (state.status !== "typing") return;
+    if (statusRef.current !== "typing") return;
     dispatch({ type: "PAUSE", timestamp: Date.now() });
     if (startedAtRef.current) {
       accumulatedTimeRef.current += Date.now() - startedAtRef.current;
       startedAtRef.current = null;
     }
-  }, [state.status]);
+  }, []);
 
   const resumeSession = useCallback(() => {
-    if (state.status !== "paused") return;
+    if (statusRef.current !== "paused") return;
     dispatch({ type: "RESUME", timestamp: Date.now() });
     startedAtRef.current = Date.now();
-  }, [state.status]);
+  }, []);
 
   const endSession = useCallback(() => {
-    if (state.status !== "typing" && state.status !== "paused") return;
-    if (state.status === "typing" && startedAtRef.current) {
+    if (statusRef.current !== "typing" && statusRef.current !== "paused")
+      return;
+    if (statusRef.current === "typing" && startedAtRef.current) {
       accumulatedTimeRef.current += Date.now() - startedAtRef.current;
     }
     dispatch({ type: "END", timestamp: Date.now() });
     startedAtRef.current = null;
-  }, [state.status]);
+  }, []);
 
   const setStatus = useCallback((status: EngineStatus) => {
     dispatch({ type: "SET_STATUS", status });
@@ -111,6 +118,10 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     },
     [textData?.charCount],
   );
+
+  const setShowOverlay = useCallback((show: boolean) => {
+    dispatch({ type: "SET_OVERLAY", show });
+  }, []);
 
   /* -------------------- TIMER & METRICS -------------------- */
 
@@ -210,8 +221,17 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       wpm: state.wpm,
       accuracy: state.accuracy,
       timeLeft: state.timeLeft,
+      showOverlay: state.showOverlay,
     }),
-    [mode, state.status, state.wpm, state.accuracy, state.timeLeft, textData],
+    [
+      mode,
+      state.status,
+      state.wpm,
+      state.accuracy,
+      state.timeLeft,
+      state.showOverlay,
+      textData,
+    ],
   );
 
   const keystrokeValue = useMemo(
@@ -234,6 +254,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       endSession,
       getTimeElapsed,
       tick: () => dispatch({ type: "TICK", mode }),
+      setShowOverlay,
     }),
     [
       setCursor,
@@ -245,6 +266,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       endSession,
       getTimeElapsed,
       mode,
+      setShowOverlay,
     ],
   );
 

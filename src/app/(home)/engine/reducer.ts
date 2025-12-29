@@ -7,6 +7,7 @@ export const initialState: EngineState = {
   cursor: 0,
   progress: 0,
   accuracy: 100,
+  showOverlay: true,
 };
 
 export function engineReducer(
@@ -18,21 +19,25 @@ export function engineReducer(
       return {
         ...initialState,
         timeLeft: action.timeLeft,
+        showOverlay: true,
       };
     case "START":
       return {
         ...state,
         status: "typing",
+        showOverlay: false,
       };
     case "PAUSE":
       return {
         ...state,
         status: "paused",
+        showOverlay: true,
       };
     case "RESUME":
       return {
         ...state,
         status: "typing",
+        showOverlay: false,
       };
     case "END":
       return {
@@ -77,6 +82,11 @@ export function engineReducer(
         ...state,
         wpm: action.wpm,
         accuracy: action.accuracy,
+      };
+    case "SET_OVERLAY":
+      return {
+        ...state,
+        showOverlay: action.show,
       };
     default:
       return state;

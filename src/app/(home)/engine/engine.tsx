@@ -25,14 +25,14 @@ export const EngineContainer = () => {
     resumeSession,
     endSession,
     getTimeElapsed,
+    setShowOverlay,
   } = useEngineActions();
   const { cursor, progress, keystrokes } = useEngineKeystroke();
-  const { status, textData } = useEngineState();
+  const { status, textData, showOverlay } = useEngineState();
 
   const lockedCursorRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(true);
   const [maxHeight, setMaxHeight] = useState<number | string>("none");
 
   const characters = useMemo(
@@ -40,7 +40,7 @@ export const EngineContainer = () => {
     [textData?.text],
   );
 
-  // Scroll to cursor when it changes
+  // Scroll engine container to cursor position if text is overflowing the container height
   useEffect(() => {
     if (isFocused && status === "typing") {
       const cursorElement =
@@ -49,13 +49,14 @@ export const EngineContainer = () => {
         const container = containerRef.current;
         const containerRect = container.getBoundingClientRect();
         const cursorRect = cursorElement.getBoundingClientRect();
+
         // Calculate the top position relative to the container and center it
         const relativeTop =
           cursorRect.top - containerRect.top + container.scrollTop;
         const targetTop = relativeTop - containerRect.height / 2;
-        // Dynamic horizontal scroll
+
+        // Calculate the left position relative to the container and center it
         let targetLeft = container.scrollLeft;
-        // If cursor is hitting the right boundary, reveal more text
         if (cursorRect.right > containerRect.right - 40) {
           targetLeft =
             container.scrollLeft +
@@ -86,7 +87,7 @@ export const EngineContainer = () => {
     }
   }, [status]);
 
-  // Calculate dynamic max-height
+  // Calculate dynamic max-height of the engine container
   useEffect(() => {
     const calculateHeight = () => {
       if (!containerRef.current) return;
@@ -133,15 +134,22 @@ export const EngineContainer = () => {
     }
   }, [status, cursor]);
 
+  const pauseTimerRef = useRef<NodeJS.Timeout>(undefined);
+  useEffect(() => {
+    return () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    };
+  }, []);
+
   const handleKeydown = (e: React.KeyboardEvent) => {
     if (status === "finished") return;
     const typedChar = e.key;
 
     // Ignore non-character keys except backspace
     if (typedChar.length !== 1 && typedChar !== "Backspace") return;
-    // Ignore backspace at the start
+    // Ignore backspace at the start of text
     if (typedChar === "Backspace" && cursor === 0) return;
-    // Ignore backspace at the locked cursor
+    // Ignore backspace at the locked cursor prevent attempts to correct previous words
     if (typedChar === "Backspace" && cursor <= lockedCursorRef.current) return;
 
     // Ignore standalone meta keys and shift key (allow only if typing or Backspace)
@@ -199,8 +207,8 @@ export const EngineContainer = () => {
 
     // Logic to prevent correction over correct words
     if (typedChar === " " && isCorrect) {
-      const currentStates = getCharStates(characters, keystrokes.current);
       const wordStart = getWordStart(cursor, characters);
+      const currentStates = getCharStates(characters, keystrokes.current);
       const wordIsPerfect = isWordPerfect(wordStart, cursor, currentStates);
 
       if (wordIsPerfect) {
@@ -231,8 +239,27 @@ export const EngineContainer = () => {
 
   const handleBlur = () => {
     setIsFocused(false);
-    setShowOverlay(true);
-    pauseSession();
+    if (status === "typing") {
+      pauseTimerRef.current = setTimeout(() => {
+        pauseSession();
+      }, 1000);
+    } else {
+      setShowOverlay(true);
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    setShowOverlay(false);
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = undefined;
+    }
+  };
+
+  const handleResumeSession = () => {
+    resumeSession();
+    containerRef.current?.focus();
   };
 
   return (
@@ -240,7 +267,7 @@ export const EngineContainer = () => {
       {/* Progress Bar */}
       <div className="bg-border h-px w-full overflow-hidden rounded-full">
         <div
-          className="h-full bg-blue-600 transition-all duration-300 ease-out"
+          className="h-full bg-blue-600 transition-[width] duration-300 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -250,8 +277,8 @@ export const EngineContainer = () => {
         tabIndex={0}
         ref={containerRef}
         onBlur={handleBlur}
+        onFocus={handleFocus}
         onKeyDown={handleKeydown}
-        onFocus={() => setIsFocused(true)}
         style={{
           maxHeight:
             typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
@@ -259,9 +286,9 @@ export const EngineContainer = () => {
         className={cn(
           "scrollbar-none my-auto overflow-auto overscroll-none scroll-smooth outline-none",
           "transition-[opacity,filter] duration-300 ease-out",
-          // (status === "idle" || status === "paused") &&
-          //   showOverlay &&
-          //   "opacity-50 blur-xs select-none",
+          (status === "idle" || status === "paused") &&
+            showOverlay &&
+            "opacity-50 blur-xs select-none",
         )}
       >
         <Words characters={characters} isFocused={isFocused} />
@@ -270,15 +297,11 @@ export const EngineContainer = () => {
       {/* Start backdrop overlay */}
       {status === "idle" && showOverlay && (
         <div
-          onClick={() => {
-            setShowOverlay(false);
-            containerRef.current?.focus();
-          }}
+          onClick={() => containerRef.current?.focus()}
           className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
         >
           <div className="flex flex-col items-center gap-5">
             <Button
-              // Click will probagate to the parent and invoke setShowOverlay(false)
               onClick={() => containerRef.current?.focus()}
               className="text-3-semibold hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 hover:bg-blue-400"
             >
@@ -294,12 +317,8 @@ export const EngineContainer = () => {
       {/* Pause backdrop overlay */}
       {status === "paused" && showOverlay && (
         <div
-          onClick={() => {
-            resumeSession();
-            setShowOverlay(false);
-            containerRef.current?.focus();
-          }}
-          className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
+          onClick={handleResumeSession}
+          className="bg-background/5 pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
         >
           <div className="flex flex-col items-center gap-3">
             <p className="text-yellow text-5 animate-pulse">Test Paused</p>

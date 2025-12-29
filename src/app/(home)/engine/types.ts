@@ -27,6 +27,7 @@ export type EngineState = {
   cursor: number;
   progress: number;
   accuracy: number;
+  showOverlay: boolean;
 };
 
 export type EngineStateCtxType = {
@@ -38,6 +39,7 @@ export type EngineStateCtxType = {
   wpm: number;
   accuracy: number;
   timeLeft: number;
+  showOverlay: boolean;
 };
 
 export type EngineKeystrokeCtxType = {
@@ -55,6 +57,7 @@ export type EngineActionsCtxType = {
   resumeSession: () => void;
   endSession: () => void;
   getTimeElapsed: () => number;
+  setShowOverlay: (show: boolean) => void;
   tick: () => void;
 };
 
@@ -71,4 +74,5 @@ export type EngineAction =
     }
   | { type: "SET_STATUS"; status: EngineStatus }
   | { type: "TICK"; mode: TextMode; wpm?: number; accuracy?: number }
-  | { type: "SET_METRICS"; wpm: number; accuracy: number };
+  | { type: "SET_METRICS"; wpm: number; accuracy: number }
+  | { type: "SET_OVERLAY"; show: boolean };
