@@ -1,14 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
-  getCharStates,
-  calculateWpm,
   calculateAccuracy,
   calculateNextCursor,
+  calculateWpm,
+  getCharStates,
   getInitialTime,
+  getWordStart,
+  isWordPerfect,
 } from "./engine-logic";
 
-import { Keystroke } from "./types";
+import { Keystroke, CharState } from "./types";
 
+/* ------------------ getCharStates ------------------ */
 describe("getCharStates", () => {
   const chars = "The quick brown fox".split("");
 
@@ -247,6 +250,7 @@ describe("getCharStates", () => {
   });
 });
 
+/* ------------------ getCharStates - additional edge cases ------------------ */
 describe("getCharStates - additional edge cases", () => {
   it("returns empty array for empty characters", () => {
     const states = getCharStates([], []);
@@ -346,6 +350,7 @@ describe("getCharStates - additional edge cases", () => {
   });
 });
 
+/* ------------------ getInitialTime ------------------ */
 describe("getInitialTime", () => {
   it("returns 0 for passage mode", () => {
     expect(getInitialTime("passage")).toBe(0);
@@ -360,6 +365,7 @@ describe("getInitialTime", () => {
   });
 });
 
+/* ------------------ calculateWpm ------------------ */
 describe("calculateWpm", () => {
   it("calculates Wpm correctly for 1 minute", () => {
     // 50 correct chars = 10 words. 10 words / 1 min = 10 WPM
@@ -405,6 +411,7 @@ describe("calculateWpm", () => {
   });
 });
 
+/* ------------------ calculateAccuracy ------------------ */
 describe("calculateAccuracy", () => {
   it("calculates accuracy correctly", () => {
     expect(calculateAccuracy(90, 100)).toBe(90);
@@ -427,29 +434,85 @@ describe("calculateAccuracy", () => {
   });
 });
 
+/* ------------------ calculateNextCursor ------------------ */
 describe("calculateNextCursor", () => {
-  const textLength = 20;
+  const chars = "hello world".split("");
 
   it("increments cursor for normal characters", () => {
-    expect(calculateNextCursor(0, "a", textLength)).toBe(1);
-    expect(calculateNextCursor(10, "x", textLength)).toBe(11);
+    expect(calculateNextCursor(0, "a", chars)).toBe(1);
+    expect(calculateNextCursor(5, "x", chars)).toBe(6);
   });
 
   it("decrements cursor for Backspace", () => {
-    expect(calculateNextCursor(5, "Backspace", textLength)).toBe(4);
+    expect(calculateNextCursor(5, "Backspace", chars)).toBe(4);
+  });
+
+  it("stops at lockedCursor during Backspace", () => {
+    // Locked at start of word (e.g. index 6)
+    expect(calculateNextCursor(6, "Backspace", chars, false, 6)).toBe(6);
+    expect(calculateNextCursor(7, "Backspace", chars, false, 6)).toBe(6);
+  });
+
+  it("Ctrl+Backspace stops at lockedCursor", () => {
+    // text: "hello world", lock: 6 ('w' is at 6)
+    // If we are at 11 (end of "world") and Ctrl+BS, we should go to 6
+    expect(calculateNextCursor(11, "Backspace", chars, true, 6)).toBe(6);
   });
 
   it("does not decrement cursor below 0", () => {
-    expect(calculateNextCursor(0, "Backspace", textLength)).toBe(0);
+    expect(calculateNextCursor(0, "Backspace", chars)).toBe(0);
   });
 
   it("does not increment cursor beyond text length", () => {
-    expect(calculateNextCursor(textLength, "", textLength)).toBe(textLength);
+    expect(calculateNextCursor(chars.length, "a", chars)).toBe(chars.length);
   });
 
-  it("does not decrement cursor beyond text length", () => {
-    expect(calculateNextCursor(textLength + 1, "Backspace", textLength)).toBe(
-      textLength,
+  it("cursor corrects to max length if out of bounds on backspace", () => {
+    expect(calculateNextCursor(chars.length + 1, "Backspace", chars)).toBe(
+      chars.length,
     );
+  });
+});
+
+describe("getWordStart", () => {
+  const chars = "the quick brown".split("");
+
+  it("returns 0 for the first word", () => {
+    expect(getWordStart(0, chars)).toBe(0);
+    expect(getWordStart(1, chars)).toBe(0);
+    expect(getWordStart(2, chars)).toBe(0);
+  });
+
+  it("returns start of middle words", () => {
+    // "the " is 0,1,2,3. "quick" starts at 4.
+    expect(getWordStart(4, chars)).toBe(4);
+    expect(getWordStart(6, chars)).toBe(4);
+  });
+
+  it("handles cursor on a space (treats as end of prev word)", () => {
+    expect(getWordStart(3, chars)).toBe(0);
+  });
+});
+
+describe("isWordPerfect", () => {
+  it("returns true for perfect range", () => {
+    const states: CharState[] = [
+      { state: "correct", typedChar: "a" },
+      { state: "correct", typedChar: "b" },
+      { state: "not-typed", typedChar: "" },
+    ];
+    expect(isWordPerfect(0, 2, states)).toBe(true);
+  });
+
+  it("returns false if any char is incorrect", () => {
+    const states: CharState[] = [
+      { state: "correct", typedChar: "a" },
+      { state: "incorrect", typedChar: "x" },
+    ];
+    expect(isWordPerfect(0, 2, states)).toBe(false);
+  });
+
+  it("returns false for invalid range", () => {
+    expect(isWordPerfect(5, 2, [])).toBe(false);
   });
 });

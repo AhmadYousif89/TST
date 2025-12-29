@@ -9,12 +9,15 @@ import {
   useEngineKeystroke,
   useEngineState,
 } from "./engine.context";
-import { calculateNextCursor } from "./engine-logic";
+import {
+  calculateNextCursor,
+  getCharStates,
+  getWordStart,
+  isWordPerfect,
+} from "./engine-logic";
 import { Words } from "./words";
 
 export const EngineContainer = () => {
-  const { status, textData, keystrokes } = useEngineState();
-  const { cursor, progress } = useEngineKeystroke();
   const {
     setCursor,
     startSession,
@@ -23,12 +26,14 @@ export const EngineContainer = () => {
     endSession,
     getTimeElapsed,
   } = useEngineActions();
+  const { cursor, progress, keystrokes } = useEngineKeystroke();
+  const { status, textData } = useEngineState();
 
+  const lockedCursorRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
   const [maxHeight, setMaxHeight] = useState<number | string>("none");
-
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const characters = useMemo(
     () => textData?.text.split("") || [],
@@ -121,42 +126,88 @@ export const EngineContainer = () => {
     };
   }, [status]);
 
+  // Reset locked cursor when session is reset or cursor is back at start
+  useEffect(() => {
+    if (status === "idle" || cursor === 0) {
+      lockedCursorRef.current = 0;
+    }
+  }, [status, cursor]);
+
   const handleKeydown = (e: React.KeyboardEvent) => {
-    // Prevent browser shortcuts (like ' or / for Firefox search)
-    e.preventDefault();
-    // Ignore system shortcuts and shift key
-    if (e.ctrlKey || e.metaKey || e.altKey || e.key === "Shift") return;
-
     if (status === "finished") return;
-    if (status === "idle") startSession();
-    if (status === "paused") resumeSession();
-
     const typedChar = e.key;
-    const expectedChar = characters[cursor];
-    const timestampMs = getTimeElapsed();
 
     // Ignore non-character keys except backspace
     if (typedChar.length !== 1 && typedChar !== "Backspace") return;
     // Ignore backspace at the start
     if (typedChar === "Backspace" && cursor === 0) return;
+    // Ignore backspace at the locked cursor
+    if (typedChar === "Backspace" && cursor <= lockedCursorRef.current) return;
+
+    // Ignore standalone meta keys and shift key (allow only if typing or Backspace)
+    const isControlModifier = e.ctrlKey || e.metaKey || e.altKey;
+    const isBackspace = typedChar === "Backspace";
+    const isShiftKey = typedChar === "Shift";
+    // If it's a modifier alone or Shift key, ignore
+    if ((isControlModifier && !isBackspace) || isShiftKey) return;
+    // Ignore non-character keys except backspace
+    if (typedChar.length !== 1 && !isBackspace) return;
+    // Ignore F1~F12 keys
+    if (/^F([1-9]|1[0-2])$/.test(typedChar)) return;
+
+    if (status === "idle") startSession();
+    if (status === "paused") resumeSession();
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const expectedChar = characters[cursor];
+    const timestampMs = getTimeElapsed();
+
     // Handle backspace
     if (cursor > 0 && typedChar === "Backspace") {
-      keystrokes.current?.push({
-        charIndex: cursor - 1,
-        expectedChar: characters[cursor - 1],
-        typedChar: "Backspace",
-        isCorrect: false,
-        timestampMs,
-        positionGroup: Math.floor((cursor - 1) / 10),
-      });
-      // Set cursor to the previous character
-      setCursor((ps: number) =>
-        calculateNextCursor(ps, "Backspace", characters.length),
+      // Calculate intended target
+      let nextCursor = calculateNextCursor(
+        cursor,
+        "Backspace",
+        characters,
+        isControlModifier,
+        lockedCursorRef.current,
       );
+
+      // If we are already at the lock, do nothing
+      if (cursor <= lockedCursorRef.current) return;
+
+      // Record a backspace for every character skipped (important for Ctrl+Backspace)
+      for (let i = cursor - 1; i >= nextCursor; i--) {
+        keystrokes.current?.push({
+          charIndex: i,
+          expectedChar: characters[i],
+          typedChar: "Backspace",
+          isCorrect: false,
+          timestampMs,
+          positionGroup: Math.floor(i / 10),
+        });
+      }
+
+      setCursor(nextCursor);
       return;
     }
+
     // Handle normal typing
     const isCorrect = typedChar === expectedChar;
+
+    // Logic to prevent correction over correct words
+    if (typedChar === " " && isCorrect) {
+      const currentStates = getCharStates(characters, keystrokes.current);
+      const wordStart = getWordStart(cursor, characters);
+      const wordIsPerfect = isWordPerfect(wordStart, cursor, currentStates);
+
+      if (wordIsPerfect) {
+        lockedCursorRef.current = cursor + 1;
+      }
+    }
+
     keystrokes.current?.push({
       charIndex: cursor,
       expectedChar,
@@ -165,9 +216,10 @@ export const EngineContainer = () => {
       timestampMs,
       positionGroup: Math.floor(cursor / 10),
     });
+
     // Set cursor to the next character
     setCursor((ps: number) => {
-      const nextCursor = calculateNextCursor(ps, typedChar, characters.length);
+      const nextCursor = calculateNextCursor(ps, typedChar, characters);
       if (nextCursor >= characters.length) {
         endSession();
       }
@@ -193,26 +245,26 @@ export const EngineContainer = () => {
         />
       </div>
 
+      {/* Engine Container */}
       <div
         tabIndex={0}
         ref={containerRef}
         onBlur={handleBlur}
-        onFocus={() => setIsFocused(true)}
         onKeyDown={handleKeydown}
+        onFocus={() => setIsFocused(true)}
         style={{
           maxHeight:
             typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
         }}
         className={cn(
-          "scrollbar-none overflow-auto overscroll-none scroll-smooth outline-none",
-          "text-1-regular-mobile md:text-1-regular flex flex-wrap gap-y-1 pt-8",
+          "scrollbar-none my-auto overflow-auto overscroll-none scroll-smooth outline-none",
           "transition-[opacity,filter] duration-300 ease-out",
-          (status === "idle" || status === "paused") &&
-            showOverlay &&
-            "opacity-50 blur-xs select-none",
+          // (status === "idle" || status === "paused") &&
+          //   showOverlay &&
+          //   "opacity-50 blur-xs select-none",
         )}
       >
-        {<Words characters={characters} isFocused={isFocused} />}
+        <Words characters={characters} isFocused={isFocused} />
       </div>
 
       {/* Start backdrop overlay */}
@@ -249,9 +301,20 @@ export const EngineContainer = () => {
           }}
           className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
         >
-          <div className="text-3-semibold flex flex-col items-center gap-3">
-            <p className="text-yellow animate-pulse">Test Paused</p>
-            <p className="text-muted-foreground">Click to resume</p>
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-yellow text-5 animate-pulse">Test Paused</p>
+            <p className="text-muted-foreground text-4 flex items-center gap-1 font-medium tracking-wide">
+              <svg
+                width="20px"
+                height="20px"
+                fill="currentColor"
+                viewBox="0 -960 960 960"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M537-96 399-391 240-192v-672l528 432H486l138 295-87 41Z" />
+              </svg>
+              <span>Click to resume</span>
+            </p>
           </div>
         </div>
       )}

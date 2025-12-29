@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-  getCharStates,
-  calculateWpm,
   calculateAccuracy,
   calculateNextCursor,
+  calculateWpm,
+  getCharStates,
+  getWordStart,
+  isWordPerfect,
 } from "./engine-logic";
 import { Keystroke } from "./types";
 
@@ -35,7 +37,7 @@ const simulateTyping = (
           isCorrect: false,
           timestampMs: currentTime,
         });
-        cursor = calculateNextCursor(cursor, "Backspace", characters.length);
+        cursor = calculateNextCursor(cursor, "Backspace", characters);
       }
     } else {
       const expectedChar = characters[cursor];
@@ -48,7 +50,7 @@ const simulateTyping = (
         isCorrect,
         timestampMs: currentTime,
       });
-      cursor = calculateNextCursor(cursor, typedChar, characters.length);
+      cursor = calculateNextCursor(cursor, typedChar, characters);
     }
     currentTime += msPerKeystroke;
   }
@@ -77,6 +79,7 @@ const calculateMetrics = (
 };
 
 describe("Integration: Full Typing Session Simulation", () => {
+  /* ------------------ Perfect typing session ------------------ */
   describe("Perfect typing session", () => {
     const text = "hello";
     const typedSequence = text.split("");
@@ -111,6 +114,7 @@ describe("Integration: Full Typing Session Simulation", () => {
     });
   });
 
+  /* ------------------ Typing session with errors ------------------ */
   describe("Typing session with errors", () => {
     const text = "hello";
     const wrongSequence = "hxllo".split("");
@@ -144,6 +148,7 @@ describe("Integration: Full Typing Session Simulation", () => {
     });
   });
 
+  /* ------------------ Typing session with backspace corrections ------------------ */
   describe("Typing session with backspace corrections", () => {
     const text = "hello";
     const backspaceSequence = ["h", "e", "Backspace"];
@@ -187,6 +192,7 @@ describe("Integration: Full Typing Session Simulation", () => {
     });
   });
 
+  /* ------------------ Complex typing scenarios ------------------ */
   describe("Complex typing scenarios", () => {
     it("handles multiple backspaces in a row", () => {
       const text = "abc";
@@ -241,6 +247,7 @@ describe("Integration: Full Typing Session Simulation", () => {
     });
   });
 
+  /* ------------------ Metrics calculation edge cases ------------------ */
   describe("Metrics calculation edge cases", () => {
     it("handles empty keystrokes", () => {
       const { wpm, accuracy } = calculateMetrics([], 60000);
@@ -277,6 +284,7 @@ describe("Integration: Full Typing Session Simulation", () => {
     });
   });
 
+  /* ------------------ Character state consistency ------------------ */
   describe("Character state consistency", () => {
     it("maintains correct state count matching cursor position", () => {
       const text = "hello world";
@@ -304,6 +312,142 @@ describe("Integration: Full Typing Session Simulation", () => {
       for (let i = typedPortion.length; i < text.length; i++) {
         expect(states[i].state).toBe("not-typed");
       }
+    });
+  });
+
+  /* ------------------ Ctrl+Backspace Simulation ------------------ */
+  describe("Ctrl+Backspace Simulation", () => {
+    it("handles bulk deletion (simulating Ctrl+Backspace behavior)", () => {
+      const text = "hello world";
+      // 1. Simulate typing "hello "
+      let { keystrokes, cursor, elapsedMs } = simulateTyping(
+        text,
+        "hello ".split(""),
+      );
+
+      // Verify initial state
+      let states = getCharStates(text.split(""), keystrokes);
+      expect(states[5].typedChar).toBe(" ");
+      expect(cursor).toBe(6);
+
+      // 2. Simulate Ctrl+Backspace: Moves cursor from 6 to 0 (skips space and word)
+      // The logic in engine.tsx calculates next cursor first, then loops.
+      // Next cursor for "hello " with Ctrl+Backspace should be 0.
+      const startCursor = cursor;
+      const targetCursor = calculateNextCursor(
+        startCursor,
+        "Backspace",
+        text.split(""),
+        true, // isCtrlKey
+      );
+
+      expect(targetCursor).toBe(0);
+
+      // 3. Push backspaces for every skipped character
+      let currentTime = elapsedMs;
+      for (let i = startCursor - 1; i >= targetCursor; i--) {
+        keystrokes.push({
+          charIndex: i,
+          expectedChar: text[i],
+          typedChar: "Backspace",
+          isCorrect: false,
+          timestampMs: currentTime,
+        });
+        currentTime += 50;
+      }
+
+      // 4. Verify all characters are now "not-typed"
+      states = getCharStates(text.split(""), keystrokes);
+      for (let i = 0; i < 6; i++) {
+        expect(states[i].state).toBe("not-typed");
+      }
+    });
+  });
+
+  /* ------------------ Word Locking Mechanism ------------------ */
+  describe("Word Locking Mechanism", () => {
+    const text = "the sun rose".split("");
+
+    it("locks the cursor after a correct word + space", () => {
+      let lockedCursor = 0;
+      // 1. Simulate typing "the "
+      const sequence = "the ".split("");
+      const { keystrokes, cursor } = simulateTyping(text.join(""), sequence);
+
+      // 2. Run the locking logic (same as in engine.tsx)
+      const states = getCharStates(text, keystrokes);
+      const wordStart = getWordStart(3, text); // 3 is index of space
+      const perfect = isWordPerfect(wordStart, 3, states);
+
+      expect(perfect).toBe(true);
+      if (perfect) lockedCursor = 3 + 1; // logical next word start
+
+      expect(lockedCursor).toBe(4);
+      expect(cursor).toBe(4);
+
+      // 3. Verify backspace at the lock (index 4) returns original cursor
+      const next = calculateNextCursor(
+        cursor,
+        "Backspace",
+        text,
+        false,
+        lockedCursor,
+      );
+      expect(next).toBe(4);
+    });
+
+    it("does NOT lock the cursor after an incorrect word + space", () => {
+      let lockedCursor = 0;
+      // 1. Simulate typing "thx " (incorrect)
+      const sequence = "thx ".split("");
+      const { keystrokes, cursor } = simulateTyping(text.join(""), sequence);
+
+      // 2. Run the locking logic
+      const states = getCharStates(text, keystrokes);
+      const wordStart = getWordStart(3, text);
+      const perfect = isWordPerfect(wordStart, 3, states);
+
+      expect(perfect).toBe(false);
+      // Logic would NOT update lock if not perfect
+      if (perfect) lockedCursor = 3 + 1;
+
+      expect(lockedCursor).toBe(0);
+      expect(cursor).toBe(4);
+
+      // 3. Verify backspace IS allowed (target 3)
+      const next = calculateNextCursor(
+        cursor,
+        "Backspace",
+        text,
+        false,
+        lockedCursor,
+      );
+      expect(next).toBe(3);
+    });
+
+    it("allows backspacing within the current word up to the lock", () => {
+      // 1. Start with lock at 4 ("the " is locked)
+      const lockedCursor = 4;
+      const characters = "the sun".split("");
+
+      // 2. Type "s" (at index 4) -> cursor 5
+      const currentCursor = 5;
+
+      // 3. Backspace at 5 should go to 4
+      expect(
+        calculateNextCursor(
+          currentCursor,
+          "Backspace",
+          characters,
+          false,
+          lockedCursor,
+        ),
+      ).toBe(4);
+
+      // 4. Backspace at 4 should STAY at 4
+      expect(
+        calculateNextCursor(4, "Backspace", characters, false, lockedCursor),
+      ).toBe(4);
     });
   });
 });
