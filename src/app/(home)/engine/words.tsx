@@ -26,12 +26,12 @@ type WordsProps = {
 };
 
 export const Words = ({ characters, isFocused }: WordsProps) => {
-  const { cursor, keystrokes } = useEngineKeystroke();
+  const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const charStates = useMemo(
-    () => getCharStates(characters, keystrokes.current),
-    [characters, cursor],
+    () => getCharStates(characters, keystrokes.current || []),
+    [characters, cursor, extraOffset, keystrokes],
   );
 
   const groupedWords = useMemo(() => words(characters), [characters]);
@@ -45,37 +45,53 @@ export const Words = ({ characters, isFocused }: WordsProps) => {
         containerRef={containerRef}
         isFocused={isFocused}
         cursor={cursor}
+        extraOffset={extraOffset}
       />
+      {/* Words */}
       {groupedWords.map((word, wordIndex) => {
-        const endIndex = word[word.length - 1].index;
-        const isWordCompleted = cursor > endIndex;
-        const isWordError =
-          isWordCompleted &&
-          word.some((w) => charStates[w.index].state === "incorrect");
-
+        const lastCharObj = word[word.length - 1];
+        const isLastCharSpace = lastCharObj.char === " ";
+        const endIndex = lastCharObj.index;
+        const wordIsComplete = cursor > endIndex;
+        const wordHasError =
+          wordIsComplete &&
+          word.some(
+            (w) =>
+              charStates[w.index].state === "incorrect" ||
+              charStates[w.index].extras?.length,
+          );
         return (
           <div
+            data-error={wordHasError}
             key={wordIndex}
             className={cn(
-              "text-1-regular-mobile md:text-1-regular relative mr-4 mb-4 border-b border-transparent",
-              isWordError && "border-red",
+              "group text-1-regular-mobile md:text-1-regular relative flex items-center",
             )}
           >
+            {/* Characters */}
             {word.map(({ char, index }) => {
               const state = charStates[index].state;
-              const typedChar = charStates[index].typedChar;
               return (
                 <Character
                   key={`${index}-${char}`}
                   char={char}
                   state={state}
-                  typedChar={typedChar}
-                  className={
-                    index === cursor ? "text-foreground active-cursor" : ""
-                  }
+                  extras={charStates[index].extras}
+                  className={cn(
+                    index === cursor && "active-cursor text-foreground",
+                  )}
                 />
               );
             })}
+            {/* Error underline */}
+            <div
+              style={{ width: isLastCharSpace ? "calc(100% - 1ch)" : "100%" }}
+              className={cn(
+                "bg-red pointer-events-none absolute bottom-0 left-0 h-0.5",
+                "origin-left scale-x-0 transform transition-transform duration-100 ease-in-out",
+                wordHasError && "scale-x-100",
+              )}
+            />
           </div>
         );
       })}
@@ -86,39 +102,39 @@ export const Words = ({ characters, isFocused }: WordsProps) => {
 type CharacterProps = {
   char: string;
   state: "not-typed" | "correct" | "incorrect";
-  typedChar: string;
+  extras?: string[];
   className?: string;
 };
 
-const Character = memo(
-  ({ char, state, typedChar, className }: CharacterProps) => {
-    const isSpace = char === " ";
-    const renderedChar =
-      isSpace && state !== "incorrect"
-        ? "_"
-        : isSpace && state === "incorrect"
-          ? typedChar
-          : char;
+const Character = memo(({ char, state, extras, className }: CharacterProps) => {
+  const isSpace = char === " ";
 
-    return (
+  return (
+    <>
+      {extras?.length ? (
+        <div className="flex">
+          {extras?.map((extra, i) => (
+            <span key={i} className="text-red">
+              {extra}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <span
         className={cn(
-          "transition-colors",
-          isSpace &&
-            state !== "incorrect" &&
-            "pointer-events-none absolute top-0 left-full opacity-0",
+          "relative flex transition-colors duration-100 ease-linear",
+          isSpace && "opacity-0",
           state === "correct" && "text-green",
           state === "incorrect" && "text-red",
-          isSpace && state === "incorrect" && "text-red",
           state === "not-typed" && "text-muted-foreground",
           className,
         )}
       >
-        {renderedChar}
+        {isSpace ? "\u00a0" : char}
       </span>
-    );
-  },
-);
+    </>
+  );
+});
 
 Character.displayName = "Character";
 
@@ -126,56 +142,60 @@ type CursorProps = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   isFocused: boolean;
   cursor: number;
+  extraOffset: number;
 };
 
 type CursorPosition = {
   top: number;
   left: number;
-  height: number;
   width: number;
+  height: number;
 };
 
-const Cursor = ({ containerRef, isFocused, cursor }: CursorProps) => {
-  const [position, setPosition] = useState<CursorPosition>({
-    top: 0,
-    left: 0,
-    height: 0,
-    width: 0,
-  });
+const Cursor = memo(
+  ({ containerRef, isFocused, cursor, extraOffset }: CursorProps) => {
+    const [position, setPosition] = useState<CursorPosition>({
+      top: 0,
+      left: 0,
+      width: 0,
+      height: 0,
+    });
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const cursorEl = containerRef.current.querySelector(
-      ".active-cursor",
-    ) as HTMLElement;
+    useEffect(() => {
+      if (!containerRef.current) return;
 
-    if (cursorEl) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const cursorRect = cursorEl.getBoundingClientRect();
+      const cursorEl = containerRef.current.querySelector(
+        ".active-cursor",
+      ) as HTMLElement;
 
-      setPosition({
-        top: cursorRect.top - containerRect.top,
-        left: cursorRect.left - containerRect.left,
-        width: cursorRect.width,
-        height: cursorRect.height,
-      });
-    }
-  }, [containerRef, cursor]);
+      if (cursorEl) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const cursorRect = cursorEl.getBoundingClientRect();
 
-  return (
-    <div
-      className={cn(
-        "pointer-events-none absolute z-10 rounded bg-blue-400 transition-all duration-200 ease-out",
-        isFocused && cursor === 0 && "animate-blink",
-        !isFocused && "bg-blue-400/50",
-      )}
-      style={{
-        top: position.top,
-        left: position.left,
-        width: 3,
-        height: position.height * 0.8,
-        transform: `translateY(${position.height * 0.125}px)`,
-      }}
-    />
-  );
-};
+        setPosition({
+          top: cursorRect.top - containerRect.top,
+          left: cursorRect.left - containerRect.left,
+          width: cursorRect.width,
+          height: cursorRect.height,
+        });
+      }
+    }, [containerRef, cursor, extraOffset]);
+
+    return (
+      <div
+        className={cn(
+          "pointer-events-none absolute z-10 rounded bg-blue-400 transition-all duration-100 ease-linear",
+          isFocused && cursor === 0 && "animate-blink",
+          !isFocused && "bg-blue-400/50",
+        )}
+        style={{
+          top: position.top,
+          left: position.left,
+          width: 3,
+          height: position.height * 0.8,
+          transform: `translateY(${position.height * 0.125}px)`,
+        }}
+      />
+    );
+  },
+);

@@ -8,6 +8,7 @@ export const initialState: EngineState = {
   progress: 0,
   accuracy: 100,
   showOverlay: true,
+  extraOffset: 0,
 };
 
 export function engineReducer(
@@ -26,6 +27,7 @@ export function engineReducer(
         ...state,
         status: "typing",
         showOverlay: false,
+        extraOffset: 0,
       };
     case "PAUSE":
       return {
@@ -38,6 +40,7 @@ export function engineReducer(
         ...state,
         status: "typing",
         showOverlay: false,
+        extraOffset: 0,
       };
     case "END":
       return {
@@ -70,6 +73,7 @@ export function engineReducer(
         ...state,
         cursor: nextCursor,
         progress,
+        extraOffset: action.extraOffset ?? state.extraOffset,
       };
     }
     case "SET_STATUS":

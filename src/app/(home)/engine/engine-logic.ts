@@ -97,16 +97,39 @@ export const getCharStates = (
     .map(() => ({
       state: "not-typed",
       typedChar: "",
+      extras: [],
     }));
 
   for (const k of keystrokes || []) {
-    if (k.typedChar === "Backspace") {
-      states[k.charIndex] = { state: "not-typed", typedChar: "" };
+    const char = characters[k.charIndex];
+    const isBackspace = k.typedChar === "Backspace";
+
+    if (isBackspace) {
+      const state = states[k.charIndex];
+      // Prioritize clearing the main character first
+      if (state.typedChar !== "") {
+        state.state = "not-typed";
+        state.typedChar = "";
+      } else if (state.extras && state.extras.length > 0) {
+        state.extras.pop();
+      }
+      continue;
+    }
+
+    const state = states[k.charIndex];
+
+    // If it's a space but we typed a letter, it's an extra
+    if (char === " " && k.typedChar !== " ") {
+      state.extras = [...(state.extras || []), k.typedChar];
+      continue;
+    }
+
+    // If we already have a typed char for this index, subsequent ones are extras
+    if (state.typedChar !== "") {
+      state.extras = [...(state.extras || []), k.typedChar];
     } else {
-      states[k.charIndex] = {
-        state: k.isCorrect ? "correct" : "incorrect",
-        typedChar: k.typedChar,
-      };
+      state.state = k.isCorrect ? "correct" : "incorrect";
+      state.typedChar = k.typedChar;
     }
   }
   return states;
@@ -132,7 +155,17 @@ export const isWordPerfect = (
   charStates: CharState[],
 ): boolean => {
   if (startIndex < 0 || endIndex < startIndex) return false;
-  return charStates
+  // Check letters: must be correct and have no extras
+  const lettersPerfect = charStates
     .slice(startIndex, endIndex)
-    .every((s) => s.state === "correct");
+    .every(
+      (s) => s.state === "correct" && (!s.extras || s.extras.length === 0),
+    );
+
+  if (!lettersPerfect) return false;
+
+  // Check the space (or final char): must have no extras
+  // We don't check .state because this is often called before the space keystroke is registered
+  const lastCharExtras = charStates[endIndex]?.extras?.length || 0;
+  return lastCharExtras === 0;
 };

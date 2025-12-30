@@ -27,7 +27,7 @@ export const EngineContainer = () => {
     getTimeElapsed,
     setShowOverlay,
   } = useEngineActions();
-  const { cursor, progress, keystrokes } = useEngineKeystroke();
+  const { cursor, extraOffset, progress, keystrokes } = useEngineKeystroke();
   const { status, textData, showOverlay } = useEngineState();
 
   const lockedCursorRef = useRef(0);
@@ -134,6 +134,7 @@ export const EngineContainer = () => {
     }
   }, [status, cursor]);
 
+  // Reset pause timer when session is reset
   const pauseTimerRef = useRef<NodeJS.Timeout>(undefined);
   useEffect(() => {
     return () => {
@@ -148,9 +149,14 @@ export const EngineContainer = () => {
     // Ignore non-character keys except backspace
     if (typedChar.length !== 1 && typedChar !== "Backspace") return;
     // Ignore backspace at the start of text
-    if (typedChar === "Backspace" && cursor === 0) return;
+    if (typedChar === "Backspace" && cursor === 0 && extraOffset === 0) return;
     // Ignore backspace at the locked cursor prevent attempts to correct previous words
-    if (typedChar === "Backspace" && cursor <= lockedCursorRef.current) return;
+    if (
+      typedChar === "Backspace" &&
+      cursor <= lockedCursorRef.current &&
+      extraOffset === 0
+    )
+      return;
 
     // Ignore standalone meta keys and shift key (allow only if typing or Backspace)
     const isControlModifier = e.ctrlKey || e.metaKey || e.altKey;
@@ -173,8 +179,38 @@ export const EngineContainer = () => {
     const timestampMs = getTimeElapsed();
 
     // Handle backspace
-    if (cursor > 0 && typedChar === "Backspace") {
-      // Calculate intended target
+    if (isBackspace) {
+      // Handle backspace with extra characters
+      if (extraOffset > 0) {
+        if (isControlModifier) {
+          // Record backspaces for all extras and set offset to 0 [CTRL + BACKSPACE]
+          for (let i = 0; i < extraOffset; i++) {
+            keystrokes.current?.push({
+              charIndex: cursor,
+              expectedChar,
+              typedChar: "Backspace",
+              isCorrect: false,
+              timestampMs,
+              positionGroup: Math.floor(cursor / 10),
+            });
+          }
+          setCursor(cursor, 0);
+        } else {
+          // Record backspace for the single extra and decrement [BACKSPACE]
+          keystrokes.current?.push({
+            charIndex: cursor,
+            expectedChar,
+            typedChar: "Backspace",
+            isCorrect: false,
+            timestampMs,
+            positionGroup: Math.floor(cursor / 10),
+          });
+          setCursor(cursor, extraOffset - 1);
+        }
+        return;
+      }
+
+      // Normal backspace logic
       let nextCursor = calculateNextCursor(
         cursor,
         "Backspace",
@@ -183,22 +219,43 @@ export const EngineContainer = () => {
         lockedCursorRef.current,
       );
 
-      // If we are already at the lock, do nothing
-      if (cursor <= lockedCursorRef.current) return;
-
-      // Record a backspace for every character skipped (important for Ctrl+Backspace)
-      for (let i = cursor - 1; i >= nextCursor; i--) {
-        keystrokes.current?.push({
-          charIndex: i,
-          expectedChar: characters[i],
-          typedChar: "Backspace",
-          isCorrect: false,
-          timestampMs,
-          positionGroup: Math.floor(i / 10),
-        });
+      if (nextCursor < cursor) {
+        const currentStates = getCharStates(characters, keystrokes.current);
+        if (isControlModifier) {
+          // Fully clear every skipped index, including its extras [CTRL + BACKSPACE]
+          for (let i = cursor - 1; i >= nextCursor; i--) {
+            const totalExtraOffset = currentStates[i].extras?.length || 0;
+            // One backspace for each extra + one for the main char itself
+            for (let j = 0; j <= totalExtraOffset; j++) {
+              keystrokes.current?.push({
+                charIndex: i,
+                expectedChar: characters[i],
+                typedChar: "Backspace",
+                isCorrect: false,
+                timestampMs,
+                positionGroup: Math.floor(i / 10),
+              });
+            }
+          }
+          setCursor(nextCursor, 0);
+        } else {
+          // Record backspace for the single extra and decrement [BACKSPACE]
+          const targetIndex = nextCursor;
+          const totalExtraOffset =
+            currentStates[targetIndex].extras?.length || 0;
+          // Standard backspace moves cursor back and "un-types" the character at that index.
+          // This clears the main character (space or letter) but leaves existing extras visible, exactly where the cursor will now land.
+          keystrokes.current?.push({
+            charIndex: targetIndex,
+            expectedChar: characters[targetIndex],
+            typedChar: "Backspace",
+            isCorrect: false,
+            timestampMs,
+            positionGroup: Math.floor(targetIndex / 10),
+          });
+          setCursor(targetIndex, totalExtraOffset);
+        }
       }
-
-      setCursor(nextCursor);
       return;
     }
 
@@ -214,6 +271,23 @@ export const EngineContainer = () => {
       if (wordIsPerfect) {
         lockedCursorRef.current = cursor + 1;
       }
+    }
+
+    // If we are at a space but typed a letter, it's an extra char
+    if (expectedChar === " " && typedChar !== " ") {
+      // Limit to 20 extra characters
+      if (extraOffset >= 20) return;
+
+      keystrokes.current?.push({
+        charIndex: cursor,
+        expectedChar,
+        typedChar,
+        isCorrect: false,
+        timestampMs,
+        positionGroup: Math.floor(cursor / 10),
+      });
+      setCursor(cursor, extraOffset + 1);
+      return;
     }
 
     keystrokes.current?.push({
@@ -232,7 +306,7 @@ export const EngineContainer = () => {
         endSession();
       }
       return nextCursor;
-    });
+    }, 0); // Reset extraOffset on forward movement
   };
 
   if (!textData) return null;

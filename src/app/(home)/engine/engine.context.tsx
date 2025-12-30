@@ -113,8 +113,13 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   }, []);
 
   const setCursor = useCallback(
-    (cursor: number | ((prev: number) => number)) => {
-      dispatch({ type: "SET_CURSOR", cursor, charCount: textData?.charCount });
+    (cursor: number | ((prev: number) => number), extraOffset?: number) => {
+      dispatch({
+        type: "SET_CURSOR",
+        cursor,
+        extraOffset,
+        charCount: textData?.charCount,
+      });
     },
     [textData?.charCount],
   );
@@ -213,59 +218,58 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   const stateValue = useMemo(
     () => ({
-      difficulty: textData?.difficulty || "easy",
-      category: textData?.category || "general",
       mode,
-      status: state.status,
       textData,
       wpm: state.wpm,
+      status: state.status,
       accuracy: state.accuracy,
       timeLeft: state.timeLeft,
       showOverlay: state.showOverlay,
+      extraOffset: state.extraOffset,
     }),
     [
       mode,
-      state.status,
+      textData,
       state.wpm,
+      state.status,
       state.accuracy,
       state.timeLeft,
       state.showOverlay,
-      textData,
+      state.extraOffset,
     ],
   );
 
   const keystrokeValue = useMemo(
     () => ({
       cursor: state.cursor,
+      extraOffset: state.extraOffset,
       progress: state.progress,
       keystrokes,
     }),
-    [state.cursor, state.progress],
+    [state.cursor, state.extraOffset, state.progress],
   );
 
   const actionsValue = useMemo(
     () => ({
       setCursor,
       setStatus,
+      endSession,
       resetSession,
       startSession,
       pauseSession,
       resumeSession,
-      endSession,
       getTimeElapsed,
-      tick: () => dispatch({ type: "TICK", mode }),
       setShowOverlay,
     }),
     [
       setCursor,
       setStatus,
+      endSession,
       resetSession,
       startSession,
       pauseSession,
       resumeSession,
-      endSession,
       getTimeElapsed,
-      mode,
       setShowOverlay,
     ],
   );

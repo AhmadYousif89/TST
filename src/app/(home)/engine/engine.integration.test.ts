@@ -21,36 +21,76 @@ const simulateTyping = (
   typedSequence: string[],
   startTimeMs: number = 0,
   msPerKeystroke: number = 100,
-): { keystrokes: Keystroke[]; cursor: number; elapsedMs: number } => {
+): {
+  keystrokes: Keystroke[];
+  cursor: number;
+  extraOffset: number;
+  elapsedMs: number;
+} => {
   const characters = text.split("");
-  const keystrokes: Keystroke[] = [];
+  let keystrokes: Keystroke[] = [];
   let cursor = 0;
+  let extraOffset = 0;
   let currentTime = startTimeMs;
 
   for (const typedChar of typedSequence) {
+    const expectedChar = characters[cursor];
+
     if (typedChar === "Backspace") {
-      if (cursor > 0) {
+      if (extraOffset > 0) {
         keystrokes.push({
-          charIndex: cursor - 1,
-          expectedChar: characters[cursor - 1],
+          charIndex: cursor,
+          expectedChar,
+          typedChar: "Backspace",
+          isCorrect: false,
+          timestampMs: currentTime,
+        });
+        extraOffset--;
+      } else if (cursor > 0) {
+        const targetIndex = cursor - 1;
+        const currentStates = getCharStates(characters, keystrokes);
+        const numExtras = currentStates[targetIndex].extras?.length || 0;
+
+        keystrokes.push({
+          charIndex: targetIndex,
+          expectedChar: characters[targetIndex],
           typedChar: "Backspace",
           isCorrect: false,
           timestampMs: currentTime,
         });
         cursor = calculateNextCursor(cursor, "Backspace", characters);
+
+        if (numExtras > 0) {
+          extraOffset = numExtras;
+        } else {
+          extraOffset = 0;
+        }
       }
     } else {
-      const expectedChar = characters[cursor];
-      const isCorrect = typedChar === expectedChar;
-
-      keystrokes.push({
-        charIndex: cursor,
-        expectedChar,
-        typedChar,
-        isCorrect,
-        timestampMs: currentTime,
-      });
-      cursor = calculateNextCursor(cursor, typedChar, characters);
+      // Extra characters logic
+      if (expectedChar === " " && typedChar !== " ") {
+        if (extraOffset < 20) {
+          keystrokes.push({
+            charIndex: cursor,
+            expectedChar,
+            typedChar,
+            isCorrect: false,
+            timestampMs: currentTime,
+          });
+          extraOffset++;
+        }
+      } else {
+        const isCorrect = typedChar === expectedChar;
+        keystrokes.push({
+          charIndex: cursor,
+          expectedChar,
+          typedChar,
+          isCorrect,
+          timestampMs: currentTime,
+        });
+        cursor = calculateNextCursor(cursor, typedChar, characters);
+        extraOffset = 0;
+      }
     }
     currentTime += msPerKeystroke;
   }
@@ -58,6 +98,7 @@ const simulateTyping = (
   return {
     keystrokes,
     cursor,
+    extraOffset,
     elapsedMs: currentTime - startTimeMs,
   };
 };
@@ -448,6 +489,98 @@ describe("Integration: Full Typing Session Simulation", () => {
       expect(
         calculateNextCursor(4, "Backspace", characters, false, lockedCursor),
       ).toBe(4);
+    });
+  });
+
+  it("does NOT lock the cursor if extras were typed at the space", () => {
+    let lockedCursor = 0;
+    const textStr = "the sun rose";
+    const textArr = textStr.split("");
+    // 1. Simulate typing "the" then "x" at index 3, then " " (space)
+    const sequence = ["t", "h", "e", "x", " "];
+    const { keystrokes, cursor } = simulateTyping(textStr, sequence);
+
+    // 2. Run the locking logic
+    const states = getCharStates(textArr, keystrokes);
+    const wordStart = getWordStart(3, textArr);
+    const perfect = isWordPerfect(wordStart, 3, states);
+
+    expect(perfect).toBe(false); // Should be false because of extras at index 3
+    if (perfect) lockedCursor = 3 + 1;
+
+    expect(lockedCursor).toBe(0);
+    expect(cursor).toBe(4);
+
+    // 3. Verify backspace IS allowed (target 3)
+    const next = calculateNextCursor(
+      cursor,
+      "Backspace",
+      textArr,
+      false,
+      lockedCursor,
+    );
+    expect(next).toBe(3);
+  });
+
+  /* ------------------ Extra Character Handling ------------------ */
+  describe("Extra Character Handling", () => {
+    const text = "the sun rose";
+
+    it("accumulates extra characters at a space without moving the cursor", () => {
+      // Type "the" followed by "xyz" at the space (index 3)
+      const sequence = ["t", "h", "e", "x", "y", "z"];
+      const { cursor, extraOffset } = simulateTyping(text, sequence);
+
+      expect(cursor).toBe(3);
+      expect(extraOffset).toBe(3);
+    });
+
+    it("respects the extra character limit (20)", () => {
+      const sequence = ["t", "h", "e", ..."x".repeat(30).split("")];
+      const { extraOffset } = simulateTyping(text, sequence);
+
+      expect(extraOffset).toBe(20);
+    });
+
+    it("keeps extra characters when space is hit", () => {
+      // Type "the", then "abc", then hit space
+      const sequence = ["t", "h", "e", "a", "b", "c", " "];
+      const { keystrokes, cursor, extraOffset } = simulateTyping(
+        text,
+        sequence,
+      );
+
+      expect(cursor).toBe(4);
+      expect(extraOffset).toBe(0);
+
+      const states = getCharStates(text.split(""), keystrokes);
+      // Index 3 (the space) should still have extras
+      expect(states[3].extras).toEqual(["a", "b", "c"]);
+      expect(states[3].state).toBe("correct");
+    });
+
+    it("allows backspacing extra characters one by one", () => {
+      const sequence = ["t", "h", "e", "x", "y", "Backspace"];
+      const { extraOffset, keystrokes } = simulateTyping(text, sequence);
+
+      expect(extraOffset).toBe(1); // "x" remains, "y" deleted
+      const states = getCharStates(text.split(""), keystrokes);
+      expect(states[3].extras).toEqual(["x"]);
+    });
+
+    it("moves back to preceding space and keeps extras when backspacing from a word start", () => {
+      // text: "the sun rose"
+      // sequence: "the" (3) "xyz" (3 extras at space) " " (move to 4) "Backspace" (back to 3)
+      const sequence = ["t", "h", "e", "x", "y", "z", " ", "Backspace"];
+      const { cursor, extraOffset, keystrokes } = simulateTyping(
+        text,
+        sequence,
+      );
+
+      expect(cursor).toBe(3);
+      expect(extraOffset).toBe(3); // Had 3, backspace from 's' start moves back and stops at space with all extras visible.
+      const states = getCharStates(text.split(""), keystrokes);
+      expect(states[3].extras).toEqual(["x", "y", "z"]);
     });
   });
 });

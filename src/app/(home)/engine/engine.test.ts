@@ -21,10 +21,12 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "not-typed",
       typedChar: "",
+      extras: [],
     });
     expect(states[5]).toEqual({
       state: "not-typed",
       typedChar: "",
+      extras: [],
     });
   });
 
@@ -42,6 +44,7 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "correct",
       typedChar: "T",
+      extras: [],
     });
   });
 
@@ -59,6 +62,7 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "incorrect",
       typedChar: "x",
+      extras: [],
     });
   });
 
@@ -83,7 +87,121 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "not-typed",
       typedChar: "",
+      extras: [],
     });
+  });
+
+  it("processes extra characters typed at a space", () => {
+    const spaceIndex = 3; // "The "
+    const keystrokes: Keystroke[] = [
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "x",
+        isCorrect: false,
+        timestampMs: 100,
+      },
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "y",
+        isCorrect: false,
+        timestampMs: 200,
+      },
+    ];
+    const states = getCharStates(chars, keystrokes);
+    expect(states[spaceIndex]).toEqual({
+      state: "not-typed",
+      typedChar: "",
+      extras: ["x", "y"],
+    });
+  });
+
+  it("handles backspacing extra characters correctly", () => {
+    const spaceIndex = 3;
+    const keystrokes: Keystroke[] = [
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "x",
+        isCorrect: false,
+        timestampMs: 100,
+      },
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "y",
+        isCorrect: false,
+        timestampMs: 200,
+      },
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "Backspace",
+        isCorrect: false,
+        timestampMs: 300,
+      },
+    ];
+    const states = getCharStates(chars, keystrokes);
+    expect(states[spaceIndex].extras).toEqual(["x"]);
+
+    // Another backspace should clear it
+    keystrokes.push({
+      charIndex: spaceIndex,
+      expectedChar: " ",
+      typedChar: "Backspace",
+      isCorrect: false,
+      timestampMs: 400,
+    });
+    const finalStates = getCharStates(chars, keystrokes);
+    expect(finalStates[spaceIndex].extras).toEqual([]);
+  });
+
+  it("handles multiple backspaces clearing all extras", () => {
+    const spaceIndex = 3;
+    const keystrokes: Keystroke[] = [
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "x",
+        isCorrect: false,
+        timestampMs: 100,
+      },
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "y",
+        isCorrect: false,
+        timestampMs: 200,
+      },
+      // One backspace removes 'y'
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "Backspace",
+        isCorrect: false,
+        timestampMs: 300,
+      },
+      // Second backspace removes 'x'
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "Backspace",
+        isCorrect: false,
+        timestampMs: 400,
+      },
+      // Third backspace clears the target itself (already empty)
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "Backspace",
+        isCorrect: false,
+        timestampMs: 500,
+      },
+    ];
+    const states = getCharStates(chars, keystrokes);
+    expect(states[spaceIndex].extras).toEqual([]);
+    expect(states[spaceIndex].state).toBe("not-typed");
   });
 
   it("handles re-typing correctly after backspace", () => {
@@ -114,6 +232,7 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "correct",
       typedChar: "T",
+      extras: [],
     });
   });
 
@@ -159,6 +278,7 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "correct",
       typedChar: "T",
+      extras: [],
     });
   });
 
@@ -183,6 +303,7 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "not-typed",
       typedChar: "",
+      extras: [],
     });
   });
 
@@ -207,10 +328,12 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "correct",
       typedChar: "T",
+      extras: [],
     });
     expect(states[1]).toEqual({
       state: "incorrect",
       typedChar: "x",
+      extras: [],
     });
   });
 
@@ -242,10 +365,12 @@ describe("getCharStates", () => {
     expect(states[0]).toEqual({
       state: "correct",
       typedChar: "T",
+      extras: [],
     });
     expect(states[1]).toEqual({
       state: "not-typed",
       typedChar: "",
+      extras: [],
     });
   });
 });
@@ -284,9 +409,13 @@ describe("getCharStates - additional edge cases", () => {
     ];
     const states = getCharStates(chars, keystrokes);
 
-    expect(states[5]).toEqual({ state: "correct", typedChar: "," });
-    expect(states[6]).toEqual({ state: "correct", typedChar: " " });
-    expect(states[12]).toEqual({ state: "correct", typedChar: "!" });
+    expect(states[5]).toEqual({ state: "correct", typedChar: ",", extras: [] });
+    expect(states[6]).toEqual({ state: "correct", typedChar: " ", extras: [] });
+    expect(states[12]).toEqual({
+      state: "correct",
+      typedChar: "!",
+      extras: [],
+    });
   });
 
   it("handles all characters typed correctly", () => {
@@ -316,7 +445,9 @@ describe("getCharStates - additional edge cases", () => {
     ];
     const states = getCharStates(chars, keystrokes);
 
-    expect(states.every((s) => s.state === "correct")).toBe(true);
+    expect(
+      states.every((s) => s.state === "correct" && s.extras?.length === 0),
+    ).toBe(true);
   });
 
   it("handles all characters typed incorrectly", () => {
@@ -346,7 +477,9 @@ describe("getCharStates - additional edge cases", () => {
     ];
     const states = getCharStates(chars, keystrokes);
 
-    expect(states.every((s) => s.state === "incorrect")).toBe(true);
+    expect(
+      states.every((s) => s.state === "incorrect" && s.extras?.length === 0),
+    ).toBe(true);
   });
 });
 
@@ -497,17 +630,27 @@ describe("getWordStart", () => {
 describe("isWordPerfect", () => {
   it("returns true for perfect range", () => {
     const states: CharState[] = [
-      { state: "correct", typedChar: "a" },
-      { state: "correct", typedChar: "b" },
-      { state: "not-typed", typedChar: "" },
+      { state: "correct", typedChar: "a", extras: [] },
+      { state: "correct", typedChar: "b", extras: [] },
+      { state: "correct", typedChar: " ", extras: [] },
     ];
     expect(isWordPerfect(0, 2, states)).toBe(true);
   });
 
   it("returns false if any char is incorrect", () => {
     const states: CharState[] = [
-      { state: "correct", typedChar: "a" },
-      { state: "incorrect", typedChar: "x" },
+      { state: "correct", typedChar: "a", extras: [] },
+      { state: "incorrect", typedChar: "x", extras: [] },
+      { state: "correct", typedChar: " ", extras: [] },
+    ];
+    expect(isWordPerfect(0, 2, states)).toBe(false);
+  });
+
+  it("returns false if any char has extras", () => {
+    const states: CharState[] = [
+      { state: "correct", typedChar: "a", extras: [] },
+      { state: "correct", typedChar: "b", extras: ["x"] },
+      { state: "correct", typedChar: " ", extras: [] },
     ];
     expect(isWordPerfect(0, 2, states)).toBe(false);
   });
