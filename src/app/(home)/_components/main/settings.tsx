@@ -21,7 +21,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const ControlPanel = () => {
   const { updateURL } = useUrlState();
-  const { mode, category, difficulty } = useEngineState();
+  const { mode, textData } = useEngineState();
 
   const handleDifficultyChange = (val: string) => {
     if (val) {
@@ -121,7 +121,7 @@ export const ControlPanel = () => {
             type="single"
             variant="outline"
             className="text-6 md:text-5"
-            value={difficulty}
+            value={textData?.difficulty}
             onValueChange={handleDifficultyChange}
           >
             <ToggleGroupItem value="easy" aria-label="Easy">
@@ -146,7 +146,7 @@ export const ControlPanel = () => {
             variant="outline"
             spacing={2}
             className="text-6 md:text-5"
-            value={category}
+            value={textData?.category}
             onValueChange={handleCategoryChange}
           >
             <ToggleGroupItem value="general" aria-label="General">

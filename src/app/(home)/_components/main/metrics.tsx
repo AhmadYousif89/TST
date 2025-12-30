@@ -21,8 +21,7 @@ import { useEngineState } from "../../engine/engine.context";
 import { formatTime, getModeLabel } from "../../engine/engine-logic";
 
 export const Metrics = () => {
-  const { wpm, accuracy, timeLeft, category, difficulty, mode, status } =
-    useEngineState();
+  const { wpm, accuracy, timeLeft, textData, mode, status } = useEngineState();
 
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -73,7 +72,7 @@ export const Metrics = () => {
               Category:
             </span>
             <Badge className="text-muted-foreground text-6 bg-blue-600 font-medium capitalize">
-              {category}
+              {textData?.category}
             </Badge>
           </div>
           <div className="bg-border mx-4 h-full w-px" />
@@ -82,7 +81,7 @@ export const Metrics = () => {
               Difficulty:
             </span>
             <Badge className="text-muted-foreground text-6 bg-blue-600 font-medium capitalize">
-              {difficulty}
+              {textData?.difficulty}
             </Badge>
           </div>
           <div className="bg-border mx-4 h-full w-px" />

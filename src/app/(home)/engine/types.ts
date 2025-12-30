@@ -7,6 +7,7 @@ export type TextMode = "t:15" | "t:30" | "t:60" | "t:120" | "t:180" | "passage";
 export type CharState = {
   state: "not-typed" | "correct" | "incorrect";
   typedChar: string;
+  extras?: string[];
 };
 
 export type Keystroke = {
@@ -21,44 +22,47 @@ export type Keystroke = {
 export type EngineStatus = "idle" | "typing" | "paused" | "finished";
 
 export type EngineState = {
-  status: EngineStatus;
-  timeLeft: number;
   wpm: number;
   cursor: number;
+  timeLeft: number;
   progress: number;
   accuracy: number;
+  extraOffset: number;
+  status: EngineStatus;
   showOverlay: boolean;
 };
 
 export type EngineStateCtxType = {
-  difficulty: TextDifficulty;
-  category: TextCategory;
   mode: TextMode;
   status: EngineStatus;
   textData: TextDoc | null;
   wpm: number;
   accuracy: number;
   timeLeft: number;
+  extraOffset: number;
   showOverlay: boolean;
 };
 
 export type EngineKeystrokeCtxType = {
   cursor: number;
   progress: number;
+  extraOffset: number;
   keystrokes: React.RefObject<Keystroke[]>;
 };
 
 export type EngineActionsCtxType = {
-  setCursor: (cursor: number | ((prev: number) => number)) => void;
-  setStatus: (s: EngineStatus) => void;
+  endSession: () => void;
   resetSession: () => void;
   startSession: () => void;
   pauseSession: () => void;
   resumeSession: () => void;
-  endSession: () => void;
   getTimeElapsed: () => number;
+  setStatus: (s: EngineStatus) => void;
   setShowOverlay: (show: boolean) => void;
-  tick: () => void;
+  setCursor: (
+    cursor: number | ((prev: number) => number),
+    extraOffset?: number,
+  ) => void;
 };
 
 export type EngineAction =
@@ -71,6 +75,7 @@ export type EngineAction =
       type: "SET_CURSOR";
       cursor: number | ((prev: number) => number);
       charCount?: number;
+      extraOffset?: number;
     }
   | { type: "SET_STATUS"; status: EngineStatus }
   | { type: "TICK"; mode: TextMode; wpm?: number; accuracy?: number }
