@@ -607,6 +607,7 @@ describe("calculateNextCursor", () => {
   });
 });
 
+/* ------------------ getWordStart ------------------ */
 describe("getWordStart", () => {
   const chars = "the quick brown".split("");
 
@@ -627,6 +628,7 @@ describe("getWordStart", () => {
   });
 });
 
+/* ------------------ isWordPerfect ------------------ */
 describe("isWordPerfect", () => {
   it("returns true for perfect range", () => {
     const states: CharState[] = [
@@ -634,7 +636,7 @@ describe("isWordPerfect", () => {
       { state: "correct", typedChar: "b", extras: [] },
       { state: "correct", typedChar: " ", extras: [] },
     ];
-    expect(isWordPerfect(0, 2, states)).toBe(true);
+    expect(isWordPerfect(0, states.length - 1, states)).toBe(true);
   });
 
   it("returns false if any char is incorrect", () => {
@@ -643,7 +645,28 @@ describe("isWordPerfect", () => {
       { state: "incorrect", typedChar: "x", extras: [] },
       { state: "correct", typedChar: " ", extras: [] },
     ];
-    expect(isWordPerfect(0, 2, states)).toBe(false);
+    expect(isWordPerfect(0, states.length - 1, states)).toBe(false);
+  });
+
+  it("returns false if extras were found in the middle of the word", () => {
+    // This should never happen, but it's a valid case to be checked
+    const states: CharState[] = [
+      { state: "correct", typedChar: "a", extras: ["x"] },
+      { state: "correct", typedChar: "b", extras: ["y"] },
+      { state: "correct", typedChar: "c", extras: [] },
+      { state: "correct", typedChar: " ", extras: [] },
+    ];
+    expect(isWordPerfect(0, states.length - 1, states)).toBe(false);
+  });
+
+  it("returns false if extras were found at the end of the word", () => {
+    // This should never happen, but it's a valid case to be checked
+    const states: CharState[] = [
+      { state: "correct", typedChar: "a", extras: [] },
+      { state: "correct", typedChar: "b", extras: [] },
+      { state: "correct", typedChar: " ", extras: ["x", "y"] },
+    ];
+    expect(isWordPerfect(0, states.length - 1, states)).toBe(false);
   });
 
   it("returns false if any char has extras", () => {
@@ -652,7 +675,7 @@ describe("isWordPerfect", () => {
       { state: "correct", typedChar: "b", extras: ["x"] },
       { state: "correct", typedChar: " ", extras: [] },
     ];
-    expect(isWordPerfect(0, 2, states)).toBe(false);
+    expect(isWordPerfect(0, states.length - 1, states)).toBe(false);
   });
 
   it("returns false for invalid range", () => {
