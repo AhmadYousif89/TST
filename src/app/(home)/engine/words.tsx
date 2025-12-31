@@ -78,7 +78,7 @@ export const Words = ({ characters, isFocused }: WordsProps) => {
                   state={state}
                   extras={charStates[index].extras}
                   className={cn(
-                    index === cursor && "active-cursor text-foreground",
+                    index === cursor && "active-cursor text-foreground/80",
                   )}
                 />
               );
@@ -87,11 +87,16 @@ export const Words = ({ characters, isFocused }: WordsProps) => {
             <div
               style={{ width: isLastCharSpace ? "calc(100% - 1ch)" : "100%" }}
               className={cn(
-                "bg-red pointer-events-none absolute bottom-0 left-0 h-0.5",
+                "bg-red pointer-events-none absolute bottom-1.5 left-0 -z-10 h-0.5 rounded-full",
                 "origin-left scale-x-0 transform transition-transform duration-100 ease-in-out",
                 wordHasError && "scale-x-100",
               )}
             />
+            {/* End of text cursor target */}
+            {wordIndex === groupedWords.length - 1 &&
+              cursor === characters.length && (
+                <span className="active-cursor pointer-events-none invisible absolute top-0 right-0 h-full" />
+              )}
           </div>
         );
       })}
@@ -107,8 +112,6 @@ type CharacterProps = {
 };
 
 const Character = memo(({ char, state, extras, className }: CharacterProps) => {
-  const isSpace = char === " ";
-
   return (
     <>
       {extras?.length ? (
@@ -123,14 +126,13 @@ const Character = memo(({ char, state, extras, className }: CharacterProps) => {
       <span
         className={cn(
           "relative flex transition-colors duration-100 ease-linear",
-          isSpace && "opacity-0",
           state === "correct" && "text-green",
           state === "incorrect" && "text-red",
           state === "not-typed" && "text-muted-foreground",
           className,
         )}
       >
-        {isSpace ? "\u00a0" : char}
+        {char === " " ? "\u00a0" : char}
       </span>
     </>
   );

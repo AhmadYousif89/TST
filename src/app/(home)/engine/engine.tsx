@@ -170,6 +170,8 @@ export const EngineContainer = () => {
     if (typedChar.length !== 1 && !isBackspace) return;
     // Ignore F1~F12 keys
     if (/^F([1-9]|1[0-2])$/.test(typedChar)) return;
+    // Ignore space at the start of text
+    if (typedChar === " " && cursor === 0) return;
 
     if (status === "idle") startSession();
     if (status === "paused") resumeSession();
@@ -303,6 +305,42 @@ export const EngineContainer = () => {
         positionGroup: Math.floor(cursor / 10),
       });
       setCursor(cursor, extraOffset + 1);
+      return;
+    }
+
+    // Skip Word Logic: if user hits space mid-word, jump to the start of the next word
+    if (typedChar === " " && expectedChar !== " ") {
+      // Prevent skipping if we are at the beginning of a word and haven't typed anything
+      // This prevents multiple teleportations back to back
+      const isWordStart = cursor === getWordStart(cursor, characters);
+      const currentStates = getCharStates(characters, keystrokes.current || []);
+      // Dirty means we have typed something or have extras
+      const isDirty =
+        currentStates[cursor].typedChar !== "" ||
+        (currentStates[cursor].extras &&
+          currentStates[cursor].extras.length > 0);
+
+      if (isWordStart && !isDirty) return; // Don't skip if we are at the start of a word and haven't typed anything
+
+      let spaceIndex = cursor;
+      while (spaceIndex < characters.length && characters[spaceIndex] !== " ") {
+        spaceIndex++; // advance to the start of the next word
+      }
+
+      const targetIndex = Math.min(characters.length - 1, spaceIndex);
+      keystrokes.current?.push({
+        charIndex: targetIndex,
+        expectedChar: characters[targetIndex],
+        typedChar: " ",
+        isCorrect: false,
+        timestampMs,
+        positionGroup: Math.floor(targetIndex / 10),
+      });
+
+      const nextCursor = Math.min(characters.length, spaceIndex + 1);
+      setCursor(nextCursor, 0);
+      // If we skipped the last word, end the session
+      if (nextCursor >= characters.length) endSession();
       return;
     }
 

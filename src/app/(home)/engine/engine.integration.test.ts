@@ -74,6 +74,36 @@ const simulateTyping = (
           extraOffset = 0;
         }
       }
+    } else if (typedChar === " " && expectedChar !== " ") {
+      // Skip word logic
+      const isWordStart = cursor === getWordStart(cursor, characters);
+      const currentStates = getCharStates(characters, keystrokes);
+      const currentState = currentStates[cursor];
+      const isDirty =
+        currentState &&
+        (currentState.typedChar !== "" ||
+          (currentState.extras && currentState.extras.length > 0));
+
+      // Prevent skipping if we are at the beginning of a word and haven't typed anything
+      if (!(isWordStart && !isDirty)) {
+        let spaceIndex = cursor;
+        while (
+          spaceIndex < characters.length &&
+          characters[spaceIndex] !== " "
+        ) {
+          spaceIndex++;
+        }
+        const targetIndex = Math.min(characters.length - 1, spaceIndex);
+        keystrokes.push({
+          charIndex: targetIndex,
+          expectedChar: characters[targetIndex],
+          typedChar: " ",
+          isCorrect: false,
+          timestampMs: currentTime,
+        });
+        cursor = Math.min(characters.length, spaceIndex + 1);
+        extraOffset = 0;
+      }
     } else {
       // Extra characters logic
       if (expectedChar === " " && typedChar !== " ") {
@@ -625,6 +655,51 @@ describe("Integration: Full Typing Session Simulation", () => {
       expect(states[3].extras).toEqual([]); // No extras recorded
       expect(states[4].state).toBe("correct"); // 's' typed correctly
       expect(states[6].state).toBe("correct"); // 'n' typed correctly
+    });
+  });
+
+  /* ------------------ Skip Word Behavior ------------------ */
+  describe("Skip Word Behavior", () => {
+    it("teleports the cursor to the next word when space is pressed mid-word", () => {
+      const text = "the sun rose";
+      const sequence = ["t", "h", " "];
+      const { cursor, keystrokes } = simulateTyping(text, sequence);
+
+      // Next word "sun" starts at index 4
+      expect(cursor).toBe(4);
+
+      const states = getCharStates(text.split(""), keystrokes);
+      // 't', 'h' are correct
+      expect(states[0].state).toBe("correct");
+      expect(states[1].state).toBe("correct");
+      // 'e' was skipped, so it's "not-typed" (which is displayed as error-underline because it's incomplete)
+      expect(states[2].state).toBe("not-typed");
+      // Index 3 (the space) should be "incorrect" because it was pressed when 'e' was expected
+      expect(states[3].state).toBe("incorrect");
+    });
+
+    it("should NOT allow multiple cursor teleportations back to back", () => {
+      const text = "the sun rose";
+      // Sequence: "t", "h", " ", " "
+      // First space at 'e' (index 2) -> jump to 4 (start of "sun")
+      // Second space at 's' (index 4) -> should be IGNORED because it's a clean word skip
+      const sequence = ["t", "h", " ", " "];
+      const { cursor, keystrokes } = simulateTyping(text, sequence);
+
+      // Next word "sun" starts at index 4. It should still be at 4.
+      expect(cursor).toBe(4);
+
+      const states = getCharStates(text.split(""), keystrokes);
+      // 't', 'h' are correct
+      expect(states[0].state).toBe("correct");
+      expect(states[1].state).toBe("correct");
+      // 'e' was skipped during the first jump
+      expect(states[2].state).toBe("not-typed");
+      // The first jump space was recorded at index 3 (the next space)
+      expect(states[3].state).toBe("incorrect");
+      // The second space was ignored, so no keystroke recorded for index 4 or beyond
+      expect(states[4].state).toBe("not-typed");
+      expect(states[4].typedChar).toBe("");
     });
   });
 });

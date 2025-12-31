@@ -81,8 +81,20 @@ export const calculateNextCursor = (
     }
     return Math.max(lockedCursor, currentCursor - 1);
   }
+  // Logic for skipping words when typing a space mid-word
+  if (typedChar === " " && characters[currentCursor] !== " ") {
+    let nextSpace = currentCursor;
+    while (nextSpace < characters.length && characters[nextSpace] !== " ") {
+      nextSpace++; // advance cursor to the index before the next space
+    }
+    // return the index at the start of the next word
+    return Math.min(characters.length, nextSpace + 1);
+  }
+
   return Math.min(characters.length, currentCursor + 1);
 };
+
+const EMPTY_EXTRAS: string[] = [];
 
 /**
  * Computes all character states based on the original characters and the list of keystrokes.
@@ -97,7 +109,7 @@ export const getCharStates = (
     .map(() => ({
       state: "not-typed",
       typedChar: "",
-      extras: [],
+      extras: EMPTY_EXTRAS,
     }));
 
   for (const k of keystrokes || []) {
@@ -111,7 +123,11 @@ export const getCharStates = (
         state.state = "not-typed";
         state.typedChar = "";
       } else if (state.extras && state.extras.length > 0) {
-        state.extras.pop();
+        if (state.extras.length === 1) {
+          state.extras = EMPTY_EXTRAS;
+        } else {
+          state.extras = state.extras.slice(0, -1);
+        }
       }
       continue;
     }
@@ -120,13 +136,19 @@ export const getCharStates = (
 
     // If it's a space but we typed a letter, it's an extra
     if (char === " " && k.typedChar !== " ") {
-      state.extras = [...(state.extras || []), k.typedChar];
+      state.extras =
+        state.extras === EMPTY_EXTRAS
+          ? [k.typedChar]
+          : [...(state.extras || []), k.typedChar];
       continue;
     }
 
     // If we already have a typed char for this index, subsequent ones are extras
     if (state.typedChar !== "") {
-      state.extras = [...(state.extras || []), k.typedChar];
+      state.extras =
+        state.extras === EMPTY_EXTRAS
+          ? [k.typedChar]
+          : [...(state.extras || []), k.typedChar];
     } else {
       state.state = k.isCorrect ? "correct" : "incorrect";
       state.typedChar = k.typedChar;
@@ -156,16 +178,14 @@ export const isWordPerfect = (
 ): boolean => {
   if (startIndex < 0 || endIndex < startIndex) return false;
   // Check letters: must be correct and have no extras
-  const lettersPerfect = charStates
-    .slice(startIndex, endIndex)
-    .every(
-      (s) => s.state === "correct" && (!s.extras || s.extras.length === 0),
-    );
-
-  if (!lettersPerfect) return false;
+  for (let i = startIndex; i < endIndex; i++) {
+    const s = charStates[i];
+    if (s.state !== "correct" || (s.extras && s.extras.length > 0)) {
+      return false;
+    }
+  }
 
   // Check the space (or final char): must have no extras
-  // We don't check .state because this is often called before the space keystroke is registered
   const lastCharExtras = charStates[endIndex]?.extras?.length || 0;
   return lastCharExtras === 0;
 };
