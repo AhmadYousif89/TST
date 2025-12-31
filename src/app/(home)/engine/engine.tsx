@@ -17,6 +17,8 @@ import {
 } from "./engine-logic";
 import { Words } from "./words";
 
+const RIGHT_SIDE_BUFFER = 40;
+
 export const EngineContainer = () => {
   const {
     setCursor,
@@ -57,13 +59,13 @@ export const EngineContainer = () => {
 
         // Calculate the left position relative to the container and center it
         let targetLeft = container.scrollLeft;
-        if (cursorRect.right > containerRect.right - 40) {
+        if (cursorRect.right > containerRect.right - RIGHT_SIDE_BUFFER) {
           targetLeft =
             container.scrollLeft +
-            (cursorRect.right - containerRect.right + 40);
+            (cursorRect.right - containerRect.right + RIGHT_SIDE_BUFFER);
         }
         // If cursor moves back towards the left (new line), reset scroll
-        if (cursorRect.left < containerRect.left + 40) {
+        if (cursorRect.left < containerRect.left + RIGHT_SIDE_BUFFER) {
           targetLeft = 0;
         }
 
@@ -262,6 +264,20 @@ export const EngineContainer = () => {
     // Handle normal typing
     const isCorrect = typedChar === expectedChar;
 
+    // Prevent typing extra characters if the word is about to wrap to the next line
+    // Only blocks extra characters when typing at the edge of the container
+    if (expectedChar === " " && typedChar !== " ") {
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      const cursorElement =
+        containerRef.current?.querySelector<HTMLElement>(".active-cursor");
+      const cursorRect = cursorElement?.getBoundingClientRect();
+      if (cursorRect && containerRect) {
+        if (cursorRect.right > containerRect.right - RIGHT_SIDE_BUFFER) {
+          return;
+        }
+      }
+    }
+
     // Logic to prevent correction over correct words
     if (typedChar === " " && isCorrect) {
       const wordStart = getWordStart(cursor, characters);
@@ -332,9 +348,12 @@ export const EngineContainer = () => {
   };
 
   const handleResumeSession = () => {
+    console.log("resume");
     resumeSession();
     containerRef.current?.focus();
   };
+
+  const maxHeightValue = typeof maxHeight === "number" ? maxHeight : 0;
 
   return (
     <div className="relative isolate flex grow flex-col">
@@ -353,16 +372,14 @@ export const EngineContainer = () => {
         onBlur={handleBlur}
         onFocus={handleFocus}
         onKeyDown={handleKeydown}
-        style={{
-          maxHeight:
-            typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
-        }}
+        style={{ maxHeight: `${maxHeightValue}px` }}
         className={cn(
-          "scrollbar-none my-auto overflow-auto overscroll-none scroll-smooth outline-none",
+          "mt-8 flex grow flex-col",
+          "scrollbar-none overflow-auto overscroll-none scroll-smooth outline-none",
           "transition-[opacity,filter] duration-300 ease-out",
-          (status === "idle" || status === "paused") &&
-            showOverlay &&
-            "opacity-50 blur-xs select-none",
+          // (status === "idle" || status === "paused") &&
+          //   showOverlay &&
+          //   "opacity-50 blur-xs select-none",
         )}
       >
         <Words characters={characters} isFocused={isFocused} />
@@ -392,7 +409,7 @@ export const EngineContainer = () => {
       {status === "paused" && showOverlay && (
         <div
           onClick={handleResumeSession}
-          className="bg-background/5 pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+          className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
         >
           <div className="flex flex-col items-center gap-3">
             <p className="text-yellow text-5 animate-pulse">Test Paused</p>

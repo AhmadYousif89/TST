@@ -24,6 +24,7 @@ const simulateTyping = (
   typedSequence: string[],
   startTimeMs: number = 0,
   msPerKeystroke: number = 100,
+  isNearEdge?: (cursor: number, extraOffset: number) => boolean,
 ) => {
   const characters = text.split("");
   let keystrokes: Keystroke[] = [];
@@ -33,6 +34,15 @@ const simulateTyping = (
 
   for (const typedChar of typedSequence) {
     const expectedChar = characters[cursor];
+    // Word wrap prevention logic: Only block if it's an 'extra' character (letter typed at a space)
+    if (
+      typedChar !== " " &&
+      expectedChar === " " &&
+      isNearEdge?.(cursor, extraOffset)
+    ) {
+      currentTime += msPerKeystroke;
+      continue;
+    }
     // Backspace logic
     if (typedChar === "Backspace") {
       if (extraOffset > 0) {
@@ -527,6 +537,94 @@ describe("Integration: Full Typing Session Simulation", () => {
       expect(extraOffset).toBe(3); // Had 3, backspace from 's' start moves back and stops at space with all extras visible.
       const states = getCharStates(text.split(""), keystrokes);
       expect(states[3].extras).toEqual(["x", "y", "z"]);
+    });
+  });
+
+  /* ------------------ Word Wrap Prevention Behavior ------------------ */
+  describe("Word Wrap Prevention Behavior", () => {
+    /**
+     * Note: The actual word-wrap prevention is a DOM-based feature that relies
+     * on getBoundingClientRect() to detect when cursor is near the container edge.
+     * These tests document the expected behavior of the feature:
+     *
+     * 1. When cursor is near the right edge of the container:
+     *    - Extra characters should be BLOCKED (early return, no keystroke recorded)
+     *    - Main characters should be ALLOWED at the edge with no extras
+     *    - Space should be ALLOWED (proceed to next line)
+     *
+     * 2. This prevents the extra characters from causing word wrap issues for the current word being typed
+     * 3. The check uses a 40px buffer from the right edge
+     */
+    const text = "the sun";
+
+    it("blocks extra characters typing when near the edge", () => {
+      // Sequence: "the" (cursor at 3), then try to type extra 'x', 'y'
+      // But we simulate that for 'y', we are near the edge.
+      const sequence = ["t", "h", "e", "x", "y"];
+      // Mock: at cursor 3 and 1 extra, we are near the edge
+      const isNearEdge = (cursor: number, extraOffset: number) => {
+        return cursor === 3 && extraOffset === 1;
+      };
+
+      const { keystrokes, extraOffset } = simulateTyping(
+        text,
+        sequence,
+        0,
+        100,
+        isNearEdge,
+      );
+
+      // 'x' should be recorded (offset becomes 1),
+      // but 'y' should be blocked because isNearEdge(3, 1) returns true.
+      expect(extraOffset).toBe(1);
+      const states = getCharStates(text.split(""), keystrokes);
+      expect(states[3].extras).toEqual(["x"]);
+    });
+
+    it("still allows space characters even when near the edge", () => {
+      const sequence = ["t", "h", "e", "x", " "];
+      const { cursor, extraOffset } = simulateTyping(
+        text,
+        sequence,
+        0,
+        100,
+        (c: number, o: number) => true, // Always near edge
+      );
+
+      // 'x' is blocked because it's an extra character at the edge.
+      // 't', 'h', 'e' are main characters, so they are allowed even near the edge.
+      // " " is also allowed. Final cursor should be 4 ("the ").
+      expect(cursor).toBe(4);
+      expect(extraOffset).toBe(0);
+    });
+
+    it("should ONLY prevent typing extra characters when near the edge", () => {
+      // sequence: "the" (0-2), then "xxx" (extras at 3), then " " (move to 4), then "s", "u", "n" (main chars)
+      // prettier-ignore
+      const sequence = [
+        "t", "h", "e", "x", "x", "x", " ", // First line (3 extras at the edge)
+        "s", "u", "n" // Second line (main chars)
+      ];
+
+      const { cursor, extraOffset, keystrokes } = simulateTyping(
+        text,
+        sequence,
+        0,
+        100,
+        (c: number, o: number) => true, // Always near edge
+      );
+
+      // 't','h','e' should be ALLOWED because they are main characters (expectedChar !== " ")
+      // 'x','x','x' at index 3 should be BLOCKED because they are extras (expectedChar === " ") and isNearEdge is true
+      // ' ' at index 3 should be ALLOWED because it's a space (typedChar === " ")
+      // 's','u','n' at index 4,5,6 should be ALLOWED because they are main characters (expectedChar !== " ")
+
+      expect(cursor).toBe(7); // "the sun" is 7 chars. All main chars + space typed.
+      expect(extraOffset).toBe(0); // All extras were blocked
+      const states = getCharStates(text.split(""), keystrokes);
+      expect(states[3].extras).toEqual([]); // No extras recorded
+      expect(states[4].state).toBe("correct"); // 's' typed correctly
+      expect(states[6].state).toBe("correct"); // 'n' typed correctly
     });
   });
 });
