@@ -3,7 +3,6 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   useEngineActions,
   useEngineKeystroke,
@@ -16,6 +15,9 @@ import {
   isWordPerfect,
 } from "./engine-logic";
 import { Words } from "./words";
+import { Button } from "@/components/ui/button";
+import { ArrowIcon } from "@/components/arrow.icon";
+import { useTypingSound } from "@/hooks/use-typing-sound";
 
 const RIGHT_SIDE_BUFFER = 40;
 
@@ -31,11 +33,12 @@ export const EngineContainer = () => {
   } = useEngineActions();
   const { cursor, extraOffset, progress, keystrokes } = useEngineKeystroke();
   const { status, textData, showOverlay } = useEngineState();
+  const { playSound } = useTypingSound();
 
   const lockedCursorRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hiddenInputRef = useRef<HTMLTextAreaElement>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const [maxHeight, setMaxHeight] = useState<number | string>("none");
 
   const characters = useMemo(
     () => textData?.text.split("") || [],
@@ -89,46 +92,6 @@ export const EngineContainer = () => {
     }
   }, [status]);
 
-  // Calculate dynamic max-height of the engine container
-  useEffect(() => {
-    const calculateHeight = () => {
-      if (!containerRef.current) return;
-
-      // Use visualViewport for mobile stability if available
-      const viewportHeight =
-        window.visualViewport?.height || window.innerHeight;
-      const rect = containerRef.current.getBoundingClientRect();
-      const topOffset = rect.top;
-      // Calculate height of all elements (around the engine container) marked as offsets
-      const offsets = document.querySelectorAll("[data-engine-offset]");
-      let totalOffsetHeight = 0;
-      offsets.forEach((el) => {
-        totalOffsetHeight += el.getBoundingClientRect().height;
-      });
-      // Approximate accumulation of total gaps/spaces around the engine container
-      const safetyBuffer = 120;
-      const containerMinHeight = 150;
-      const availableHeight =
-        viewportHeight - topOffset - totalOffsetHeight - safetyBuffer;
-
-      setMaxHeight(Math.max(availableHeight, containerMinHeight));
-    };
-    // Calculate height on initial render
-    calculateHeight();
-
-    const currentContainer = containerRef.current;
-    const observer = new ResizeObserver(calculateHeight);
-    if (currentContainer?.parentElement) {
-      observer.observe(currentContainer.parentElement);
-    }
-    window.addEventListener("resize", calculateHeight);
-
-    return () => {
-      window.removeEventListener("resize", calculateHeight);
-      observer.disconnect();
-    };
-  }, [status]);
-
   // Reset locked cursor when session is reset or cursor is back at start
   useEffect(() => {
     if (status === "idle" || cursor === 0) {
@@ -144,130 +107,29 @@ export const EngineContainer = () => {
     };
   }, []);
 
-  const handleKeydown = (e: React.KeyboardEvent) => {
+  const handleBeforeInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
+    // onBeforeInput provides the actual character on mobile virtual keyboards
+    const data = e.data;
+    if (!data || data.length !== 1) return;
+    handleTyping(data);
+  };
+
+  const handleTyping = (typedChar: string) => {
     if (status === "finished") return;
-    const typedChar = e.key;
-
-    // Ignore non-character keys except backspace
-    if (typedChar.length !== 1 && typedChar !== "Backspace") return;
-    // Ignore backspace at the start of text
-    if (typedChar === "Backspace" && cursor === 0 && extraOffset === 0) return;
-    // Ignore backspace at the locked cursor prevent attempts to correct previous words
-    if (
-      typedChar === "Backspace" &&
-      cursor <= lockedCursorRef.current &&
-      extraOffset === 0
-    )
-      return;
-
-    // Ignore standalone meta keys and shift key (allow only if typing or Backspace)
-    const isControlModifier = e.ctrlKey || e.metaKey || e.altKey;
-    const isBackspace = typedChar === "Backspace";
-    const isShiftKey = typedChar === "Shift";
-    // If it's a modifier alone or Shift key, ignore
-    if ((isControlModifier && !isBackspace) || isShiftKey) return;
-    // Ignore non-character keys except backspace
-    if (typedChar.length !== 1 && !isBackspace) return;
-    // Ignore F1~F12 keys
-    if (/^F([1-9]|1[0-2])$/.test(typedChar)) return;
-    // Ignore space at the start of text
+    // Ignore space at the start of a word
     if (typedChar === " " && cursor === 0) return;
+
+    playSound();
 
     if (status === "idle") startSession();
     if (status === "paused") resumeSession();
 
-    e.preventDefault();
-    e.stopPropagation();
-
     const expectedChar = characters[cursor];
     const timestampMs = getTimeElapsed();
 
-    // Handle backspace
-    if (isBackspace) {
-      // Handle backspace with extra characters
-      if (extraOffset > 0) {
-        if (isControlModifier) {
-          // Record backspaces for all extras and set offset to 0 [CTRL + BACKSPACE]
-          for (let i = 0; i < extraOffset; i++) {
-            keystrokes.current?.push({
-              charIndex: cursor,
-              expectedChar,
-              typedChar: "Backspace",
-              isCorrect: false,
-              timestampMs,
-              positionGroup: Math.floor(cursor / 10),
-            });
-          }
-          setCursor(cursor, 0);
-        } else {
-          // Record backspace for the single extra and decrement [BACKSPACE]
-          keystrokes.current?.push({
-            charIndex: cursor,
-            expectedChar,
-            typedChar: "Backspace",
-            isCorrect: false,
-            timestampMs,
-            positionGroup: Math.floor(cursor / 10),
-          });
-          setCursor(cursor, extraOffset - 1);
-        }
-        return;
-      }
-
-      // Normal backspace logic
-      let nextCursor = calculateNextCursor(
-        cursor,
-        "Backspace",
-        characters,
-        isControlModifier,
-        lockedCursorRef.current,
-      );
-
-      if (nextCursor < cursor) {
-        const currentStates = getCharStates(characters, keystrokes.current);
-        if (isControlModifier) {
-          // Fully clear every skipped index, including its extras [CTRL + BACKSPACE]
-          for (let i = cursor - 1; i >= nextCursor; i--) {
-            const totalExtraOffset = currentStates[i].extras?.length || 0;
-            // One backspace for each extra + one for the main char itself
-            for (let j = 0; j <= totalExtraOffset; j++) {
-              keystrokes.current?.push({
-                charIndex: i,
-                expectedChar: characters[i],
-                typedChar: "Backspace",
-                isCorrect: false,
-                timestampMs,
-                positionGroup: Math.floor(i / 10),
-              });
-            }
-          }
-          setCursor(nextCursor, 0);
-        } else {
-          // Record backspace for the single extra and decrement [BACKSPACE]
-          const targetIndex = nextCursor;
-          const totalExtraOffset =
-            currentStates[targetIndex].extras?.length || 0;
-          // Standard backspace moves cursor back and "un-types" the character at that index.
-          // This clears the main character (space or letter) but leaves existing extras visible, exactly where the cursor will now land.
-          keystrokes.current?.push({
-            charIndex: targetIndex,
-            expectedChar: characters[targetIndex],
-            typedChar: "Backspace",
-            isCorrect: false,
-            timestampMs,
-            positionGroup: Math.floor(targetIndex / 10),
-          });
-          setCursor(targetIndex, totalExtraOffset);
-        }
-      }
-      return;
-    }
-
-    // Handle normal typing
     const isCorrect = typedChar === expectedChar;
 
     // Prevent typing extra characters if the word is about to wrap to the next line
-    // Only blocks extra characters when typing at the edge of the container
     if (expectedChar === " " && typedChar !== " ") {
       const containerRect = containerRef.current?.getBoundingClientRect();
       const cursorElement =
@@ -293,7 +155,6 @@ export const EngineContainer = () => {
 
     // If we are at a space but typed a letter, it's an extra char
     if (expectedChar === " " && typedChar !== " ") {
-      // Limit to 20 extra characters
       if (extraOffset >= 20) return;
 
       keystrokes.current?.push({
@@ -310,17 +171,16 @@ export const EngineContainer = () => {
 
     // Skip Word Logic: if user hits space mid-word, jump to the start of the next word
     if (typedChar === " " && expectedChar !== " ") {
-      // Prevent skipping if we are at the beginning of a word and haven't typed anything
+      // Prevent skipping if we are at the beginning of a word
       // This prevents multiple teleportations back to back
       const isWordStart = cursor === getWordStart(cursor, characters);
       const currentStates = getCharStates(characters, keystrokes.current || []);
-      // Dirty means we have typed something or have extras
       const isDirty =
         currentStates[cursor].typedChar !== "" ||
         (currentStates[cursor].extras &&
           currentStates[cursor].extras.length > 0);
 
-      if (isWordStart && !isDirty) return; // Don't skip if we are at the start of a word and haven't typed anything
+      if (isWordStart && !isDirty) return;
 
       let spaceIndex = cursor;
       while (spaceIndex < characters.length && characters[spaceIndex] !== " ") {
@@ -339,7 +199,6 @@ export const EngineContainer = () => {
 
       const nextCursor = Math.min(characters.length, spaceIndex + 1);
       setCursor(nextCursor, 0);
-      // If we skipped the last word, end the session
       if (nextCursor >= characters.length) endSession();
       return;
     }
@@ -353,14 +212,112 @@ export const EngineContainer = () => {
       positionGroup: Math.floor(cursor / 10),
     });
 
-    // Set cursor to the next character
     setCursor((ps: number) => {
       const nextCursor = calculateNextCursor(ps, typedChar, characters);
       if (nextCursor >= characters.length) {
         endSession();
       }
       return nextCursor;
-    }, 0); // Reset extraOffset on forward movement
+    }, 0);
+  };
+
+  const handleKeydown = (e: React.KeyboardEvent) => {
+    if (status === "finished") return;
+    const typedChar = e.key;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Handle Backspace
+    if (typedChar === "Backspace") {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (cursor === 0 && extraOffset === 0) return;
+      if (cursor <= lockedCursorRef.current && extraOffset === 0) return;
+
+      playSound();
+
+      const isControlModifier = e.ctrlKey || e.metaKey || e.altKey;
+      const expectedChar = characters[cursor];
+      const timestampMs = getTimeElapsed();
+
+      if (extraOffset > 0) {
+        if (isControlModifier) {
+          for (let i = 0; i < extraOffset; i++) {
+            keystrokes.current?.push({
+              charIndex: cursor,
+              expectedChar,
+              typedChar: "Backspace",
+              isCorrect: false,
+              timestampMs,
+              positionGroup: Math.floor(cursor / 10),
+            });
+          }
+          setCursor(cursor, 0);
+        } else {
+          keystrokes.current?.push({
+            charIndex: cursor,
+            expectedChar,
+            typedChar: "Backspace",
+            isCorrect: false,
+            timestampMs,
+            positionGroup: Math.floor(cursor / 10),
+          });
+          setCursor(cursor, extraOffset - 1);
+        }
+        return;
+      }
+
+      let nextCursor = calculateNextCursor(
+        cursor,
+        "Backspace",
+        characters,
+        isControlModifier,
+        lockedCursorRef.current,
+      );
+
+      if (nextCursor < cursor) {
+        const currentStates = getCharStates(characters, keystrokes.current);
+        if (isControlModifier) {
+          for (let i = cursor - 1; i >= nextCursor; i--) {
+            const totalExtraOffset = currentStates[i].extras?.length || 0;
+            for (let j = 0; j <= totalExtraOffset; j++) {
+              keystrokes.current?.push({
+                charIndex: i,
+                expectedChar: characters[i],
+                typedChar: "Backspace",
+                isCorrect: false,
+                timestampMs,
+                positionGroup: Math.floor(i / 10),
+              });
+            }
+          }
+          setCursor(nextCursor, 0);
+        } else {
+          const targetIndex = nextCursor;
+          const totalExtraOffset =
+            currentStates[targetIndex].extras?.length || 0;
+          keystrokes.current?.push({
+            charIndex: targetIndex,
+            expectedChar: characters[targetIndex],
+            typedChar: "Backspace",
+            isCorrect: false,
+            timestampMs,
+            positionGroup: Math.floor(targetIndex / 10),
+          });
+          setCursor(targetIndex, totalExtraOffset);
+        }
+      }
+      return;
+    }
+
+    if (typedChar.length === 1) {
+      // Ignore special shortcuts that shouldn't trigger typing
+      const isControlModifier = e.ctrlKey || e.metaKey || e.altKey;
+      if (isControlModifier) return;
+      handleTyping(typedChar);
+    }
   };
 
   if (!textData) return null;
@@ -379,6 +336,7 @@ export const EngineContainer = () => {
   const handleFocus = () => {
     setIsFocused(true);
     setShowOverlay(false);
+    hiddenInputRef.current?.focus();
     if (pauseTimerRef.current) {
       clearTimeout(pauseTimerRef.current);
       pauseTimerRef.current = undefined;
@@ -386,15 +344,12 @@ export const EngineContainer = () => {
   };
 
   const handleResumeSession = () => {
-    console.log("resume");
     resumeSession();
     containerRef.current?.focus();
   };
 
-  const maxHeightValue = typeof maxHeight === "number" ? maxHeight : 0;
-
   return (
-    <div className="relative isolate flex grow flex-col">
+    <div className="relative isolate grid grow grid-rows-[auto_1fr_auto] place-items-center">
       {/* Progress Bar */}
       <div className="bg-border h-px w-full overflow-hidden rounded-full">
         <div
@@ -409,17 +364,25 @@ export const EngineContainer = () => {
         ref={containerRef}
         onBlur={handleBlur}
         onFocus={handleFocus}
-        onKeyDown={handleKeydown}
-        style={{ maxHeight: `${maxHeightValue}px` }}
         className={cn(
-          "mt-8 flex grow flex-col",
-          "scrollbar-none overflow-auto overscroll-none scroll-smooth outline-none",
-          "transition-[opacity,filter] duration-300 ease-out",
-          // (status === "idle" || status === "paused") &&
-          //   showOverlay &&
-          //   "opacity-50 blur-xs select-none",
+          "h-[173px] overflow-hidden md:h-[218px]",
+          "scrollbar-none overscroll-none scroll-smooth outline-none",
+          "transition-[opacity,filter] duration-300 ease-in-out",
+          (status === "idle" || status === "paused") &&
+            showOverlay &&
+            "opacity-50 blur-xs select-none",
         )}
       >
+        <textarea
+          ref={hiddenInputRef}
+          onKeyDown={handleKeydown}
+          onBeforeInput={(e) => handleBeforeInput(e)}
+          className="pointer-events-none absolute top-0 left-0 h-14 w-6 resize-none overflow-hidden opacity-0 outline-none"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck="false"
+          inputMode="text"
+        />
         <Words characters={characters} isFocused={isFocused} />
       </div>
 
@@ -450,17 +413,9 @@ export const EngineContainer = () => {
           className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
         >
           <div className="flex flex-col items-center gap-3">
-            <p className="text-yellow text-5 animate-pulse">Test Paused</p>
-            <p className="text-muted-foreground text-4 flex items-center gap-1 font-medium tracking-wide">
-              <svg
-                width="20px"
-                height="20px"
-                fill="currentColor"
-                viewBox="0 -960 960 960"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M537-96 399-391 240-192v-672l528 432H486l138 295-87 41Z" />
-              </svg>
+            <p className="text-yellow text-4 animate-pulse">Test Paused</p>
+            <p className="text-foreground text-4 flex items-center gap-1 font-medium tracking-wide">
+              <ArrowIcon />
               <span>Click to resume</span>
             </p>
           </div>

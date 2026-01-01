@@ -23,6 +23,7 @@ import {
   EngineStateCtxType,
   EngineActionsCtxType,
   EngineKeystrokeCtxType,
+  SoundNames,
 } from "./types";
 import { engineReducer, initialState } from "./reducer";
 
@@ -128,6 +129,18 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     dispatch({ type: "SET_OVERLAY", show });
   }, []);
 
+  const setSoundName = useCallback((soundName: SoundNames) => {
+    dispatch({ type: "SET_SOUND", soundName });
+  }, []);
+
+  const setVolume = useCallback((volume: number) => {
+    dispatch({ type: "SET_VOLUME", volume });
+  }, []);
+
+  const setIsMuted = useCallback((isMuted: boolean) => {
+    dispatch({ type: "SET_MUTED", isMuted });
+  }, []);
+
   /* -------------------- TIMER & METRICS -------------------- */
 
   // Sync timeLeft when mode changes and reset session
@@ -226,6 +239,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       timeLeft: state.timeLeft,
       showOverlay: state.showOverlay,
       extraOffset: state.extraOffset,
+      soundName: state.soundName,
+      volume: state.volume,
+      isMuted: state.isMuted,
     }),
     [
       mode,
@@ -236,6 +252,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       state.timeLeft,
       state.showOverlay,
       state.extraOffset,
+      state.soundName,
+      state.volume,
+      state.isMuted,
     ],
   );
 
@@ -260,6 +279,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       getTimeElapsed,
       setShowOverlay,
+      setSoundName,
+      setVolume,
+      setIsMuted,
     }),
     [
       setCursor,
@@ -271,6 +293,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       getTimeElapsed,
       setShowOverlay,
+      setSoundName,
+      setVolume,
+      setIsMuted,
     ],
   );
 

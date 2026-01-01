@@ -9,6 +9,9 @@ export const initialState: EngineState = {
   accuracy: 100,
   showOverlay: true,
   extraOffset: 0,
+  volume: 0.5,
+  isMuted: false,
+  soundName: "creamy",
 };
 
 export function engineReducer(
@@ -21,6 +24,9 @@ export function engineReducer(
         ...initialState,
         timeLeft: action.timeLeft,
         showOverlay: true,
+        soundName: state.soundName,
+        volume: state.volume,
+        isMuted: state.isMuted,
       };
     case "START":
       return {
@@ -92,6 +98,22 @@ export function engineReducer(
         ...state,
         showOverlay: action.show,
       };
+    case "SET_SOUND":
+      return {
+        ...state,
+        soundName: action.soundName,
+      };
+    case "SET_VOLUME":
+      return {
+        ...state,
+        volume: action.volume,
+      };
+    case "SET_MUTED":
+      return {
+        ...state,
+        isMuted: action.isMuted,
+      };
+
     default:
       return state;
   }

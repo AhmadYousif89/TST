@@ -3,6 +3,21 @@ import { TextDoc } from "@/lib/types";
 export type TextDifficulty = "easy" | "medium" | "hard";
 export type TextCategory = "lyrics" | "general" | "quotes" | "code";
 export type TextMode = "t:15" | "t:30" | "t:60" | "t:120" | "t:180" | "passage";
+type SoundName =
+  | "beep"
+  | "click"
+  | "creamy"
+  | "hitmarker"
+  | "osu"
+  | "pop"
+  | "punch"
+  | "rubber"
+  | "typewriter";
+export type SoundNames = SoundName | "none";
+export type SoundFile = Record<
+  SoundName,
+  { folder: string; prefix: string; count: number }
+>;
 
 export type CharState = {
   state: "not-typed" | "correct" | "incorrect";
@@ -30,6 +45,9 @@ export type EngineState = {
   extraOffset: number;
   status: EngineStatus;
   showOverlay: boolean;
+  soundName: SoundNames;
+  volume: number;
+  isMuted: boolean;
 };
 
 export type EngineStateCtxType = {
@@ -41,6 +59,9 @@ export type EngineStateCtxType = {
   timeLeft: number;
   extraOffset: number;
   showOverlay: boolean;
+  soundName: SoundNames;
+  volume: number;
+  isMuted: boolean;
 };
 
 export type EngineKeystrokeCtxType = {
@@ -63,6 +84,9 @@ export type EngineActionsCtxType = {
     cursor: number | ((prev: number) => number),
     extraOffset?: number,
   ) => void;
+  setSoundName: (name: SoundNames) => void;
+  setVolume: (v: number) => void;
+  setIsMuted: (m: boolean) => void;
 };
 
 export type EngineAction =
@@ -80,4 +104,7 @@ export type EngineAction =
   | { type: "SET_STATUS"; status: EngineStatus }
   | { type: "TICK"; mode: TextMode; wpm?: number; accuracy?: number }
   | { type: "SET_METRICS"; wpm: number; accuracy: number }
-  | { type: "SET_OVERLAY"; show: boolean };
+  | { type: "SET_OVERLAY"; show: boolean }
+  | { type: "SET_SOUND"; soundName: SoundNames }
+  | { type: "SET_VOLUME"; volume: number }
+  | { type: "SET_MUTED"; isMuted: boolean };
