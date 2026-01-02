@@ -59,6 +59,14 @@ const simulateTyping = (
         const currentStates = getCharStates(characters, keystrokes);
         const numExtras = currentStates[targetIndex].extras?.length || 0;
 
+        // Teleport-aware backspacing
+        const lastStroke = keystrokes
+          .slice()
+          .reverse()
+          .find(
+            (k) => k.charIndex === targetIndex && k.typedChar !== "Backspace",
+          );
+
         keystrokes.push({
           charIndex: targetIndex,
           expectedChar: characters[targetIndex],
@@ -66,7 +74,12 @@ const simulateTyping = (
           isCorrect: false,
           timestampMs: currentTime,
         });
-        cursor = calculateNextCursor(cursor, "Backspace", characters);
+
+        if (lastStroke?.skipOrigin !== undefined) {
+          cursor = lastStroke.skipOrigin;
+        } else {
+          cursor = calculateNextCursor(cursor, "Backspace", characters);
+        }
 
         if (numExtras > 0) {
           extraOffset = numExtras;
@@ -100,6 +113,7 @@ const simulateTyping = (
           typedChar: " ",
           isCorrect: false,
           timestampMs: currentTime,
+          skipOrigin: cursor, // Record where we jumped from
         });
         cursor = Math.min(characters.length, spaceIndex + 1);
         extraOffset = 0;
@@ -700,6 +714,27 @@ describe("Integration: Full Typing Session Simulation", () => {
       // The second space was ignored, so no keystroke recorded for index 4 or beyond
       expect(states[4].state).toBe("not-typed");
       expect(states[4].typedChar).toBe("");
+    });
+
+    it("should jump back to pre-teleport position on Backspace after skipping", () => {
+      const text = "the sun rose";
+      // Sequence: "t", "h", " ", "Backspace"
+      // 1. "t", "h" -> cursor 2
+      // 2. " " -> jumps to index 4 (start of "sun")
+      // 3. "Backspace" -> should jump back to index 2 (after "h")
+      const sequence = ["t", "h", " ", "Backspace"];
+      const { cursor, keystrokes } = simulateTyping(text, sequence);
+
+      expect(cursor).toBe(2);
+
+      const states = getCharStates(text.split(""), keystrokes);
+      // 't', 'h' remains correct
+      expect(states[0].state).toBe("correct");
+      expect(states[1].state).toBe("correct");
+      // 'e' (index 2) should be not-typed
+      expect(states[2].state).toBe("not-typed");
+      // Space (index 3) should be not-typed because it was backspaced
+      expect(states[3].state).toBe("not-typed");
     });
   });
 });

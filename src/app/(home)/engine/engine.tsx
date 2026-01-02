@@ -195,6 +195,7 @@ export const EngineContainer = () => {
         isCorrect: false,
         timestampMs,
         positionGroup: Math.floor(targetIndex / 10),
+        skipOrigin: cursor, // Record where we jumped from
       });
 
       const nextCursor = Math.min(characters.length, spaceIndex + 1);
@@ -277,8 +278,10 @@ export const EngineContainer = () => {
         lockedCursorRef.current,
       );
 
+      // Normal backspace logic
       if (nextCursor < cursor) {
         const currentStates = getCharStates(characters, keystrokes.current);
+        // [CTRL + BACKSPACE]
         if (isControlModifier) {
           for (let i = cursor - 1; i >= nextCursor; i--) {
             const totalExtraOffset = currentStates[i].extras?.length || 0;
@@ -295,9 +298,25 @@ export const EngineContainer = () => {
           }
           setCursor(nextCursor, 0);
         } else {
+          // Record backspace for the single extra and decrement [BACKSPACE]
           const targetIndex = nextCursor;
           const totalExtraOffset =
             currentStates[targetIndex].extras?.length || 0;
+
+          // If this was a skip, jump back to where the skip originated
+          // We look for the last keystroke at this index that wasn't a backspace
+          const lastStroke = keystrokes.current
+            ?.slice()
+            .reverse()
+            .find(
+              (k) => k.charIndex === targetIndex && k.typedChar !== "Backspace",
+            );
+
+          const finalCursor =
+            lastStroke?.skipOrigin !== undefined
+              ? lastStroke.skipOrigin
+              : targetIndex;
+
           keystrokes.current?.push({
             charIndex: targetIndex,
             expectedChar: characters[targetIndex],
@@ -306,7 +325,7 @@ export const EngineContainer = () => {
             timestampMs,
             positionGroup: Math.floor(targetIndex / 10),
           });
-          setCursor(targetIndex, totalExtraOffset);
+          setCursor(finalCursor, totalExtraOffset);
         }
       }
       return;
