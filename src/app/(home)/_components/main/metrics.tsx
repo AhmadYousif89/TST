@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SettingsIcon } from "@/components/settings.icon";
 
-import { ControlPanel } from "./settings";
+import { SettingsPanel } from "./settings";
 import { useEngineState } from "../../engine/engine.context";
 import { formatTime, getModeLabel } from "../../engine/engine-logic";
 
@@ -109,7 +109,7 @@ export const Metrics = () => {
                   Configure your typing settings
                 </DrawerDescription>
               </DrawerHeader>
-              <ControlPanel />
+              <SettingsPanel />
               <DrawerFooter>
                 <DrawerClose asChild>
                   <Button variant="destructive">Close</Button>

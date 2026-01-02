@@ -32,7 +32,7 @@ export type Keystroke = {
   positionGroup?: number; // Math.floor(charIndex / 10)
   isCorrect: boolean;
   timestampMs: number; // offset from session start
-  skipOrigin?: number; // For "Skip Word" behavior: where the cursor was before the jump
+  skipOrigin?: number; // where the cursor was before the jump
 };
 
 export type EngineStatus = "idle" | "typing" | "paused" | "finished";
