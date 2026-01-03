@@ -9,6 +9,7 @@ import React, {
   useRef,
   use,
 } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { TextDoc } from "@/lib/types";
 import {
@@ -28,18 +29,22 @@ import {
   SoundNames,
   CursorStyle,
 } from "./types";
+import { useUrlState } from "@/hooks/use-url-state";
 import { engineReducer, initialState } from "./reducer";
 
-const EngineConfigContext = createContext<EngineConfigCtxType | undefined>(
+const EngineConfigCtx = createContext<EngineConfigCtxType | undefined>(
   undefined,
 );
-const EngineMetricsContext = createContext<EngineMetricsCtxType | undefined>(
+
+const EngineMetricsCtx = createContext<EngineMetricsCtxType | undefined>(
   undefined,
 );
-const EngineKeystrokeContext = createContext<
-  EngineKeystrokeCtxType | undefined
->(undefined);
-const EngineActionsContext = createContext<EngineActionsCtxType | undefined>(
+
+const EngineKeystrokeCtx = createContext<EngineKeystrokeCtxType | undefined>(
+  undefined,
+);
+
+const EngineActionsCtx = createContext<EngineActionsCtxType | undefined>(
   undefined,
 );
 
@@ -50,6 +55,9 @@ type EngineProviderProps = {
 
 export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const { textData, mode } = data;
+  const { updateURL } = useUrlState();
+  const searchParams = useSearchParams();
+
   const [state, dispatch] = useReducer(engineReducer, {
     ...initialState,
     timeLeft: getInitialTime(mode),
@@ -91,7 +99,8 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     startedAtRef.current = null;
     accumulatedTimeRef.current = 0;
     hasUpdatedStatsRef.current = false;
-  }, [mode]);
+    updateURL({ sid: null });
+  }, [mode, updateURL]);
 
   const startSession = useCallback(() => {
     dispatch({ type: "START", timestamp: Date.now() });
@@ -176,10 +185,22 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   /* -------------------- TIMER & METRICS -------------------- */
 
+  // Track previous mode to detect mode changes
+  const prevModeRef = useRef<TextMode>(mode);
   // Sync timeLeft when mode changes and reset session
   useEffect(() => {
-    resetSession();
-  }, [resetSession]);
+    if (prevModeRef.current !== mode) resetSession();
+    prevModeRef.current = mode;
+  }, [mode, resetSession]);
+
+  // Track previous session ID to detect when it's cleared
+  const prevSidRef = useRef<string | null>(searchParams.get("sid"));
+  // Reset session when session param is cleared (user clicked restart or manually cleared URL)
+  useEffect(() => {
+    const sessionId = searchParams.get("sid");
+    if (prevSidRef.current && !sessionId) resetSession();
+    prevSidRef.current = sessionId;
+  }, [searchParams, resetSession]);
 
   // Update metrics when session ends
   useEffect(() => {
@@ -201,30 +222,32 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       accuracy: finalAccuracy,
     });
 
-    // Sync with DB
+    const data = {
+      textId: textData?._id,
+      category: textData?.category,
+      difficulty: textData?.difficulty,
+      mode,
+      wpm: finalWpm,
+      accuracy: finalAccuracy,
+      errorCount,
+      durationMs: elapsed,
+      startedAt: startedAtRef.current,
+      finishedAt: Date.now(),
+      keystrokes: ks,
+    };
+
     if (textData?._id) {
       fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          textId: textData._id,
-          category: textData.category,
-          difficulty: textData.difficulty,
-          mode,
-          wpm: finalWpm,
-          accuracy: finalAccuracy,
-          errorCount,
-          durationMs: elapsed,
-          startedAt: startedAtRef.current,
-          finishedAt: Date.now(),
-          keystrokes: ks,
-        }),
+        body: JSON.stringify(data),
       })
-        .then((res) => {
+        .then(async (res) => {
           if (res.ok) {
-            // This event is needed to signal the header that the session and the backend logic has finished
-            // and the header can now fetch the best WPM value (so we can't relay solely on the engine status)
-            window.dispatchEvent(new CustomEvent("session-finished"));
+            const { sessionId } = await res.json();
+            if (sessionId) {
+              updateURL({ sid: sessionId });
+            }
           }
         })
         .catch((err) => console.error("Failed to sync session:", err));
@@ -338,41 +361,41 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   );
 
   return (
-    <EngineConfigContext.Provider value={configValue}>
-      <EngineMetricsContext.Provider value={metricsValue}>
-        <EngineActionsContext.Provider value={actionsValue}>
-          <EngineKeystrokeContext.Provider value={keystrokeValue}>
+    <EngineConfigCtx.Provider value={configValue}>
+      <EngineMetricsCtx.Provider value={metricsValue}>
+        <EngineActionsCtx.Provider value={actionsValue}>
+          <EngineKeystrokeCtx.Provider value={keystrokeValue}>
             {children}
-          </EngineKeystrokeContext.Provider>
-        </EngineActionsContext.Provider>
-      </EngineMetricsContext.Provider>
-    </EngineConfigContext.Provider>
+          </EngineKeystrokeCtx.Provider>
+        </EngineActionsCtx.Provider>
+      </EngineMetricsCtx.Provider>
+    </EngineConfigCtx.Provider>
   );
 };
 
 export const useEngineConfig = () => {
-  const context = use(EngineConfigContext);
+  const context = use(EngineConfigCtx);
   if (context === undefined)
     throw new Error("useEngineConfig must be used within an EngineProvider");
   return context;
 };
 
 export const useEngineKeystroke = () => {
-  const context = use(EngineKeystrokeContext);
+  const context = use(EngineKeystrokeCtx);
   if (context === undefined)
     throw new Error("useEngineKeystroke must be used within an EngineProvider");
   return context;
 };
 
 export const useEngineActions = () => {
-  const context = use(EngineActionsContext);
+  const context = use(EngineActionsCtx);
   if (context === undefined)
     throw new Error("useEngineActions must be used within an EngineProvider");
   return context;
 };
 
 export const useEngineMetrics = () => {
-  const context = use(EngineMetricsContext);
+  const context = use(EngineMetricsCtx);
   if (context === undefined)
     throw new Error("useEngineMetrics must be used within an EngineProvider");
   return context;

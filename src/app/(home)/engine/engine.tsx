@@ -20,6 +20,7 @@ import { Words } from "./words";
 import { Button } from "@/components/ui/button";
 import { ArrowIcon } from "@/components/arrow.icon";
 import { useTypingSound } from "@/hooks/use-typing-sound";
+import { TimeWarning } from "../_components/main/timer-warning";
 
 const RIGHT_SIDE_BUFFER = 40;
 
@@ -46,7 +47,9 @@ export const EngineContainer = () => {
     () => textData?.text.split("") || [],
     [textData?.text],
   );
-  console.log({ cursor, keystrokes });
+
+  /* ------------- Effects ------------- */
+
   // Scroll engine container to cursor position if text is overflowing the container height
   useEffect(() => {
     if (isFocused && status === "typing") {
@@ -96,9 +99,7 @@ export const EngineContainer = () => {
 
   // Reset locked cursor when session is reset or cursor is back at start
   useEffect(() => {
-    if (status === "idle" || cursor === 0) {
-      lockedCursorRef.current = 0;
-    }
+    if (status === "idle" || cursor === 0) lockedCursorRef.current = 0;
   }, [status, cursor]);
 
   // Reset pause timer when session is reset
@@ -108,6 +109,8 @@ export const EngineContainer = () => {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
     };
   }, []);
+
+  /* ------------- Handlers ------------- */
 
   const handleBeforeInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
     // onBeforeInput provides the actual character on mobile virtual keyboards
@@ -341,8 +344,6 @@ export const EngineContainer = () => {
     }
   };
 
-  if (!textData) return null;
-
   const handleBlur = () => {
     setIsFocused(false);
     if (status === "typing") {
@@ -368,6 +369,8 @@ export const EngineContainer = () => {
     resumeSession();
     containerRef.current?.focus();
   };
+
+  if (!textData) return null;
 
   return (
     <div className="relative isolate grid grow grid-rows-[auto_1fr_auto] place-items-center">
@@ -445,30 +448,4 @@ export const EngineContainer = () => {
       )}
     </div>
   );
-};
-
-const TimeWarning = () => {
-  const { timeLeft } = useEngineMetrics();
-  const { status, mode } = useEngineConfig();
-  const { playWarningSound, stopWarningSound } = useTypingSound();
-  const lastPlayedTimeRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (
-      status === "typing" &&
-      mode !== "passage" &&
-      timeLeft <= 10 &&
-      timeLeft > 0
-    ) {
-      if (lastPlayedTimeRef.current !== timeLeft) {
-        playWarningSound();
-        lastPlayedTimeRef.current = timeLeft;
-      }
-    } else {
-      stopWarningSound();
-      lastPlayedTimeRef.current = null;
-    }
-  }, [timeLeft, status, mode, playWarningSound, stopWarningSound]);
-
-  return null;
 };
