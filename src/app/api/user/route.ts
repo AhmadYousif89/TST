@@ -22,7 +22,14 @@ export async function GET() {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    return Response.json(user);
+    const serializedUser = {
+      ...user,
+      _id: user._id.toString(),
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    };
+
+    return Response.json(serializedUser);
   } catch (error) {
     console.error("Error fetching user:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -58,7 +65,14 @@ export async function PUT(req: NextRequest) {
     if (!user)
       return Response.json({ error: "User not found" }, { status: 404 });
 
-    return Response.json(user);
+    const updatedUser = {
+      ...user,
+      _id: user?._id.toString(),
+      createdAt: user?.createdAt.toISOString(),
+      updatedAt: user?.updatedAt.toISOString(),
+    };
+
+    return Response.json(updatedUser);
   } catch (error) {
     console.error("Error updating user:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

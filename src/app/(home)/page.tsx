@@ -1,11 +1,14 @@
-import { getUser } from "../dal/user";
 import { getInitialText } from "../dal/data";
-import { EngineProvider } from "./engine/engine.context";
-import { MainContent } from "./_components/main/content";
-import { Header } from "./_components/header";
-import { Footer } from "./_components/footer";
+import { getSession, getUser } from "../dal/user";
 
+import { SoundProvider } from "./engine/sound.context";
+import { EngineProvider } from "./engine/engine.context";
 import { TextCategory, TextDifficulty, TextMode } from "./engine/types";
+
+import { Header } from "./_components/header";
+import { MainContent } from "./_components/main/content";
+import { Results } from "./_components/main/results";
+import { Footer } from "./_components/footer";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
@@ -18,8 +21,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       : "easy";
   const mode = typeof sp.mode === "string" ? (sp.mode as TextMode) : "t:60";
   const id = typeof sp.id === "string" ? sp.id : undefined;
+  const sessionId = typeof sp.sid === "string" ? sp.sid : undefined;
 
   const textData = await getInitialText({ id, category, difficulty });
+  const sessionData = sessionId ? await getSession(sessionId) : null;
   const user = await getUser();
 
   if (!textData) {
@@ -32,11 +37,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   return (
     <EngineProvider data={{ textData, mode }}>
-      <div className="container">
-        <Header user={user} />
-        <MainContent />
-        <Footer />
-      </div>
+      <SoundProvider>
+        <div className="container">
+          <Header />
+          {!!sessionData ? (
+            <Results session={sessionData} user={user} />
+          ) : (
+            <MainContent />
+          )}
+          <Footer isFinished={!!sessionData} />
+        </div>
+      </SoundProvider>
     </EngineProvider>
   );
 }

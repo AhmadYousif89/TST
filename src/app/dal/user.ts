@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
+import { ObjectId } from "mongodb";
 import connectToDB from "@/lib/db";
-import { AnonUserDoc } from "@/lib/types";
+import { AnonUserDoc, TypingSessionDoc } from "@/lib/types";
 
-export async function getUser(): Promise<AnonUserDoc | null> {
+export async function getUser() {
   const cookieStore = await cookies();
   const anonUserId = cookieStore.get("anonUserId")?.value;
 
@@ -22,6 +23,26 @@ export async function getUser(): Promise<AnonUserDoc | null> {
     };
   } catch (error) {
     console.error("Error fetching user:", error);
+    return null;
+  }
+}
+
+export async function getSession(sessionId: string) {
+  try {
+    const { db } = await connectToDB();
+    const session = await db
+      .collection<TypingSessionDoc>("typing_sessions")
+      .findOne({ _id: new ObjectId(sessionId) });
+
+    if (!session) return null;
+
+    return {
+      ...session,
+      _id: session._id.toString(),
+      textId: session.textId.toString(),
+    };
+  } catch (error) {
+    console.error("Error fetching session:", error);
     return null;
   }
 }

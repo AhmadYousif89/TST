@@ -1,13 +1,13 @@
-import { ObjectId } from "mongodb";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 
+import { ObjectId } from "mongodb";
 import connectToDB from "@/lib/db";
 import {
+  TextDoc,
   AnonUserDoc,
   KeystrokeDoc,
   TypingSessionDoc,
-  TextDoc,
 } from "@/lib/types";
 import { Keystroke } from "@/app/(home)/engine/types";
 
@@ -19,19 +19,8 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const {
-    textId,
-    category,
-    difficulty,
-    mode,
-    wpm,
-    accuracy,
-    errorCount,
-    durationMs,
-    startedAt,
-    finishedAt,
-    keystrokes,
-  } = await req.json();
+  const body = await req.json();
+  const { keystrokes, ...data } = body;
 
   const { db, client } = await connectToDB();
   const dbSession = client.startSession();
@@ -42,16 +31,9 @@ export async function POST(req: NextRequest) {
     await dbSession.withTransaction(async () => {
       const sessionData = {
         anonUserId,
-        textId,
-        category,
-        difficulty,
-        mode,
-        wpm,
-        accuracy,
-        errorCount,
-        durationMs,
-        startedAt: new Date(startedAt),
-        finishedAt: new Date(finishedAt),
+        ...data,
+        startedAt: new Date(data.startedAt),
+        finishedAt: new Date(data.finishedAt),
       } as TypingSessionDoc;
 
       const sessionRes = await db
@@ -65,8 +47,8 @@ export async function POST(req: NextRequest) {
         {
           $inc: { totalSessions: 1 },
           $max: {
-            bestWpm: wpm,
-            bestAccuracy: accuracy,
+            bestWpm: data.wpm,
+            bestAccuracy: data.accuracy,
           },
           $set: { updatedAt: new Date() },
           $setOnInsert: { createdAt: new Date() },
@@ -77,7 +59,7 @@ export async function POST(req: NextRequest) {
       if (keystrokes?.length) {
         const keystrokesDocs = keystrokes.map((k: Keystroke) => ({
           ...k,
-          textId,
+          textId: data.textId,
           sessionId: insertedId,
           anonUserId,
           createdAt: new Date(),
@@ -89,7 +71,9 @@ export async function POST(req: NextRequest) {
 
       // Update text doc with total completions and average wpm
       const textObjectId =
-        typeof textId === "string" ? new ObjectId(textId) : textId;
+        typeof data.textId === "string"
+          ? new ObjectId(data.textId)
+          : data.textId;
       await db.collection<TextDoc>("texts").updateOne(
         { _id: textObjectId },
         [
@@ -101,13 +85,13 @@ export async function POST(req: NextRequest) {
               averageWpm: {
                 $cond: {
                   if: { $eq: [{ $ifNull: ["$totalCompletions", 0] }, 0] },
-                  then: wpm,
+                  then: data.wpm,
                   else: {
                     $divide: [
                       {
                         $add: [
                           { $multiply: ["$averageWpm", "$totalCompletions"] },
-                          wpm,
+                          data.wpm,
                         ],
                       },
                       { $add: ["$totalCompletions", 1] },
