@@ -6,7 +6,6 @@ import {
   useEngineConfig,
 } from "@/app/(home)/engine/engine.context";
 import { SoundNames } from "@/app/(home)/engine/types";
-import { useTypingSound } from "@/hooks/use-typing-sound";
 import { useClickOutside } from "@/hooks/use-click-outside";
 import {
   Select,
@@ -20,6 +19,7 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { Button } from "@/components/ui/button";
 import { VolumeOff, VolumeOn } from "@/components/volume.icon";
+import { useSound } from "@/app/(home)/engine/sound.context";
 
 export const SoundSettings = () => {
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -27,7 +27,7 @@ export const SoundSettings = () => {
 
   const { setSoundName, setIsMuted, setVolume } = useEngineActions();
   const { soundName, volume, isMuted } = useEngineConfig();
-  const { playSound } = useTypingSound();
+  const { playSound } = useSound();
 
   // Close slider when clicking outside
   useClickOutside(

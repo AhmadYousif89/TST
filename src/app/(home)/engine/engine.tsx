@@ -14,12 +14,12 @@ import {
   useEngineActions,
   useEngineConfig,
   useEngineKeystroke,
-  useEngineMetrics,
 } from "./engine.context";
+import { useSound } from "./sound.context";
+
 import { Words } from "./words";
 import { Button } from "@/components/ui/button";
 import { ArrowIcon } from "@/components/arrow.icon";
-import { useTypingSound } from "@/hooks/use-typing-sound";
 import { TimeWarning } from "../_components/main/timer-warning";
 
 const RIGHT_SIDE_BUFFER = 40;
@@ -36,7 +36,7 @@ export const EngineContainer = () => {
   } = useEngineActions();
   const { cursor, extraOffset, progress, keystrokes } = useEngineKeystroke();
   const { status, textData, showOverlay } = useEngineConfig();
-  const { playSound } = useTypingSound();
+  const { playSound } = useSound();
 
   const lockedCursorRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -393,9 +393,9 @@ export const EngineContainer = () => {
           "h-43.25 md:h-54.5",
           "scrollbar-none overflow-hidden overscroll-none scroll-smooth outline-none",
           "transition-[opacity,filter] duration-300 ease-in-out",
-          // (status === "idle" || status === "paused") &&
-          //   showOverlay &&
-          //   "opacity-50 blur-xs select-none",
+          (status === "idle" || status === "paused") &&
+            showOverlay &&
+            "opacity-50 blur-xs select-none",
         )}
       >
         <textarea

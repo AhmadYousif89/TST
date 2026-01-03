@@ -1,7 +1,14 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
-import { useEngineConfig } from "@/app/(home)/engine/engine.context";
+import React, {
+  createContext,
+  useContext,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
+
+import { useEngineConfig } from "./engine.context";
 import { SoundFile, SoundNames } from "@/app/(home)/engine/types";
 
 const SOUND_CONFIG: SoundFile = {
@@ -16,20 +23,65 @@ const SOUND_CONFIG: SoundFile = {
   typewriter: { folder: "typewriter", prefix: "typewriter", count: 12 },
 };
 
-export const useTypingSound = () => {
+type SoundContextType = {
+  playSound: () => void;
+  playWarningSound: () => void;
+  stopWarningSound: () => void;
+};
+
+const SoundContext = createContext<SoundContextType | null>(null);
+
+export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
   const { soundName, volume, isMuted } = useEngineConfig();
-  const soundNameRef = useRef<SoundNames>("none");
-  const audioCtxRef = useRef<AudioContext>(null);
-  const buffersRef = useRef<AudioBuffer[]>([]);
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const buffersCacheRef = useRef<Map<string, AudioBuffer[]>>(new Map());
   const warningBufferRef = useRef<AudioBuffer | null>(null);
   const warningSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const loadSoundSet = useCallback(async (name: SoundNames) => {
+    if (name === "none") return [];
+    if (buffersCacheRef.current.has(name))
+      return buffersCacheRef.current.get(name)!;
 
-  // Initialize AudioContext on mount
+    const ctx = audioCtxRef.current;
+    if (!ctx) return [];
+
+    const config = SOUND_CONFIG[name];
+    if (!config) return [];
+
+    const newBuffers: AudioBuffer[] = [];
+    const loadPromises = [];
+
+    for (let i = 1; i <= config.count; i++) {
+      const url = `/assets/sounds/${config.folder}/${config.prefix}${i}.wav`;
+      loadPromises.push(
+        fetch(url)
+          .then((res) => res.arrayBuffer())
+          .then((data) => ctx.decodeAudioData(data))
+          .then((buffer) => {
+            newBuffers.push(buffer);
+          })
+          .catch((err) => console.error(`Failed to load sound ${url}:`, err)),
+      );
+    }
+
+    await Promise.all(loadPromises);
+    buffersCacheRef.current.set(name, newBuffers);
+    return newBuffers;
+  }, []);
+
+  // Preload sound set whenever it changes
+  useEffect(() => {
+    if (soundName !== "none" && audioCtxRef.current) {
+      loadSoundSet(soundName);
+    }
+  }, [soundName, loadSoundSet]);
+
+  // Initialize AudioContext and load warning sound
   useEffect(() => {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = ctx;
 
-    // Load warning sound
     fetch("/assets/sounds/timeWarning.wav")
       .then((res) => res.arrayBuffer())
       .then((data) => ctx.decodeAudioData(data))
@@ -38,68 +90,31 @@ export const useTypingSound = () => {
       })
       .catch((err) => console.error("Failed to load warning sound:", err));
 
+    // Preload initial sound set
+    if (soundName !== "none") {
+      loadSoundSet(soundName);
+    }
+
     return () => {
       if (ctx.state !== "closed") ctx.close();
     };
   }, []);
 
-  // Load sounds on soundName change
-  useEffect(() => {
-    if (soundName === "none") {
-      buffersRef.current = [];
-      soundNameRef.current = "none";
-      return;
-    }
-
-    if (soundName === soundNameRef.current) return;
-
-    const ctx = audioCtxRef.current;
-    if (!ctx) return;
-    const config = SOUND_CONFIG[soundName];
-    if (!config) return;
-
-    const loadSounds = async () => {
-      const newBuffers: AudioBuffer[] = [];
-      const loadPromises = [];
-
-      for (let i = 1; i <= config.count; i++) {
-        const url = `/assets/sounds/${config.folder}/${config.prefix}${i}.wav`;
-        loadPromises.push(
-          fetch(url)
-            .then((res) => res.arrayBuffer())
-            .then((data) => ctx.decodeAudioData(data))
-            .then((buffer) => {
-              newBuffers.push(buffer);
-            })
-            .catch((err) => console.error(`Failed to load sound ${url}:`, err)),
-        );
-      }
-
-      await Promise.all(loadPromises);
-      buffersRef.current = newBuffers;
-      soundNameRef.current = soundName;
-    };
-
-    loadSounds();
-  }, [soundName]);
-
-  const playSound = useCallback(() => {
+  const playSound = useCallback(async () => {
     if (isMuted || soundName === "none") return;
 
     const ctx = audioCtxRef.current;
-    const buffers = buffersRef.current;
-    if (!ctx || buffers.length === 0) return;
+    if (!ctx) return;
 
-    // Resume context if suspended
+    const buffers = await loadSoundSet(soundName);
+    if (buffers.length === 0) return;
+
     if (ctx.state === "suspended") ctx.resume();
 
     const source = ctx.createBufferSource();
-    // Pick a random buffer (sounds) from the current set
     const randomIndex = Math.floor(Math.random() * buffers.length);
     source.buffer = buffers[randomIndex];
-
-    // Small random pitch variation for more natural feel
-    source.playbackRate.value = 0.98 + Math.random() * 0.04;
+    source.playbackRate.value = 0.96 + Math.random() * 0.04;
 
     const gainNode = ctx.createGain();
     gainNode.gain.value = volume;
@@ -107,7 +122,7 @@ export const useTypingSound = () => {
     source.connect(gainNode);
     gainNode.connect(ctx.destination);
     source.start(0);
-  }, [isMuted, soundName, volume]);
+  }, [loadSoundSet, isMuted, soundName, volume]);
 
   const playWarningSound = useCallback(() => {
     if (isMuted) return;
@@ -118,12 +133,11 @@ export const useTypingSound = () => {
 
     if (ctx.state === "suspended") ctx.resume();
 
-    // Stop previous warning sound if it's still playing
     if (warningSourceRef.current) {
       try {
         warningSourceRef.current.stop();
-      } catch (e) {
-        // Ignore errors if already stopped
+      } catch {
+        // Ignore if already stopped
       }
       warningSourceRef.current = null;
     }
@@ -132,8 +146,7 @@ export const useTypingSound = () => {
     source.buffer = buffer;
 
     const gainNode = ctx.createGain();
-    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
-    // Fade out slightly before stopping
+    gainNode.gain.value = volume;
     gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.9);
 
     source.connect(gainNode);
@@ -148,10 +161,24 @@ export const useTypingSound = () => {
     if (warningSourceRef.current) {
       try {
         warningSourceRef.current.stop();
-      } catch (e) {}
+      } catch {
+        // Ignore if already stopped
+      }
       warningSourceRef.current = null;
     }
   }, []);
 
-  return { playSound, playWarningSound, stopWarningSound };
+  return (
+    <SoundContext.Provider
+      value={{ playSound, playWarningSound, stopWarningSound }}
+    >
+      {children}
+    </SoundContext.Provider>
+  );
+};
+
+export const useSound = () => {
+  const context = useContext(SoundContext);
+  if (!context) throw new Error("useSound must be used within SoundProvider");
+  return context;
 };

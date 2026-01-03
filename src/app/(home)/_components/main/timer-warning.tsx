@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 
-import { useTypingSound } from "@/hooks/use-typing-sound";
+import { useSound } from "../../engine/sound.context";
 import { useEngineConfig, useEngineMetrics } from "../../engine/engine.context";
 
 export const TimeWarning = () => {
   const { timeLeft } = useEngineMetrics();
   const { status, mode } = useEngineConfig();
-  const { playWarningSound, stopWarningSound } = useTypingSound();
+  const { playWarningSound, stopWarningSound } = useSound();
+
   const lastPlayedTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
