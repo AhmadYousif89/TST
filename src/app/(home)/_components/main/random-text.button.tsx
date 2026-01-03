@@ -4,7 +4,7 @@ import { useTransition } from "react";
 
 import {
   useEngineActions,
-  useEngineState,
+  useEngineConfig,
 } from "@/app/(home)/engine/engine.context";
 import { getRandomTextAction } from "@/app/dal/actions";
 import { useUrlState } from "@/hooks/use-url-state";
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 export const RandomTextButton = () => {
   const [isPending, startTransition] = useTransition();
   const { resetSession } = useEngineActions();
-  const { textData } = useEngineState();
+  const { textData } = useEngineConfig();
   const { updateURL } = useUrlState();
 
   const handleRandomize = () => {

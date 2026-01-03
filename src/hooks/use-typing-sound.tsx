@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import { useEngineState } from "@/app/(home)/engine/engine.context";
+import { useEngineConfig } from "@/app/(home)/engine/engine.context";
 import { SoundFile, SoundNames } from "@/app/(home)/engine/types";
 
 const SOUND_CONFIG: SoundFile = {
@@ -17,15 +17,26 @@ const SOUND_CONFIG: SoundFile = {
 };
 
 export const useTypingSound = () => {
-  const { soundName, volume, isMuted } = useEngineState();
+  const { soundName, volume, isMuted } = useEngineConfig();
   const soundNameRef = useRef<SoundNames>("none");
   const audioCtxRef = useRef<AudioContext>(null);
   const buffersRef = useRef<AudioBuffer[]>([]);
+  const warningBufferRef = useRef<AudioBuffer | null>(null);
+  const warningSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   // Initialize AudioContext on mount
   useEffect(() => {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = ctx;
+
+    // Load warning sound
+    fetch("/assets/sounds/timeWarning.wav")
+      .then((res) => res.arrayBuffer())
+      .then((data) => ctx.decodeAudioData(data))
+      .then((buffer) => {
+        warningBufferRef.current = buffer;
+      })
+      .catch((err) => console.error("Failed to load warning sound:", err));
 
     return () => {
       if (ctx.state !== "closed") ctx.close();
@@ -98,5 +109,49 @@ export const useTypingSound = () => {
     source.start(0);
   }, [isMuted, soundName, volume]);
 
-  return { playSound };
+  const playWarningSound = useCallback(() => {
+    if (isMuted) return;
+
+    const ctx = audioCtxRef.current;
+    const buffer = warningBufferRef.current;
+    if (!ctx || !buffer) return;
+
+    if (ctx.state === "suspended") ctx.resume();
+
+    // Stop previous warning sound if it's still playing
+    if (warningSourceRef.current) {
+      try {
+        warningSourceRef.current.stop();
+      } catch (e) {
+        // Ignore errors if already stopped
+      }
+      warningSourceRef.current = null;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    // Fade out slightly before stopping
+    gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.9);
+
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    source.start(0);
+    source.stop(ctx.currentTime + 0.9);
+
+    warningSourceRef.current = source;
+  }, [isMuted, volume]);
+
+  const stopWarningSound = useCallback(() => {
+    if (warningSourceRef.current) {
+      try {
+        warningSourceRef.current.stop();
+      } catch (e) {}
+      warningSourceRef.current = null;
+    }
+  }, []);
+
+  return { playSound, playWarningSound, stopWarningSound };
 };

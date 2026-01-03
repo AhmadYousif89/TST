@@ -31,7 +31,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   }
 
   return (
-    <EngineProvider key={textData._id.toString()} data={{ textData, mode }}>
+    <EngineProvider data={{ textData, mode }}>
       <div className="container">
         <Header user={user} />
         <MainContent />

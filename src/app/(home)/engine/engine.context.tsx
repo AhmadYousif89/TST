@@ -16,18 +16,24 @@ import {
   calculateAccuracy,
   getInitialTime,
 } from "./engine-logic";
+import { getInitialSettings } from "./engine-utils";
 import {
   TextMode,
   Keystroke,
   EngineStatus,
-  EngineStateCtxType,
+  EngineConfigCtxType,
+  EngineMetricsCtxType,
   EngineActionsCtxType,
   EngineKeystrokeCtxType,
   SoundNames,
+  CursorStyle,
 } from "./types";
 import { engineReducer, initialState } from "./reducer";
 
-const EngineStateContext = createContext<EngineStateCtxType | undefined>(
+const EngineConfigContext = createContext<EngineConfigCtxType | undefined>(
+  undefined,
+);
+const EngineMetricsContext = createContext<EngineMetricsCtxType | undefined>(
   undefined,
 );
 const EngineKeystrokeContext = createContext<
@@ -59,6 +65,16 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   useEffect(() => {
     statusRef.current = state.status;
   }, [state.status]);
+
+  // Sync settings from localStorage on mount to avoid hydration mismatch
+  useEffect(() => {
+    const settings = getInitialSettings();
+
+    dispatch({ type: "SET_SOUND", soundName: settings.soundName });
+    dispatch({ type: "SET_VOLUME", volume: settings.volume });
+    dispatch({ type: "SET_MUTED", isMuted: settings.isMuted });
+    dispatch({ type: "SET_CARET_STYLE", style: settings.caretStyle });
+  }, []);
 
   /* -------------------- ACTIONS -------------------- */
 
@@ -140,6 +156,23 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const setIsMuted = useCallback((isMuted: boolean) => {
     dispatch({ type: "SET_MUTED", isMuted });
   }, []);
+  const setCaretStyle = useCallback((style: CursorStyle) => {
+    dispatch({ type: "SET_CARET_STYLE", style });
+  }, []);
+
+  /* -------------------- EFFECTS -------------------- */
+
+  // Track previous text ID to detect text changes
+  const prevTextIdRef = useRef<string | null>(null);
+  // Reset session when data changes (category/difficulty change)
+  useEffect(() => {
+    const currentTextId = textData?._id?.toString() || null;
+    // Only reset if the text actually changed (not on initial mount)
+    if (prevTextIdRef.current && prevTextIdRef.current !== currentTextId) {
+      resetSession();
+    }
+    prevTextIdRef.current = currentTextId;
+  }, [textData?._id, resetSession]);
 
   /* -------------------- TIMER & METRICS -------------------- */
 
@@ -229,33 +262,36 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   /* -------------------- PROVIDER VALUES -------------------- */
 
-  const stateValue = useMemo(
+  const configValue = useMemo(
     () => ({
       mode,
       textData,
-      wpm: state.wpm,
       status: state.status,
-      accuracy: state.accuracy,
-      timeLeft: state.timeLeft,
       showOverlay: state.showOverlay,
-      extraOffset: state.extraOffset,
       soundName: state.soundName,
       volume: state.volume,
       isMuted: state.isMuted,
+      caretStyle: state.caretStyle,
     }),
     [
       mode,
       textData,
-      state.wpm,
       state.status,
-      state.accuracy,
-      state.timeLeft,
       state.showOverlay,
-      state.extraOffset,
       state.soundName,
       state.volume,
       state.isMuted,
+      state.caretStyle,
     ],
+  );
+
+  const metricsValue = useMemo(
+    () => ({
+      wpm: state.wpm,
+      accuracy: state.accuracy,
+      timeLeft: state.timeLeft,
+    }),
+    [state.wpm, state.accuracy, state.timeLeft],
   );
 
   const keystrokeValue = useMemo(
@@ -282,6 +318,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       setSoundName,
       setVolume,
       setIsMuted,
+      setCaretStyle,
     }),
     [
       setCursor,
@@ -296,24 +333,27 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       setSoundName,
       setVolume,
       setIsMuted,
+      setCaretStyle,
     ],
   );
 
   return (
-    <EngineStateContext.Provider value={stateValue}>
-      <EngineActionsContext.Provider value={actionsValue}>
-        <EngineKeystrokeContext.Provider value={keystrokeValue}>
-          {children}
-        </EngineKeystrokeContext.Provider>
-      </EngineActionsContext.Provider>
-    </EngineStateContext.Provider>
+    <EngineConfigContext.Provider value={configValue}>
+      <EngineMetricsContext.Provider value={metricsValue}>
+        <EngineActionsContext.Provider value={actionsValue}>
+          <EngineKeystrokeContext.Provider value={keystrokeValue}>
+            {children}
+          </EngineKeystrokeContext.Provider>
+        </EngineActionsContext.Provider>
+      </EngineMetricsContext.Provider>
+    </EngineConfigContext.Provider>
   );
 };
 
-export const useEngineState = () => {
-  const context = use(EngineStateContext);
+export const useEngineConfig = () => {
+  const context = use(EngineConfigContext);
   if (context === undefined)
-    throw new Error("useEngineState must be used within an EngineProvider");
+    throw new Error("useEngineConfig must be used within an EngineProvider");
   return context;
 };
 
@@ -328,5 +368,12 @@ export const useEngineActions = () => {
   const context = use(EngineActionsContext);
   if (context === undefined)
     throw new Error("useEngineActions must be used within an EngineProvider");
+  return context;
+};
+
+export const useEngineMetrics = () => {
+  const context = use(EngineMetricsContext);
+  if (context === undefined)
+    throw new Error("useEngineMetrics must be used within an EngineProvider");
   return context;
 };

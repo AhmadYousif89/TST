@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, memo, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 import { getCharStates } from "./engine-logic";
-import { useEngineKeystroke } from "./engine.context";
+import { useEngineKeystroke, useEngineConfig } from "./engine.context";
 
 // Group characters into words (prevents mid-word line breaks)
 const words = (characters: string[]) => {
@@ -156,6 +156,7 @@ type CursorPosition = {
 
 const Cursor = memo(
   ({ containerRef, isFocused, cursor, extraOffset }: CursorProps) => {
+    const { caretStyle } = useEngineConfig();
     const [position, setPosition] = useState<CursorPosition>({
       top: 0,
       left: 0,
@@ -189,13 +190,28 @@ const Cursor = memo(
           "pointer-events-none absolute z-10 rounded bg-blue-400 transition-all duration-100 ease-linear",
           isFocused && cursor === 0 && "animate-blink",
           !isFocused && "bg-blue-400/50",
+          caretStyle === "box" &&
+            "border border-blue-400 bg-transparent opacity-50",
         )}
         style={{
-          top: position.top,
-          left: position.left,
-          width: 3,
-          height: position.height * 0.8,
-          transform: `translateY(${position.height * 0.125}px)`,
+          top: position.top || 0,
+          left: position.left || 0,
+          width:
+            caretStyle === "box" || caretStyle === "underline"
+              ? position.width || 0
+              : 3,
+          height:
+            caretStyle === "box"
+              ? position.height || 0
+              : caretStyle === "underline"
+                ? 2
+                : (position.height || 0) * 0.8,
+          transform:
+            caretStyle === "box"
+              ? "none"
+              : caretStyle === "underline"
+                ? `translateY(${(position.height || 0) - 2}px)`
+                : `translateY(${(position.height || 0) * 0.125}px)`,
         }}
       />
     );

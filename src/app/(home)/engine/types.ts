@@ -3,6 +3,7 @@ import { TextDoc } from "@/lib/types";
 export type TextDifficulty = "easy" | "medium" | "hard";
 export type TextCategory = "lyrics" | "general" | "quotes" | "code";
 export type TextMode = "t:15" | "t:30" | "t:60" | "t:120" | "t:180" | "passage";
+
 type SoundName =
   | "beep"
   | "click"
@@ -14,11 +15,20 @@ type SoundName =
   | "rubber"
   | "typewriter";
 export type SoundNames = SoundName | "none";
+export type SoundSettings = {
+  soundName: SoundNames;
+  volume: number;
+  isMuted: boolean;
+};
+export type UserSettings = SoundSettings & {
+  caretStyle: CursorStyle;
+};
 export type SoundFile = Record<
   SoundName,
   { folder: string; prefix: string; count: number }
 >;
 
+export type CursorStyle = "pip" | "box" | "underline";
 export type CharState = {
   state: "not-typed" | "correct" | "incorrect";
   typedChar: string;
@@ -49,20 +59,24 @@ export type EngineState = {
   soundName: SoundNames;
   volume: number;
   isMuted: boolean;
+  caretStyle: CursorStyle;
 };
 
-export type EngineStateCtxType = {
+export type EngineConfigCtxType = {
   mode: TextMode;
   status: EngineStatus;
   textData: TextDoc | null;
-  wpm: number;
-  accuracy: number;
-  timeLeft: number;
-  extraOffset: number;
   showOverlay: boolean;
   soundName: SoundNames;
   volume: number;
   isMuted: boolean;
+  caretStyle: CursorStyle;
+};
+
+export type EngineMetricsCtxType = {
+  wpm: number;
+  accuracy: number;
+  timeLeft: number;
 };
 
 export type EngineKeystrokeCtxType = {
@@ -88,6 +102,7 @@ export type EngineActionsCtxType = {
   setSoundName: (name: SoundNames) => void;
   setVolume: (v: number) => void;
   setIsMuted: (m: boolean) => void;
+  setCaretStyle: (style: CursorStyle) => void;
 };
 
 export type EngineAction =
@@ -108,4 +123,5 @@ export type EngineAction =
   | { type: "SET_OVERLAY"; show: boolean }
   | { type: "SET_SOUND"; soundName: SoundNames }
   | { type: "SET_VOLUME"; volume: number }
-  | { type: "SET_MUTED"; isMuted: boolean };
+  | { type: "SET_MUTED"; isMuted: boolean }
+  | { type: "SET_CARET_STYLE"; style: CursorStyle };

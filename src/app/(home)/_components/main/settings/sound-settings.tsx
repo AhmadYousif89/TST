@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   useEngineActions,
-  useEngineState,
+  useEngineConfig,
 } from "@/app/(home)/engine/engine.context";
 import { SoundNames } from "@/app/(home)/engine/types";
 import { useTypingSound } from "@/hooks/use-typing-sound";
@@ -26,7 +26,7 @@ export const SoundSettings = () => {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   const { setSoundName, setIsMuted, setVolume } = useEngineActions();
-  const { soundName, volume, isMuted } = useEngineState();
+  const { soundName, volume, isMuted } = useEngineConfig();
   const { playSound } = useTypingSound();
 
   // Close slider when clicking outside

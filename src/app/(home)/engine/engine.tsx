@@ -3,17 +3,19 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import {
-  useEngineActions,
-  useEngineKeystroke,
-  useEngineState,
-} from "./engine.context";
+
 import {
   calculateNextCursor,
   getCharStates,
   getWordStart,
   isWordPerfect,
 } from "./engine-logic";
+import {
+  useEngineActions,
+  useEngineConfig,
+  useEngineKeystroke,
+  useEngineMetrics,
+} from "./engine.context";
 import { Words } from "./words";
 import { Button } from "@/components/ui/button";
 import { ArrowIcon } from "@/components/arrow.icon";
@@ -32,7 +34,7 @@ export const EngineContainer = () => {
     setShowOverlay,
   } = useEngineActions();
   const { cursor, extraOffset, progress, keystrokes } = useEngineKeystroke();
-  const { status, textData, showOverlay } = useEngineState();
+  const { status, textData, showOverlay } = useEngineConfig();
   const { playSound } = useTypingSound();
 
   const lockedCursorRef = useRef(0);
@@ -44,7 +46,7 @@ export const EngineContainer = () => {
     () => textData?.text.split("") || [],
     [textData?.text],
   );
-
+  console.log({ cursor, keystrokes });
   // Scroll engine container to cursor position if text is overflowing the container height
   useEffect(() => {
     if (isFocused && status === "typing") {
@@ -369,6 +371,7 @@ export const EngineContainer = () => {
 
   return (
     <div className="relative isolate grid grow grid-rows-[auto_1fr_auto] place-items-center">
+      <TimeWarning />
       {/* Progress Bar */}
       <div className="bg-border h-px w-full overflow-hidden rounded-full">
         <div
@@ -384,12 +387,12 @@ export const EngineContainer = () => {
         onBlur={handleBlur}
         onFocus={handleFocus}
         className={cn(
-          "h-[173px] overflow-hidden md:h-[218px]",
-          "scrollbar-none overscroll-none scroll-smooth outline-none",
+          "h-43.25 md:h-54.5",
+          "scrollbar-none overflow-hidden overscroll-none scroll-smooth outline-none",
           "transition-[opacity,filter] duration-300 ease-in-out",
-          (status === "idle" || status === "paused") &&
-            showOverlay &&
-            "opacity-50 blur-xs select-none",
+          // (status === "idle" || status === "paused") &&
+          //   showOverlay &&
+          //   "opacity-50 blur-xs select-none",
         )}
       >
         <textarea
@@ -442,4 +445,30 @@ export const EngineContainer = () => {
       )}
     </div>
   );
+};
+
+const TimeWarning = () => {
+  const { timeLeft } = useEngineMetrics();
+  const { status, mode } = useEngineConfig();
+  const { playWarningSound, stopWarningSound } = useTypingSound();
+  const lastPlayedTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (
+      status === "typing" &&
+      mode !== "passage" &&
+      timeLeft <= 10 &&
+      timeLeft > 0
+    ) {
+      if (lastPlayedTimeRef.current !== timeLeft) {
+        playWarningSound();
+        lastPlayedTimeRef.current = timeLeft;
+      }
+    } else {
+      stopWarningSound();
+      lastPlayedTimeRef.current = null;
+    }
+  }, [timeLeft, status, mode, playWarningSound, stopWarningSound]);
+
+  return null;
 };

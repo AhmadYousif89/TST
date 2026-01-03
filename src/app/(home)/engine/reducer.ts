@@ -2,16 +2,17 @@ import { EngineState, EngineAction } from "./types";
 
 export const initialState: EngineState = {
   status: "idle",
-  timeLeft: 0,
   wpm: 0,
   cursor: 0,
+  timeLeft: 0,
   progress: 0,
   accuracy: 100,
-  showOverlay: true,
   extraOffset: 0,
+  showOverlay: true,
   volume: 0.5,
   isMuted: false,
   soundName: "creamy",
+  caretStyle: "pip",
 };
 
 export function engineReducer(
@@ -23,10 +24,10 @@ export function engineReducer(
       return {
         ...initialState,
         timeLeft: action.timeLeft,
-        showOverlay: true,
-        soundName: state.soundName,
         volume: state.volume,
         isMuted: state.isMuted,
+        soundName: state.soundName,
+        caretStyle: state.caretStyle,
       };
     case "START":
       return {
@@ -98,21 +99,94 @@ export function engineReducer(
         ...state,
         showOverlay: action.show,
       };
-    case "SET_SOUND":
-      return {
+    case "SET_SOUND": {
+      const newState = {
         ...state,
         soundName: action.soundName,
       };
-    case "SET_VOLUME":
-      return {
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            "typing_settings",
+            JSON.stringify({
+              soundName: newState.soundName,
+              volume: newState.volume,
+              isMuted: newState.isMuted,
+              caretStyle: newState.caretStyle,
+            }),
+          );
+        } catch (error) {
+          console.warn("Failed to save settings:", error);
+        }
+      }
+      return newState;
+    }
+    case "SET_VOLUME": {
+      const newState = {
         ...state,
         volume: action.volume,
       };
-    case "SET_MUTED":
-      return {
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            "typing_settings",
+            JSON.stringify({
+              soundName: newState.soundName,
+              volume: newState.volume,
+              isMuted: newState.isMuted,
+              caretStyle: newState.caretStyle,
+            }),
+          );
+        } catch (error) {
+          console.warn("Failed to save settings:", error);
+        }
+      }
+      return newState;
+    }
+    case "SET_MUTED": {
+      const newState = {
         ...state,
         isMuted: action.isMuted,
       };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            "typing_settings",
+            JSON.stringify({
+              soundName: newState.soundName,
+              volume: newState.volume,
+              isMuted: newState.isMuted,
+              caretStyle: newState.caretStyle,
+            }),
+          );
+        } catch (error) {
+          console.warn("Failed to save settings:", error);
+        }
+      }
+      return newState;
+    }
+    case "SET_CARET_STYLE": {
+      const newState = {
+        ...state,
+        caretStyle: action.style,
+      };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            "typing_settings",
+            JSON.stringify({
+              soundName: newState.soundName,
+              volume: newState.volume,
+              isMuted: newState.isMuted,
+              caretStyle: newState.caretStyle,
+            }),
+          );
+        } catch (error) {
+          console.warn("Failed to save settings:", error);
+        }
+      }
+      return newState;
+    }
 
     default:
       return state;

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useUrlState } from "@/hooks/use-url-state";
-import { useEngineState } from "@/app/(home)/engine/engine.context";
+import { useEngineConfig } from "@/app/(home)/engine/engine.context";
 import {
   TextDifficulty,
   TextCategory,
@@ -20,7 +20,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const TestSettings = () => {
   const { updateURL } = useUrlState();
-  const { mode, textData } = useEngineState();
+  const { mode, textData } = useEngineConfig();
 
   const handleDifficultyChange = (val: string) => {
     if (val) {

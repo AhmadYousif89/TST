@@ -17,11 +17,12 @@ import { Button } from "@/components/ui/button";
 import { SettingsIcon } from "@/components/settings.icon";
 
 import { SettingsPanel } from "./settings";
-import { useEngineState } from "../../engine/engine.context";
 import { formatTime, getModeLabel } from "../../engine/engine-logic";
+import { useEngineConfig, useEngineMetrics } from "../../engine/engine.context";
 
 export const Metrics = () => {
-  const { wpm, accuracy, timeLeft, textData, mode, status } = useEngineState();
+  const { wpm, accuracy, timeLeft } = useEngineMetrics();
+  const { textData, mode, status } = useEngineConfig();
 
   const [hasMounted, setHasMounted] = useState(false);
 
