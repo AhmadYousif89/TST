@@ -13,7 +13,7 @@ export const NormalRound = ({ session }: { session: TypingSessionDoc }) => {
         subTitle="Solid run. Keep pushing to beat your high score."
       />
       <ResultSummary session={session} />
-      <ResultFooter caption="Go Again" />
+      <ResultFooter caption="Go Again" session={session} />
     </section>
   );
 };

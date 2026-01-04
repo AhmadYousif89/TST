@@ -1,5 +1,5 @@
 import { getInitialText } from "../dal/data";
-import { getSession, getUser } from "../dal/user";
+import { getSession, getUser, getAnonUserId } from "../dal/user";
 
 import { SoundProvider } from "./engine/sound.context";
 import { EngineProvider } from "./engine/engine.context";
@@ -26,6 +26,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const textData = await getInitialText({ id, category, difficulty });
   const sessionData = sessionId ? await getSession(sessionId) : null;
   const user = await getUser();
+  const currentAnonUserId = await getAnonUserId();
 
   if (!textData) {
     return (
@@ -41,7 +42,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <div className="container">
           <Header user={user} />
           {!!sessionData ? (
-            <Results session={sessionData} user={user} />
+            <Results
+              session={sessionData}
+              user={user}
+              currentAnonUserId={currentAnonUserId}
+            />
           ) : (
             <>
               <MainContent />

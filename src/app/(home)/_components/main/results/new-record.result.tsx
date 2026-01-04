@@ -31,7 +31,7 @@ export const NewRecordRound = ({ session }: { session: TypingSessionDoc }) => {
         subTitle="You’re getting faster. That was incredible typing."
       />
       <ResultSummary session={session} />
-      <ResultFooter isNewRecord />
+      <ResultFooter isNewRecord session={session} />
     </section>
   );
 };

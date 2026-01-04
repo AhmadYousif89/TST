@@ -13,7 +13,7 @@ export const InvalidRound = ({ session }: { session: TypingSessionDoc }) => {
         subTitle="This round was too short or had bad performance. It won't be counted in your stats."
       />
       <ResultSummary session={session} />
-      <ResultFooter caption="Try Again" />
+      <ResultFooter caption="Try Again" session={session} />
     </section>
   );
 };

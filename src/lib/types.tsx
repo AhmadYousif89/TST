@@ -51,7 +51,8 @@ export type TypingSessionDoc = {
   charCount: number;
   errorCount: number;
   durationMs: number;
-  isInvalid?: boolean;
+  isInvalid?: boolean; // For spam or invalid sessions
+  keystrokes?: KeystrokeDoc[]; // Only for populating session analytic chart
 
   startedAt: Date;
   finishedAt: Date;

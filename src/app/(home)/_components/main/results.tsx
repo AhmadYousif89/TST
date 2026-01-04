@@ -2,15 +2,17 @@ import { NormalRound } from "./results/normal.result";
 import { BaselineRound } from "./results/baseline.result";
 import { NewRecordRound } from "./results/new-record.result";
 import { InvalidRound } from "./results/invalid.result";
+import { SharedRound } from "./results/shared.result";
 
 import { AnonUserDoc, TypingSessionDoc } from "@/lib/types";
 
 type Props = {
   session: TypingSessionDoc | null;
   user: AnonUserDoc | null;
+  currentAnonUserId?: string;
 };
 
-export const Results = ({ session, user }: Props) => {
+export const Results = ({ session, user, currentAnonUserId }: Props) => {
   if (!session) return null;
 
   const isInvalid = session.isInvalid;
@@ -23,11 +25,19 @@ export const Results = ({ session, user }: Props) => {
     );
   }
 
-  // For valid sessions, we need the user object
-  if (!user) return null;
+  const isOwner = currentAnonUserId === session.anonUserId;
 
-  const isBaseline = user.totalSessions === 1;
-  const isNewRecord = !isBaseline && session.wpm >= user.bestWpm;
+  if (!isOwner) {
+    return (
+      <main className="py-4 md:py-6">
+        <SharedRound session={session} />
+      </main>
+    );
+  }
+
+  // For valid sessions where user is owner, we try to show personalized stats
+  const isBaseline = user?.totalSessions === 1;
+  const isNewRecord = user && !isBaseline && session.wpm >= user.bestWpm;
 
   return (
     <main className="py-4 md:py-6">

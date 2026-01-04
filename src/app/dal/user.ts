@@ -1,11 +1,16 @@
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
+
 import connectToDB from "@/lib/db";
-import { AnonUserDoc, TypingSessionDoc } from "@/lib/types";
+import { AnonUserDoc, KeystrokeDoc, TypingSessionDoc } from "@/lib/types";
+
+export async function getAnonUserId() {
+  const cookieStore = await cookies();
+  return cookieStore.get("anonUserId")?.value;
+}
 
 export async function getUser() {
-  const cookieStore = await cookies();
-  const anonUserId = cookieStore.get("anonUserId")?.value;
+  const anonUserId = await getAnonUserId();
 
   if (!anonUserId) return null;
 
@@ -36,10 +41,26 @@ export async function getSession(sessionId: string) {
 
     if (!session) return null;
 
+    const keystrokes = await db
+      .collection<KeystrokeDoc>("keystrokes")
+      .find({ sessionId: new ObjectId(sessionId) })
+      .sort({ timestampMs: 1 })
+      .toArray();
+    const ks =
+      keystrokes.length === 0
+        ? []
+        : keystrokes.map((k) => ({
+            ...k,
+            _id: k._id.toString(),
+            textId: k.textId.toString(),
+            sessionId: k.sessionId.toString(),
+          }));
+
     return {
       ...session,
       _id: session._id.toString(),
       textId: session.textId.toString(),
+      keystrokes: ks,
     };
   } catch (error) {
     console.error("Error fetching session:", error);

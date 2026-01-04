@@ -4,16 +4,22 @@ import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";
 import { ResultTitle } from "./title";
 
-export const BaselineRound = ({ session }: { session: TypingSessionDoc }) => {
+type Props = { session: TypingSessionDoc };
+
+export const SharedRound = ({ session }: Props) => {
   return (
     <section className="flex flex-col gap-6 md:gap-8">
       <ResultHeader />
       <ResultTitle
-        title="Baseline Established!"
-        subTitle="You’ve set the bar. Now the real challenge begins—time to beat it."
+        title="Shared Result"
+        subTitle="Check out this typing performance!"
       />
       <ResultSummary session={session} />
-      <ResultFooter session={session} />
+      <ResultFooter
+        caption="Try It Yourself"
+        session={session}
+        isOwner={false}
+      />
     </section>
   );
 };
