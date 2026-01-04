@@ -48,8 +48,10 @@ export type TypingSessionDoc = {
 
   wpm: number;
   accuracy: number;
+  charCount: number;
   errorCount: number;
   durationMs: number;
+  isInvalid?: boolean;
 
   startedAt: Date;
   finishedAt: Date;

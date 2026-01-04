@@ -1,0 +1,32 @@
+import { TypingSessionDoc } from "@/lib/types";
+
+export const ResultSummary = ({ session }: { session: TypingSessionDoc }) => {
+  const { wpm, accuracy, errorCount, charCount } = session;
+
+  return (
+    <div className="flex flex-col justify-between gap-4 pb-4 *:flex-1 md:flex-row md:gap-5 md:py-5 md:pb-8">
+      <div className="flex flex-col gap-3 rounded-md border px-6 py-4">
+        <span className="text-muted-foreground text-3">WPM:</span>
+        <span className="text-foreground text-2">{Math.round(wpm)}</span>
+      </div>
+      <div className="flex flex-col gap-3 rounded-md border px-6 py-4">
+        <span className="text-muted-foreground text-3">Accuracy:</span>
+        <span
+          className={`${accuracy < 100 ? "text-red" : "text-green"} text-2`}
+        >
+          {Math.round(accuracy)}%
+        </span>
+      </div>
+      <div className="flex flex-col gap-3 rounded-md border px-6 py-4">
+        <span className="text-muted-foreground text-3">Characters:</span>
+        <div className="text-muted-foreground text-2">
+          <span className="text-foreground">{charCount}</span>
+          <span> / </span>
+          <span className={errorCount > 0 ? "text-red" : "text-green"}>
+            {errorCount}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};

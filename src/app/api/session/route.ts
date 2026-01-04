@@ -22,6 +22,41 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { keystrokes, ...data } = body;
 
+  /* --------- SPAM & VALIDATION CHECKS ------------ */
+
+  const MIN_WL = 5; // Minimum word length
+  const MIN_WPM = 10;
+  const MIN_ACCURACY = 20;
+  const MIN_DURATION_MS = 2000;
+
+  // Server-side recalculation to prevent client-side manipulation
+  const ks = keystrokes || [];
+  const totalTyped = ks.filter(
+    (k: Keystroke) => k.typedChar !== "Backspace",
+  ).length;
+  const correctKeys = ks.filter((k: Keystroke) => k.isCorrect).length;
+  const durationMin = data.durationMs / 60000;
+
+  const serverWpm =
+    durationMin > 0 ? Math.round(correctKeys / MIN_WL / durationMin) : 0;
+  const serverAccuracy =
+    totalTyped > 0 ? Math.round((correctKeys / totalTyped) * 100) : 100;
+
+  // Integrity Check: Compare client metrics with server-calculated ones
+  // Allow a small margin of error (e.g., 2 units) for rounding differences
+  const isManipulated =
+    Math.abs(serverWpm - data.wpm) > 2 ||
+    Math.abs(serverAccuracy - data.accuracy) > 2;
+
+  const isSpam =
+    data.wpm < MIN_WPM ||
+    data.accuracy < MIN_ACCURACY ||
+    data.durationMs < MIN_DURATION_MS ||
+    ks.length < MIN_WL ||
+    isManipulated;
+
+  /* ----------------------------------------------- */
+
   const { db, client } = await connectToDB();
   const dbSession = client.startSession();
 
@@ -32,16 +67,20 @@ export async function POST(req: NextRequest) {
       const sessionData = {
         anonUserId,
         ...data,
+        isInvalid: isSpam,
         startedAt: new Date(data.startedAt),
         finishedAt: new Date(data.finishedAt),
       } as TypingSessionDoc;
 
+      // Insert typing session
       const sessionRes = await db
         .collection<TypingSessionDoc>("typing_sessions")
         .insertOne(sessionData, { session: dbSession });
 
       insertedId = sessionRes.insertedId;
 
+      if (isSpam) return; // Skip stats update for invalid sessions
+      // Update anonymous user stats
       await db.collection<AnonUserDoc>("anonymous_users").updateOne(
         { anonUserId },
         {
@@ -55,7 +94,7 @@ export async function POST(req: NextRequest) {
         },
         { upsert: true, session: dbSession },
       );
-
+      // Insert keystrokes
       if (keystrokes?.length) {
         const keystrokesDocs = keystrokes.map((k: Keystroke) => ({
           ...k,
@@ -68,7 +107,6 @@ export async function POST(req: NextRequest) {
           .collection<KeystrokeDoc>("keystrokes")
           .insertMany(keystrokesDocs, { session: dbSession });
       }
-
       // Update text doc with total completions and average wpm
       const textObjectId =
         typeof data.textId === "string"

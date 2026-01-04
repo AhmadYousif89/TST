@@ -260,3 +260,35 @@
 @utility animate-blink {
   animation: blink 1s step-end infinite;
 }
+
+@keyframes ring-pulse {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@utility animate-ring-pulse {
+  animation: ring-pulse 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@utility animate-check-draw {
+  animation: check-draw 0.4s ease-out 0.8s forwards;
+}
