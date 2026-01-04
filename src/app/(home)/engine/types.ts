@@ -77,6 +77,7 @@ export type EngineMetricsCtxType = {
   wpm: number;
   accuracy: number;
   timeLeft: number;
+  isLoadingResults: boolean;
 };
 
 export type EngineKeystrokeCtxType = {

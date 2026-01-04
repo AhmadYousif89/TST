@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
   use,
 } from "react";
 import { useSearchParams } from "next/navigation";
@@ -55,7 +56,7 @@ type EngineProviderProps = {
 
 export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const { textData, mode } = data;
-  const { updateURL } = useUrlState();
+  const { updateURL, isPending } = useUrlState();
   const searchParams = useSearchParams();
 
   const [state, dispatch] = useReducer(engineReducer, {
@@ -63,6 +64,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     timeLeft: getInitialTime(mode),
   });
 
+  const [isSyncing, setIsSyncing] = useState(false);
   const keystrokes = useRef<Keystroke[]>([]);
   const statusRef = useRef(state.status);
   const startedAtRef = useRef<number | null>(null);
@@ -98,7 +100,6 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     keystrokes.current = [];
     startedAtRef.current = null;
     accumulatedTimeRef.current = 0;
-    hasUpdatedStatsRef.current = false;
     updateURL({ sid: null });
   }, [mode, updateURL]);
 
@@ -205,9 +206,12 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   // Update metrics when session ends
   useEffect(() => {
     if (state.status !== "finished" || hasUpdatedStatsRef.current) return;
-    hasUpdatedStatsRef.current = true;
 
     const ks = keystrokes.current;
+    if (ks.length === 0) return;
+
+    hasUpdatedStatsRef.current = true;
+
     const totalTyped = ks.filter((k) => k.typedChar !== "Backspace").length;
     const correctKeys = ks.filter((k) => k.isCorrect).length;
     const errorCount = totalTyped - correctKeys;
@@ -229,6 +233,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       mode,
       wpm: finalWpm,
       accuracy: finalAccuracy,
+      charCount: totalTyped,
       errorCount,
       durationMs: elapsed,
       startedAt: startedAtRef.current,
@@ -237,6 +242,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     };
 
     if (textData?._id) {
+      setIsSyncing(true);
       fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -250,9 +256,10 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
             }
           }
         })
-        .catch((err) => console.error("Failed to sync session:", err));
+        .catch((err) => console.error("Failed to sync session:", err))
+        .finally(() => setIsSyncing(false));
     }
-  }, [state.status, getTimeElapsed, mode, textData]);
+  }, [state.status, getTimeElapsed, mode, textData, updateURL]);
 
   // Update metrics every second
   const intervalRef = useRef<NodeJS.Timeout>(undefined);
@@ -313,8 +320,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       wpm: state.wpm,
       accuracy: state.accuracy,
       timeLeft: state.timeLeft,
+      isLoadingResults: isSyncing || isPending,
     }),
-    [state.wpm, state.accuracy, state.timeLeft],
+    [state.wpm, state.accuracy, state.timeLeft, isSyncing, isPending],
   );
 
   const keystrokeValue = useMemo(

@@ -38,6 +38,7 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
   const buffersCacheRef = useRef<Map<string, AudioBuffer[]>>(new Map());
   const warningBufferRef = useRef<AudioBuffer | null>(null);
   const warningSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
   const loadSoundSet = useCallback(async (name: SoundNames) => {
     if (name === "none") return [];
     if (buffersCacheRef.current.has(name))

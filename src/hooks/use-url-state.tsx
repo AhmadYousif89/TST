@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 import {
@@ -20,6 +20,7 @@ export function useUrlState() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const updateURL = useCallback(
     (updates: Record<string, string | null>) => {
@@ -34,7 +35,10 @@ export function useUrlState() {
       const next = `${pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ""}`;
 
       if (next === current) return;
-      router.push(next, { scroll: false });
+
+      startTransition(() => {
+        router.push(next, { scroll: false });
+      });
     },
     [searchParams, pathname, router],
   );
@@ -62,5 +66,5 @@ export function useUrlState() {
     }
   }
 
-  return { updateURL, getParam };
+  return { updateURL, getParam, isPending };
 }

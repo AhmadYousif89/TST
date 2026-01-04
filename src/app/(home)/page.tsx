@@ -39,13 +39,15 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     <EngineProvider data={{ textData, mode }}>
       <SoundProvider>
         <div className="container">
-          <Header />
+          <Header user={user} />
           {!!sessionData ? (
             <Results session={sessionData} user={user} />
           ) : (
-            <MainContent />
+            <>
+              <MainContent />
+              <Footer />
+            </>
           )}
-          <Footer isFinished={!!sessionData} />
         </div>
       </SoundProvider>
     </EngineProvider>
