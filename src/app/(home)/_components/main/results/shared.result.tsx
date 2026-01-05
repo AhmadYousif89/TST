@@ -2,15 +2,13 @@ import { TypingSessionDoc } from "@/lib/types";
 import { ResultFooter } from "./footer";
 import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";
-import { ResultTitle } from "./title";
 
 type Props = { session: TypingSessionDoc };
 
 export const SharedRound = ({ session }: Props) => {
   return (
-    <section className="flex flex-col gap-6 md:gap-8">
-      <ResultHeader />
-      <ResultTitle
+    <>
+      <ResultHeader
         title="Shared Result"
         subTitle="Check out this typing performance!"
       />
@@ -20,6 +18,6 @@ export const SharedRound = ({ session }: Props) => {
         session={session}
         isOwner={false}
       />
-    </section>
+    </>
   );
 };

@@ -2,14 +2,21 @@ import Image from "next/image";
 
 import Star2 from "@/assets/images/pattern-star-2.svg";
 
-type Props = { isNewRecord?: boolean; isInvalid?: boolean };
+type Props = {
+  isNewRecord?: boolean;
+  isInvalid?: boolean;
+  title: string;
+  subTitle: string;
+};
 
 export const ResultHeader = ({
   isNewRecord = false,
   isInvalid = false,
+  title,
+  subTitle,
 }: Props) => {
   return (
-    <header className="relative flex items-center justify-center">
+    <header className="relative flex flex-col items-center justify-center">
       {isNewRecord ? (
         <NewRecordIcon />
       ) : (
@@ -22,6 +29,10 @@ export const ResultHeader = ({
           <CompletedIcon isInvalid={isInvalid} />
         </div>
       )}
+      <div className="flex flex-col gap-2.5 pt-4 text-center md:pt-6">
+        <h1 className="text-1-mobile md:text-1 text-foreground">{title}</h1>
+        <p className="text-muted-foreground text-5 md:text-3">{subTitle}</p>
+      </div>
     </header>
   );
 };

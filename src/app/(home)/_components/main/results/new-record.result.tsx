@@ -5,7 +5,6 @@ import confetti from "canvas-confetti";
 
 import { TypingSessionDoc } from "@/lib/types";
 import { ResultHeader } from "./header";
-import { ResultTitle } from "./title";
 import { ResultSummary } from "./summary";
 import { ResultFooter } from "./footer";
 
@@ -24,14 +23,14 @@ export const NewRecordRound = ({ session }: { session: TypingSessionDoc }) => {
   }, []);
 
   return (
-    <section className="flex flex-col gap-6 md:gap-8">
-      <ResultHeader isNewRecord />
-      <ResultTitle
+    <>
+      <ResultHeader
+        isNewRecord
         title="High Score Smashed!"
         subTitle="You’re getting faster. That was incredible typing."
       />
       <ResultSummary session={session} />
       <ResultFooter isNewRecord session={session} />
-    </section>
+    </>
   );
 };

@@ -41,13 +41,15 @@ export const Results = ({ session, user, currentAnonUserId }: Props) => {
 
   return (
     <main className="py-4 md:py-6">
-      {isBaseline ? (
-        <BaselineRound session={session} />
-      ) : isNewRecord ? (
-        <NewRecordRound session={session} />
-      ) : (
-        <NormalRound session={session} />
-      )}
+      <div className="flex flex-col gap-6 md:gap-8">
+        {isBaseline ? (
+          <BaselineRound session={session} />
+        ) : isNewRecord ? (
+          <NewRecordRound session={session} />
+        ) : (
+          <NormalRound session={session} />
+        )}
+      </div>
     </main>
   );
 };

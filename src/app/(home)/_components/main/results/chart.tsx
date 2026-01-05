@@ -5,60 +5,69 @@ import {
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
+  Label,
   Tooltip,
-  ResponsiveContainer,
   Scatter,
   ComposedChart,
-  Label,
+  CartesianGrid,
+  ResponsiveContainer,
 } from "recharts";
 import { TypingSessionDoc } from "@/lib/types";
 
-type Props = {
-  session: TypingSessionDoc;
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: {
+    name: string;
+    value: number;
+    color: string;
+    fill: string;
+    payload: {
+      errorCount: number;
+    };
+  }[];
 };
 
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-background border-border rounded-lg border p-2 shadow-sm">
-        {payload.map((entry: any) => {
-          if (entry.name === "second" || entry.name === "errorCount")
-            return null;
-          if (entry.name === "Errors" && entry.value === null) return null;
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (!active || !payload || payload.length === 0) return null;
 
-          const isError = entry.name === "Errors";
-          const value = isError ? entry.payload.errorCount : entry.value;
+  return (
+    <div className="bg-background border-border rounded-lg border p-2 shadow-sm">
+      {payload.map((entry) => {
+        if (entry.name === "second" || entry.name === "errorCount") return null;
+        if (entry.name === "Errors" && entry.value === null) return null;
 
-          return (
-            <div
-              key={entry.name}
-              className="text-6 flex items-center gap-2 py-0.5"
-            >
-              <span className="text-muted-foreground">{entry.name}:</span>
-              <span
-                style={{
-                  color: isError ? "var(--red-500)" : entry.color || entry.fill,
-                }}
-                className="font-medium"
-              >
-                {value}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-  return null;
+        const isError = entry.name === "Errors";
+        const value = isError ? entry.payload.errorCount : entry.value;
+
+        return (
+          <div
+            key={entry.name}
+            className="text-6 flex items-center gap-2 py-0.5"
+          >
+            <span
+              className="size-3"
+              style={{
+                backgroundColor: isError
+                  ? "var(--red-500)"
+                  : entry.color || entry.fill,
+              }}
+            />
+            <span className="text-muted-foreground">
+              {entry.name} : {value}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
-export const SessionChart = ({ session }: Props) => {
+export const SessionChart = ({ session }: { session: TypingSessionDoc }) => {
   const chartData = useMemo(() => {
     if (!session.keystrokes || session.keystrokes.length === 0) return [];
 
     const durationSec = Math.ceil(session.durationMs / 1000);
-    const data = [];
+    const data: Record<string, number | null>[] = [];
 
     let cumulativeCorrect = 0;
     let cumulativeTotal = 0;
@@ -162,13 +171,12 @@ export const SessionChart = ({ session }: Props) => {
             type="monotone"
             name="Burst"
             dataKey="burst"
-            stroke="var(--foreground)"
-            strokeWidth={1.5}
+            stroke="var(--muted)"
+            strokeWidth={2}
             strokeDasharray="3 3"
             dot={false}
             activeDot={false}
             isAnimationActive={true}
-            opacity={0.3}
           />
           <Scatter
             dataKey="errors"
