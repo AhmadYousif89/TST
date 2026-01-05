@@ -12,7 +12,7 @@ export const initialState: EngineState = {
   volume: 0.5,
   isMuted: false,
   soundName: "creamy",
-  caretStyle: "pip",
+  cursorStyle: "pip",
 };
 
 export function engineReducer(
@@ -27,7 +27,7 @@ export function engineReducer(
         volume: state.volume,
         isMuted: state.isMuted,
         soundName: state.soundName,
-        caretStyle: state.caretStyle,
+        cursorStyle: state.cursorStyle,
       };
     case "START":
       return {
@@ -112,7 +112,7 @@ export function engineReducer(
               soundName: newState.soundName,
               volume: newState.volume,
               isMuted: newState.isMuted,
-              caretStyle: newState.caretStyle,
+              cursorStyle: newState.cursorStyle,
             }),
           );
         } catch (error) {
@@ -134,7 +134,7 @@ export function engineReducer(
               soundName: newState.soundName,
               volume: newState.volume,
               isMuted: newState.isMuted,
-              caretStyle: newState.caretStyle,
+              cursorStyle: newState.cursorStyle,
             }),
           );
         } catch (error) {
@@ -156,7 +156,7 @@ export function engineReducer(
               soundName: newState.soundName,
               volume: newState.volume,
               isMuted: newState.isMuted,
-              caretStyle: newState.caretStyle,
+              cursorStyle: newState.cursorStyle,
             }),
           );
         } catch (error) {
@@ -165,10 +165,10 @@ export function engineReducer(
       }
       return newState;
     }
-    case "SET_CARET_STYLE": {
+    case "SET_CURSOR_STYLE": {
       const newState = {
         ...state,
-        caretStyle: action.style,
+        cursorStyle: action.style,
       };
       if (typeof window !== "undefined") {
         try {
@@ -178,7 +178,7 @@ export function engineReducer(
               soundName: newState.soundName,
               volume: newState.volume,
               isMuted: newState.isMuted,
-              caretStyle: newState.caretStyle,
+              cursorStyle: newState.cursorStyle,
             }),
           );
         } catch (error) {

@@ -83,7 +83,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     dispatch({ type: "SET_SOUND", soundName: settings.soundName });
     dispatch({ type: "SET_VOLUME", volume: settings.volume });
     dispatch({ type: "SET_MUTED", isMuted: settings.isMuted });
-    dispatch({ type: "SET_CARET_STYLE", style: settings.caretStyle });
+    dispatch({ type: "SET_CURSOR_STYLE", style: settings.cursorStyle });
   }, []);
 
   /* -------------------- ACTIONS -------------------- */
@@ -126,8 +126,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   }, []);
 
   const endSession = useCallback(() => {
-    if (statusRef.current !== "typing" && statusRef.current !== "paused")
+    if (statusRef.current !== "typing" && statusRef.current !== "paused") {
       return;
+    }
     if (statusRef.current === "typing" && startedAtRef.current) {
       accumulatedTimeRef.current += Date.now() - startedAtRef.current;
     }
@@ -166,8 +167,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const setIsMuted = useCallback((isMuted: boolean) => {
     dispatch({ type: "SET_MUTED", isMuted });
   }, []);
-  const setCaretStyle = useCallback((style: CursorStyle) => {
-    dispatch({ type: "SET_CARET_STYLE", style });
+
+  const setCursorStyle = useCallback((style: CursorStyle) => {
+    dispatch({ type: "SET_CURSOR_STYLE", style });
   }, []);
 
   /* -------------------- EFFECTS -------------------- */
@@ -301,7 +303,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       soundName: state.soundName,
       volume: state.volume,
       isMuted: state.isMuted,
-      caretStyle: state.caretStyle,
+      cursorStyle: state.cursorStyle,
     }),
     [
       mode,
@@ -311,7 +313,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       state.soundName,
       state.volume,
       state.isMuted,
-      state.caretStyle,
+      state.cursorStyle,
     ],
   );
 
@@ -349,7 +351,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       setSoundName,
       setVolume,
       setIsMuted,
-      setCaretStyle,
+      setCursorStyle,
     }),
     [
       setCursor,
@@ -364,7 +366,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       setSoundName,
       setVolume,
       setIsMuted,
-      setCaretStyle,
+      setCursorStyle,
     ],
   );
 

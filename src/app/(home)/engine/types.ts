@@ -21,7 +21,7 @@ export type SoundSettings = {
   isMuted: boolean;
 };
 export type UserSettings = SoundSettings & {
-  caretStyle: CursorStyle;
+  cursorStyle: CursorStyle;
 };
 export type SoundFile = Record<
   SoundName,
@@ -59,7 +59,7 @@ export type EngineState = {
   soundName: SoundNames;
   volume: number;
   isMuted: boolean;
-  caretStyle: CursorStyle;
+  cursorStyle: CursorStyle;
 };
 
 export type EngineConfigCtxType = {
@@ -70,7 +70,7 @@ export type EngineConfigCtxType = {
   soundName: SoundNames;
   volume: number;
   isMuted: boolean;
-  caretStyle: CursorStyle;
+  cursorStyle: CursorStyle;
 };
 
 export type EngineMetricsCtxType = {
@@ -103,7 +103,7 @@ export type EngineActionsCtxType = {
   setSoundName: (name: SoundNames) => void;
   setVolume: (v: number) => void;
   setIsMuted: (m: boolean) => void;
-  setCaretStyle: (style: CursorStyle) => void;
+  setCursorStyle: (style: CursorStyle) => void;
 };
 
 export type EngineAction =
@@ -125,4 +125,4 @@ export type EngineAction =
   | { type: "SET_SOUND"; soundName: SoundNames }
   | { type: "SET_VOLUME"; volume: number }
   | { type: "SET_MUTED"; isMuted: boolean }
-  | { type: "SET_CARET_STYLE"; style: CursorStyle };
+  | { type: "SET_CURSOR_STYLE"; style: CursorStyle };

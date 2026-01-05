@@ -5,9 +5,9 @@ import {
 import { CursorStyle } from "@/app/(home)/engine/types";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-export const CaretSelector = () => {
-  const { caretStyle } = useEngineConfig();
-  const { setCaretStyle } = useEngineActions();
+export const CursorSelector = () => {
+  const { cursorStyle } = useEngineConfig();
+  const { setCursorStyle } = useEngineActions();
 
   return (
     <div className="flex items-center gap-4">
@@ -20,9 +20,9 @@ export const CaretSelector = () => {
         type="single"
         variant="outline"
         className="text-6 md:text-5"
-        value={caretStyle}
+        value={cursorStyle}
         onValueChange={(val: CursorStyle) => {
-          if (val) setCaretStyle(val);
+          if (val) setCursorStyle(val);
         }}
       >
         <ToggleGroupItem value="pip" aria-label="Pip">

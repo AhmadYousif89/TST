@@ -1,9 +1,9 @@
 "use client";
 
 import { Metrics } from "./metrics";
-import { EngineContainer } from "../../engine/engine";
 import { ResetButton } from "./reset.button";
-import { RandomTextButton } from "./random-text.button";
+import { RandomButton } from "./random.button";
+import { EngineContainer } from "../../engine/engine";
 import { useEngineMetrics } from "../../engine/engine.context";
 import { LoadingResults } from "./loading-results";
 
@@ -19,9 +19,9 @@ export const MainContent = () => {
           <EngineContainer />
           <div
             data-engine-offset
-            className="flex items-center justify-center gap-4 border-y py-4 md:py-8"
+            className="flex items-center justify-center gap-8 py-4 md:py-8"
           >
-            <RandomTextButton />
+            <RandomButton />
             <ResetButton />
           </div>
         </section>

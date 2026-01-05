@@ -5,7 +5,7 @@ export const getInitialSettings = (): UserSettings => {
     soundName: "creamy",
     volume: 0.5,
     isMuted: false,
-    caretStyle: "pip",
+    cursorStyle: "pip",
   };
 
   if (typeof window === "undefined") return defaultSettings;
@@ -24,7 +24,7 @@ export const getInitialSettings = (): UserSettings => {
           typeof parsed.isMuted === "boolean"
             ? parsed.isMuted
             : defaultSettings.isMuted,
-        caretStyle: parsed.caretStyle || defaultSettings.caretStyle,
+        cursorStyle: parsed.cursorStyle || defaultSettings.cursorStyle,
       };
     }
   } catch (error) {

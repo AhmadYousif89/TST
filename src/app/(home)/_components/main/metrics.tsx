@@ -99,7 +99,7 @@ export const Metrics = () => {
         {hasMounted ? (
           <Drawer>
             <DrawerTrigger asChild>
-              <Button size="icon">
+              <Button size="icon" variant="ghost">
                 <SettingsIcon className="size-6" />
               </Button>
             </DrawerTrigger>

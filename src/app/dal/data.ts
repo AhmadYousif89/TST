@@ -27,10 +27,12 @@ export async function getInitialText(params: TextParams = {}) {
 
     if (!textDocs) return null;
 
-    return {
+    const data: TextDoc = {
       ...textDocs,
       _id: textDocs._id.toString(),
     };
+
+    return data;
   } catch (error) {
     console.error("Error fetching text data:", error);
     return null;
