@@ -23,10 +23,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const id = typeof sp.id === "string" ? sp.id : undefined;
   const sessionId = typeof sp.sid === "string" ? sp.sid : undefined;
 
-  const textData = await getInitialText({ id, category, difficulty });
-  const sessionData = sessionId ? await getSession(sessionId) : null;
   const user = await getUser();
   const currentAnonUserId = await getAnonUserId();
+  const textData = await getInitialText({ id, category, difficulty });
+  const sessionData = sessionId ? await getSession(sessionId) : null;
 
   if (!textData) {
     return (
@@ -43,8 +43,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           <Header user={user} />
           {!!sessionData ? (
             <Results
-              session={sessionData}
               user={user}
+              session={sessionData}
               currentAnonUserId={currentAnonUserId}
             />
           ) : (

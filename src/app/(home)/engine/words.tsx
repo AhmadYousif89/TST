@@ -3,9 +3,10 @@ import { useRef, useState, useEffect, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { getCharStates } from "./engine-logic";
 import { useEngineKeystroke, useEngineConfig } from "./engine.context";
+import { CursorStyle } from "./types";
 
 // Group characters into words (prevents mid-word line breaks)
-const words = (characters: string[]) => {
+export const wordsGroup = (characters: string[]) => {
   const result: { char: string; index: number }[][] = [];
   let currentWord: { char: string; index: number }[] = [];
 
@@ -34,7 +35,7 @@ export const Words = ({ characters, isFocused }: WordsProps) => {
     [characters, cursor, extraOffset, keystrokes],
   );
 
-  const groupedWords = useMemo(() => words(characters), [characters]);
+  const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
 
   return (
     <div
@@ -47,59 +48,70 @@ export const Words = ({ characters, isFocused }: WordsProps) => {
         cursor={cursor}
         extraOffset={extraOffset}
       />
-      {/* Words */}
-      {groupedWords.map((word, wordIndex) => {
-        const lastCharObj = word[word.length - 1];
-        const isLastCharSpace = lastCharObj.char === " ";
-        const endIndex = lastCharObj.index;
-        const wordIsComplete = cursor > endIndex;
-        const wordHasError =
-          wordIsComplete &&
-          word.some(
-            (w) =>
-              charStates[w.index].state === "incorrect" ||
-              charStates[w.index].extras?.length,
-          );
+      {groupedWords.map((word, wordIndex) => (
+        <Word
+          key={wordIndex}
+          word={word}
+          cursor={cursor}
+          charStates={charStates}
+        />
+      ))}
+    </div>
+  );
+};
+
+type WordProps = {
+  word: { char: string; index: number }[];
+  charStates: any[];
+  cursor: number;
+  className?: string;
+};
+
+export const Word = ({ word, charStates, cursor, className }: WordProps) => {
+  const lastCharObj = word[word.length - 1];
+  const isLastCharSpace = lastCharObj.char === " ";
+  const endIndex = lastCharObj.index;
+  const wordIsProcessed = cursor > endIndex;
+  const wordHasError =
+    wordIsProcessed &&
+    word.some(
+      (w) =>
+        charStates[w.index].state === "incorrect" ||
+        (charStates[w.index].extras?.length ?? 0) > 0,
+    );
+
+  return (
+    <div
+      data-error={wordHasError}
+      className={cn(
+        "text-1-regular-mobile md:text-1-regular relative flex items-center",
+        className,
+      )}
+    >
+      {/* Characters */}
+      {word.map(({ char, index }) => {
+        const state = charStates[index].state;
         return (
-          <div
-            data-error={wordHasError}
-            key={wordIndex}
+          <Character
+            key={`${index}-${char}`}
+            char={char}
+            state={state}
+            extras={charStates[index].extras}
             className={cn(
-              "group text-1-regular-mobile md:text-1-regular relative flex items-center",
+              index === cursor && "active-cursor text-foreground/80",
             )}
-          >
-            {/* Characters */}
-            {word.map(({ char, index }) => {
-              const state = charStates[index].state;
-              return (
-                <Character
-                  key={`${index}-${char}`}
-                  char={char}
-                  state={state}
-                  extras={charStates[index].extras}
-                  className={cn(
-                    index === cursor && "active-cursor text-foreground/80",
-                  )}
-                />
-              );
-            })}
-            {/* Error underline */}
-            <div
-              style={{ width: isLastCharSpace ? "calc(100% - 1ch)" : "100%" }}
-              className={cn(
-                "bg-red pointer-events-none absolute bottom-1.5 left-0 -z-10 h-0.5 rounded-full",
-                "origin-left scale-x-0 transform transition-transform duration-100 ease-in-out",
-                wordHasError && "scale-x-100",
-              )}
-            />
-            {/* End of text cursor target */}
-            {wordIndex === groupedWords.length - 1 &&
-              cursor === characters.length && (
-                <span className="active-cursor pointer-events-none invisible absolute top-0 right-0 h-full" />
-              )}
-          </div>
+          />
         );
       })}
+      {/* Error underline */}
+      <div
+        style={{ width: isLastCharSpace ? "calc(100% - 1ch)" : "100%" }}
+        className={cn(
+          "bg-red pointer-events-none absolute bottom-0 left-0 -z-10 h-0.5 rounded-full",
+          "origin-left scale-x-0 transform transition-transform duration-100 ease-in-out",
+          wordHasError && "scale-x-100",
+        )}
+      />
     </div>
   );
 };
@@ -111,32 +123,34 @@ type CharacterProps = {
   className?: string;
 };
 
-const Character = memo(({ char, state, extras, className }: CharacterProps) => {
-  return (
-    <>
-      {extras?.length ? (
-        <div className="flex">
-          {extras?.map((extra, i) => (
-            <span key={i} className="text-red">
-              {extra}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      <span
-        className={cn(
-          "relative flex transition-colors duration-100 ease-linear",
-          state === "correct" && "text-green",
-          state === "incorrect" && "text-red",
-          state === "not-typed" && "text-muted-foreground",
-          className,
-        )}
-      >
-        {char === " " ? "\u00a0" : char}
-      </span>
-    </>
-  );
-});
+export const Character = memo(
+  ({ char, state, extras, className }: CharacterProps) => {
+    return (
+      <>
+        {extras?.length ? (
+          <div className="flex">
+            {extras?.map((extra, i) => (
+              <span key={i} className="text-red">
+                {extra}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <span
+          className={cn(
+            "relative flex transition-colors duration-100 ease-linear",
+            state === "correct" && "text-green",
+            state === "incorrect" && "text-red",
+            state === "not-typed" && "text-muted-foreground",
+            className,
+          )}
+        >
+          {char === " " ? "\u00a0" : char}
+        </span>
+      </>
+    );
+  },
+);
 
 Character.displayName = "Character";
 
@@ -145,6 +159,7 @@ type CursorProps = {
   isFocused: boolean;
   cursor: number;
   extraOffset: number;
+  cursorStyle?: CursorStyle;
 };
 
 type CursorPosition = {
@@ -154,9 +169,16 @@ type CursorPosition = {
   height: number;
 };
 
-const Cursor = memo(
-  ({ containerRef, isFocused, cursor, extraOffset }: CursorProps) => {
-    const { caretStyle } = useEngineConfig();
+export const Cursor = memo(
+  ({
+    containerRef,
+    isFocused,
+    cursor,
+    extraOffset,
+    cursorStyle: cursorStyleProp,
+  }: CursorProps) => {
+    const { cursorStyle: configCursorStyle } = useEngineConfig();
+    const cursorStyle = cursorStyleProp || configCursorStyle;
     const [position, setPosition] = useState<CursorPosition>({
       top: 0,
       left: 0,
@@ -190,26 +212,26 @@ const Cursor = memo(
           "pointer-events-none absolute z-10 rounded bg-blue-400 transition-all duration-100 ease-linear",
           isFocused && cursor === 0 && "animate-blink",
           !isFocused && "bg-blue-400/50",
-          caretStyle === "box" &&
+          cursorStyle === "box" &&
             "border border-blue-400 bg-transparent opacity-50",
         )}
         style={{
           top: position.top || 0,
           left: position.left || 0,
           width:
-            caretStyle === "box" || caretStyle === "underline"
+            cursorStyle === "box" || cursorStyle === "underline"
               ? position.width || 0
               : 3,
           height:
-            caretStyle === "box"
+            cursorStyle === "box"
               ? position.height || 0
-              : caretStyle === "underline"
+              : cursorStyle === "underline"
                 ? 2
                 : (position.height || 0) * 0.8,
           transform:
-            caretStyle === "box"
+            cursorStyle === "box"
               ? "none"
-              : caretStyle === "underline"
+              : cursorStyle === "underline"
                 ? `translateY(${(position.height || 0) - 2}px)`
                 : `translateY(${(position.height || 0) * 0.125}px)`,
         }}

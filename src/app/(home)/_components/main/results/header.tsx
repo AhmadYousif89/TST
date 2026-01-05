@@ -16,18 +16,18 @@ export const ResultHeader = ({
   subTitle,
 }: Props) => {
   return (
-    <header className="relative flex flex-col items-center justify-center">
+    <header className="relative flex flex-col items-center justify-center gap-6 md:gap-8">
       {isNewRecord ? (
         <NewRecordIcon />
       ) : (
-        <div className="grid place-items-center">
+        <>
           <Image
             src={Star2}
             alt="Star Pattern"
-            className="absolute left-0 -z-10 max-md:size-5 xl:top-full"
+            className="absolute top-1/4 left-0 -z-10 max-md:size-5"
           />
           <CompletedIcon isInvalid={isInvalid} />
-        </div>
+        </>
       )}
       <div className="flex flex-col gap-2.5 pt-4 text-center md:pt-6">
         <h1 className="text-1-mobile md:text-1 text-foreground">{title}</h1>
@@ -45,7 +45,7 @@ const CompletedIcon = ({ isInvalid }: { isInvalid: boolean }) => {
         style={{ animationDelay: "0.1s" }}
       />
       <div
-        className={`animate-ring-pulse absolute size-19 rounded-full md:size-20 ${isInvalid ? "bg-red/20" : "bg-green/20"}`}
+        className={`animate-ring-pulse absolute size-19 rounded-full md:size-21 ${isInvalid ? "bg-red/20" : "bg-green/20"}`}
         style={{ animationDelay: "0.3s" }}
       />
 

@@ -3,7 +3,12 @@ import { ResultFooter } from "./footer";
 import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";
 
-export const NormalRound = ({ session }: { session: TypingSessionDoc }) => {
+type Props = {
+  session: TypingSessionDoc;
+  text: string;
+};
+
+export const NormalRound = ({ session, text }: Props) => {
   return (
     <>
       <ResultHeader
@@ -11,7 +16,7 @@ export const NormalRound = ({ session }: { session: TypingSessionDoc }) => {
         subTitle="Solid run. Keep pushing to beat your high score."
       />
       <ResultSummary session={session} />
-      <ResultFooter caption="Go Again" session={session} />
+      <ResultFooter caption="Go Again" session={session} text={text} />
     </>
   );
 };

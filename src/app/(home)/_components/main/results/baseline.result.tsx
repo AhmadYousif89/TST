@@ -3,7 +3,12 @@ import { ResultFooter } from "./footer";
 import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";
 
-export const BaselineRound = ({ session }: { session: TypingSessionDoc }) => {
+type Props = {
+  session: TypingSessionDoc;
+  text: string;
+};
+
+export const BaselineRound = ({ session, text }: Props) => {
   return (
     <>
       <ResultHeader
@@ -11,7 +16,7 @@ export const BaselineRound = ({ session }: { session: TypingSessionDoc }) => {
         subTitle="You’ve set the bar. Now the real challenge begins—time to beat it."
       />
       <ResultSummary session={session} />
-      <ResultFooter session={session} />
+      <ResultFooter session={session} text={text} />
     </>
   );
 };

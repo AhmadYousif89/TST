@@ -10,6 +10,7 @@ import { TypingSessionDoc } from "@/lib/types";
 import { useUrlState } from "@/hooks/use-url-state";
 
 import { SessionChart } from "./chart";
+import { ReplaySection } from "./replay";
 import {
   Tooltip,
   TooltipContent,
@@ -25,16 +26,20 @@ type Props = {
   isNewRecord?: boolean;
   session?: TypingSessionDoc;
   isOwner?: boolean;
+  text?: string;
 };
 
 export const ResultFooter = ({
   isNewRecord = false,
   isOwner = true,
   session,
+  text,
 }: Props) => {
   const { updateURL } = useUrlState();
   const [copied, setCopied] = useState(false);
   const [isReplayVisible, setIsReplayVisible] = useState(false);
+
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const handleShare = () => {
     const url = window.location.href;
@@ -44,15 +49,30 @@ export const ResultFooter = ({
     });
   };
 
+  const toggleReplay = () => {
+    setIsReplayVisible(!isReplayVisible);
+    setIsAnimating(true);
+  };
+
   return (
-    <footer className="text-background relative flex flex-col items-center justify-center gap-8">
+    <footer className="text-background relative flex flex-col items-center justify-center gap-4">
       {session && <ChartSection session={session} />}
 
-      <Activity mode={isReplayVisible ? "visible" : "hidden"}>
-        <ReplaySection isVisiable={isReplayVisible} />
-      </Activity>
+      <div
+        className={cn(
+          "grid w-full transition-[grid-template-rows] duration-300 ease-in-out",
+          isReplayVisible ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+        onTransitionEnd={() => setIsAnimating(false)}
+      >
+        <Activity mode={isReplayVisible || isAnimating ? "visible" : "hidden"}>
+          <div className="overflow-hidden">
+            <ReplaySection session={session} text={text} />
+          </div>
+        </Activity>
+      </div>
 
-      <div className="flex items-center justify-center gap-4 max-md:flex-col">
+      <div className="flex items-center justify-center gap-4">
         {/* Restart */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -77,7 +97,7 @@ export const ResultFooter = ({
               size="icon"
               variant="ghost"
               className="text-foreground"
-              onClick={() => setIsReplayVisible(!isReplayVisible)}
+              onClick={toggleReplay}
             >
               <ReplayIcon />
             </Button>
@@ -120,7 +140,7 @@ export const ResultFooter = ({
           <Image
             src={Star1}
             alt="Star Pattern"
-            className="absolute right-0 -bottom-1/4 -z-10 max-md:mt-11 max-md:size-10"
+            className="absolute right-0 -bottom-10 -z-10 max-md:size-10"
           />
         )}
       </div>
@@ -132,46 +152,6 @@ const ChartSection = ({ session }: { session: TypingSessionDoc }) => {
   return (
     <div className="w-full">
       <SessionChart session={session} />
-    </div>
-  );
-};
-
-const ReplaySection = ({ isVisiable }: { isVisiable: boolean }) => {
-  return (
-    <div
-      className={cn(
-        "text-foreground h-0 w-full",
-        isVisiable &&
-          "h-full transition-[height] transition-discrete duration-200 ease-in-out",
-      )}
-    >
-      <div className="text-muted-foreground flex items-center gap-2">
-        <h2 className="text-5">watch replay</h2>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button size="icon" variant="ghost">
-              <svg
-                className="size-6"
-                xmlns="http://www.w3.org/2000/svg"
-                height="24px"
-                viewBox="0 -960 960 960"
-                width="24px"
-                fill="currentColor"
-              >
-                <path d="M320-200v-560l440 280-440 280Z" />
-              </svg>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <span>Play</span>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-      {/* TODO: Add text data for replay */}
-      <p className="text-5 text-foreground/75">
-        Lorem, ipsum dolor sit amet consectetur adipisicing elit. Quisquam alias
-        quo, quos molestias nostrum ipsa iure deserunt voluptatem.
-      </p>
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { InvalidRound } from "./results/invalid.result";
 import { SharedRound } from "./results/shared.result";
 
 import { AnonUserDoc, TypingSessionDoc } from "@/lib/types";
+import { getInitialText } from "@/app/dal/data";
 
 type Props = {
   session: TypingSessionDoc | null;
@@ -12,7 +13,7 @@ type Props = {
   currentAnonUserId?: string;
 };
 
-export const Results = ({ session, user, currentAnonUserId }: Props) => {
+export const Results = async ({ session, user, currentAnonUserId }: Props) => {
   if (!session) return null;
 
   const isInvalid = session.isInvalid;
@@ -27,14 +28,17 @@ export const Results = ({ session, user, currentAnonUserId }: Props) => {
 
   const isOwner = currentAnonUserId === session.anonUserId;
 
+  const textData = await getInitialText({ id: session.textId.toString() });
+
   if (!isOwner) {
     return (
       <main className="py-4 md:py-6">
-        <SharedRound session={session} />
+        <div className="flex flex-col gap-6 md:gap-8">
+          <SharedRound session={session} text={textData?.text || ""} />
+        </div>
       </main>
     );
   }
-
   // For valid sessions where user is owner, we try to show personalized stats
   const isBaseline = user?.totalSessions === 1;
   const isNewRecord = user && !isBaseline && session.wpm >= user.bestWpm;
@@ -43,11 +47,11 @@ export const Results = ({ session, user, currentAnonUserId }: Props) => {
     <main className="py-4 md:py-6">
       <div className="flex flex-col gap-6 md:gap-8">
         {isBaseline ? (
-          <BaselineRound session={session} />
+          <BaselineRound session={session} text={textData?.text || ""} />
         ) : isNewRecord ? (
-          <NewRecordRound session={session} />
+          <NewRecordRound session={session} text={textData?.text || ""} />
         ) : (
-          <NormalRound session={session} />
+          <NormalRound session={session} text={textData?.text || ""} />
         )}
       </div>
     </main>

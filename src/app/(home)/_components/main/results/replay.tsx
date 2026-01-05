@@ -1,0 +1,157 @@
+"use client";
+
+import { useMemo, useRef } from "react";
+
+import { TypingSessionDoc } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { useSound } from "@/app/(home)/engine/sound.context";
+import { getCharStates } from "@/app/(home)/engine/engine-logic";
+import { wordsGroup, Cursor, Word } from "@/app/(home)/engine/words";
+
+import { useReplay } from "./use-replay";
+
+type Props = {
+  session: TypingSessionDoc | undefined;
+  text?: string;
+};
+
+export const ReplaySection = ({ session, text = "" }: Props) => {
+  const { playSound } = useSound();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const ks = useMemo(() => session?.keystrokes || [], [session?.keystrokes]);
+
+  const characters = useMemo(() => {
+    if (!text) return [];
+
+    const lastIdx = ks.reduce((max, k) => Math.max(max, k.charIndex), 0);
+
+    return text.split("").slice(0, lastIdx + 1);
+  }, [text, ks]);
+
+  const { isPlaying, play, pause, reset, currentIndex } = useReplay({
+    keystrokes: ks,
+    playSound,
+  });
+
+  const replayedKeystrokes = useMemo(
+    () => ks.slice(0, currentIndex),
+    [ks, currentIndex],
+  );
+
+  const charStates = useMemo(
+    () => getCharStates(characters, replayedKeystrokes),
+    [characters, replayedKeystrokes],
+  );
+
+  const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
+
+  // Determine cursor position in replay
+  const cursorIndex = useMemo(() => {
+    if (currentIndex === 0) return 0;
+    if (currentIndex < ks.length) {
+      return ks[currentIndex].charIndex;
+    }
+    return characters.length;
+  }, [currentIndex, ks, characters.length]);
+
+  const currentTimeMs = useMemo(() => {
+    if (currentIndex === 0) return 0;
+    return ks[currentIndex - 1].timestampMs;
+  }, [currentIndex, ks]);
+
+  const currentWpm = useMemo(() => {
+    if (currentTimeMs === 0) return 0;
+    const correctChars = charStates.filter((s) => s.state === "correct").length;
+    const elapsedMinutes = currentTimeMs / 60000;
+    return Math.round(correctChars / 5 / elapsedMinutes);
+  }, [charStates, currentTimeMs]);
+
+  const currentTimeSec = Math.floor(currentTimeMs / 1000);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Watch replay */}
+          <div className="flex items-center gap-2">
+            <h2 className="text-6 md:text-5 text-muted-foreground/60 tracking-wide">
+              watch replay
+            </h2>
+            <div className="flex items-center">
+              {/* Play/Pause button */}
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={isPlaying ? pause : play}
+                className="text-muted-foreground"
+              >
+                {isPlaying ? (
+                  <svg
+                    className="size-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                ) : (
+                  <svg
+                    className="size-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
+              </Button>
+              {/* Reset button */}
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={reset}
+                className="text-muted-foreground"
+              >
+                <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                </svg>
+              </Button>
+            </div>
+          </div>
+          {/* WPM and time */}
+          <div className="text-6 md:text-5 flex items-center gap-2 font-mono">
+            <span className="text-blue-400">{currentWpm}wpm</span>
+            <span className="text-muted-foreground">{currentTimeSec}s</span>
+          </div>
+        </div>
+        {/* Key count */}
+        <div className="text-6 text-muted-foreground/60 tabular-nums">
+          <span className="text-muted-foreground">{currentIndex} </span>/
+          <span> {ks.length} keys</span>
+        </div>
+      </div>
+
+      {/* Replay */}
+      <div
+        ref={containerRef}
+        className="relative flex flex-wrap items-center justify-start font-mono leading-normal select-none"
+      >
+        <Cursor
+          containerRef={containerRef}
+          isFocused={isPlaying}
+          cursor={cursorIndex}
+          extraOffset={0} // Replay should not track extra chars anymore
+          cursorStyle="underline"
+        />
+        {groupedWords.map((word, wordIndex) => (
+          <Word
+            key={wordIndex}
+            word={word}
+            charStates={charStates}
+            cursor={cursorIndex}
+            className="text-5! md:text-4!"
+          />
+        ))}
+      </div>
+    </div>
+  );
+};

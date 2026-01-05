@@ -8,7 +8,12 @@ import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";
 import { ResultFooter } from "./footer";
 
-export const NewRecordRound = ({ session }: { session: TypingSessionDoc }) => {
+type Props = {
+  session: TypingSessionDoc;
+  text: string;
+};
+
+export const NewRecordRound = ({ session, text }: Props) => {
   useEffect(() => {
     confetti({
       particleCount: 200,
@@ -30,7 +35,7 @@ export const NewRecordRound = ({ session }: { session: TypingSessionDoc }) => {
         subTitle="You’re getting faster. That was incredible typing."
       />
       <ResultSummary session={session} />
-      <ResultFooter isNewRecord session={session} />
+      <ResultFooter isNewRecord session={session} text={text} />
     </>
   );
 };

@@ -3,9 +3,9 @@ import { ResultFooter } from "./footer";
 import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";
 
-type Props = { session: TypingSessionDoc };
+type Props = { session: TypingSessionDoc; text: string };
 
-export const SharedRound = ({ session }: Props) => {
+export const SharedRound = ({ session, text }: Props) => {
   return (
     <>
       <ResultHeader
@@ -17,6 +17,7 @@ export const SharedRound = ({ session }: Props) => {
         caption="Try It Yourself"
         session={session}
         isOwner={false}
+        text={text}
       />
     </>
   );
