@@ -420,11 +420,11 @@ export const EngineContainer = () => {
           <div className="flex flex-col items-center gap-5">
             <Button
               onClick={() => containerRef.current?.focus()}
-              className="text-3-semibold hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 hover:bg-blue-400"
+              className="hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-400"
             >
               Start Typing Test
             </Button>
-            <p className="text-foreground text-3-semibold pointer-events-none">
+            <p className="text-foreground pointer-events-none font-semibold">
               Or click the text and start typing
             </p>
           </div>

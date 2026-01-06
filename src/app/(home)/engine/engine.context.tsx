@@ -179,12 +179,17 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   // Reset session when data changes (category/difficulty change)
   useEffect(() => {
     const currentTextId = textData?._id?.toString() || null;
-    // Only reset if the text actually changed (not on initial mount)
-    if (prevTextIdRef.current && prevTextIdRef.current !== currentTextId) {
+    const hasSid = !!searchParams.get("sid");
+    // Only reset if the text actually changed and we are NOT looking at results
+    if (
+      prevTextIdRef.current &&
+      prevTextIdRef.current !== currentTextId &&
+      !hasSid
+    ) {
       resetSession();
     }
     prevTextIdRef.current = currentTextId;
-  }, [textData?._id, resetSession]);
+  }, [textData?._id, resetSession, searchParams]);
 
   /* -------------------- TIMER & METRICS -------------------- */
 
