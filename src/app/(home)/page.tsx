@@ -48,11 +48,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               currentAnonUserId={currentAnonUserId}
             />
           ) : (
-            <>
-              <MainContent />
-              <Footer />
-            </>
+            <MainContent />
           )}
+          <Footer />
         </div>
       </SoundProvider>
     </EngineProvider>
