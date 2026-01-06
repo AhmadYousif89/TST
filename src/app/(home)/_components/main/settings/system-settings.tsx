@@ -1,3 +1,5 @@
+"use client";
+
 import { CursorSelector } from "./caret-selector";
 import { SoundSettings } from "./sound-settings";
 import { ThemeSelector } from "./theme-selector";

@@ -66,9 +66,7 @@ export const ResultFooter = ({
         onTransitionEnd={() => setIsAnimating(false)}
       >
         <Activity mode={isReplayVisible || isAnimating ? "visible" : "hidden"}>
-          <div className="overflow-hidden">
-            <ReplaySection session={session} text={text} />
-          </div>
+          <ReplaySection session={session} text={text} />
         </Activity>
       </div>
 
@@ -150,7 +148,7 @@ export const ResultFooter = ({
 
 const ChartSection = ({ session }: { session: TypingSessionDoc }) => {
   return (
-    <div className="w-full">
+    <div className="h-64 w-full">
       <SessionChart session={session} />
     </div>
   );

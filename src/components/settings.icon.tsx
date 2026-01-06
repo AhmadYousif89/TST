@@ -1,7 +1,9 @@
+import { cn } from "@/lib/utils";
+
 export const SettingsIcon = ({ className }: { className?: string }) => {
   return (
     <svg
-      className={className}
+      className={cn("size-6", className)}
       xmlns="http://www.w3.org/2000/svg"
       height="20px"
       width="20px"

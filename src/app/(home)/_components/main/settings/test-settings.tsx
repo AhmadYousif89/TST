@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useEngineConfig } from "@/app/(home)/engine/engine.context";

@@ -113,80 +113,78 @@ export const SessionChart = ({ session }: { session: TypingSessionDoc }) => {
   if (chartData.length === 0) return null;
 
   return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart
-          data={chartData}
-          margin={{ top: 10, right: 0, left: 0, bottom: 20 }}
+    <ResponsiveContainer width="100%" height="100%">
+      <ComposedChart
+        data={chartData}
+        margin={{ top: 10, right: 0, left: 0, bottom: 20 }}
+      >
+        <CartesianGrid
+          strokeDasharray="2 2"
+          strokeOpacity={0.5}
+          strokeLinecap="round"
+          stroke="var(--border)"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="second"
+          stroke="var(--muted-foreground)"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "var(--muted-foreground)" }}
         >
-          <CartesianGrid
-            strokeDasharray="2 2"
-            strokeOpacity={0.5}
-            strokeLinecap="round"
-            stroke="var(--border)"
-            vertical={false}
-          />
-          <XAxis
-            dataKey="second"
-            stroke="var(--muted-foreground)"
+          <Label
+            value="Seconds"
+            position="insideBottom"
+            offset={-15}
+            fill="var(--muted-foreground)"
             fontSize={12}
-            tickLine={false}
-            axisLine={false}
-            tick={{ fill: "var(--muted-foreground)" }}
-          >
-            <Label
-              value="Seconds"
-              position="insideBottom"
-              offset={-15}
-              fill="var(--muted-foreground)"
-              fontSize={12}
-            />
-          </XAxis>
-          <YAxis hide domain={[0, "auto"]} />
-          <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ stroke: "var(--muted-foreground)", strokeWidth: 1 }}
           />
-          <Line
-            type="monotone"
-            dataKey="raw"
-            stroke="var(--green-500)"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4 }}
-            name="Raw"
-            isAnimationActive={true}
-          />
-          <Line
-            type="monotone"
-            dataKey="wpm"
-            stroke="var(--blue-400)"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4 }}
-            name="WPM"
-            isAnimationActive={true}
-          />
-          <Line
-            type="monotone"
-            name="Burst"
-            dataKey="burst"
-            stroke="var(--muted)"
-            strokeWidth={2}
-            strokeDasharray="3 3"
-            dot={false}
-            activeDot={false}
-            isAnimationActive={true}
-          />
-          <Scatter
-            dataKey="errors"
-            fill="var(--red-500)"
-            stroke="var(--red-500)"
-            name="Errors"
-            shape="circle"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+        </XAxis>
+        <YAxis hide domain={[0, "auto"]} />
+        <Tooltip
+          content={<CustomTooltip />}
+          cursor={{ stroke: "var(--muted-foreground)", strokeWidth: 1 }}
+        />
+        <Line
+          type="monotone"
+          dataKey="raw"
+          stroke="var(--green-500)"
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4 }}
+          name="Raw"
+          isAnimationActive={true}
+        />
+        <Line
+          type="monotone"
+          dataKey="wpm"
+          stroke="var(--blue-400)"
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4 }}
+          name="WPM"
+          isAnimationActive={true}
+        />
+        <Line
+          type="monotone"
+          name="Burst"
+          dataKey="burst"
+          stroke="var(--muted)"
+          strokeWidth={2}
+          strokeDasharray="3 3"
+          dot={false}
+          activeDot={false}
+          isAnimationActive={true}
+        />
+        <Scatter
+          dataKey="errors"
+          fill="var(--red-500)"
+          stroke="var(--red-500)"
+          name="Errors"
+          shape="circle"
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
   );
 };

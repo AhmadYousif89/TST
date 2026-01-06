@@ -23,9 +23,7 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
 
   const characters = useMemo(() => {
     if (!text) return [];
-
     const lastIdx = ks.reduce((max, k) => Math.max(max, k.charIndex), 0);
-
     return text.split("").slice(0, lastIdx + 1);
   }, [text, ks]);
 
@@ -46,22 +44,27 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
 
   const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
 
-  // Determine cursor position in replay
+  // Get cursor position
   const cursorIndex = useMemo(() => {
     if (currentIndex === 0) return 0;
+
     if (currentIndex < ks.length) {
       return ks[currentIndex].charIndex;
     }
     return characters.length;
   }, [currentIndex, ks, characters.length]);
 
+  // Get keystroke timestamp
   const currentTimeMs = useMemo(() => {
     if (currentIndex === 0) return 0;
+
     return ks[currentIndex - 1].timestampMs;
   }, [currentIndex, ks]);
 
+  // Get current WPM
   const currentWpm = useMemo(() => {
     if (currentTimeMs === 0) return 0;
+
     const correctChars = charStates.filter((s) => s.state === "correct").length;
     const elapsedMinutes = currentTimeMs / 60000;
     return Math.round(correctChars / 5 / elapsedMinutes);
@@ -70,14 +73,13 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
   const currentTimeSec = Math.floor(currentTimeMs / 1000);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="overflow-hidden">
+      <div className="flex items-center justify-between py-4">
         <div className="flex items-center gap-3">
-          {/* Watch replay */}
           <div className="flex items-center gap-2">
-            <h2 className="text-6 md:text-5 text-muted-foreground/60 tracking-wide">
+            <p className="text-6 md:text-5 text-muted-foreground/60 tracking-wide">
               watch replay
-            </h2>
+            </p>
             <div className="flex items-center">
               {/* Play/Pause button */}
               <Button
