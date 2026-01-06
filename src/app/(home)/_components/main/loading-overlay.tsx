@@ -1,4 +1,12 @@
-export const LoadingResults = () => {
+"use client";
+
+import { useEngineMetrics } from "@/app/(home)/engine/engine.context";
+
+export const LoadingOverlay = () => {
+  const { isLoadingResults } = useEngineMetrics();
+
+  if (!isLoadingResults) return null;
+
   return (
     <div className="bg-background/50 animate-in fade-in absolute inset-0 z-50 flex flex-col items-center justify-center duration-300">
       <div className="flex flex-col items-center gap-4">

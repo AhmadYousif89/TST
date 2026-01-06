@@ -4,7 +4,7 @@ export const ResultSummary = ({ session }: { session: TypingSessionDoc }) => {
   const { wpm, accuracy, errorCount, charCount } = session;
 
   return (
-    <section className="flex flex-col justify-between gap-4 pb-4 *:flex-1 md:flex-row md:gap-5 md:py-5 md:pb-8">
+    <section className="flex flex-col justify-between gap-4 py-4 *:flex-1 md:flex-row md:gap-5 md:py-5 md:pb-8">
       <div className="flex flex-col gap-3 rounded-md border px-6 py-4">
         <h2 className="text-muted-foreground text-3">WPM:</h2>
         <span className="text-foreground text-2">{Math.round(wpm)}</span>

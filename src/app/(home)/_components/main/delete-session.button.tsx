@@ -2,12 +2,19 @@
 
 import { useTransition } from "react";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TrashIcon } from "@/components/trash.icon";
 import { deleteSessionAction } from "@/app/dal/actions";
 import { useUrlState } from "@/hooks/use-url-state";
+import { RandomIcon } from "@/components/random.icon";
 
-export const DeleteSessionButton = ({ sessionId }: { sessionId: string }) => {
+type Props = {
+  sessionId: string;
+  className?: string;
+};
+
+export const DeleteSessionButton = ({ sessionId, className }: Props) => {
   const [isPending, startTransition] = useTransition();
   const { updateURL, getParam } = useUrlState();
 
@@ -21,9 +28,7 @@ export const DeleteSessionButton = ({ sessionId }: { sessionId: string }) => {
       const res = await deleteSessionAction(sessionId);
       if (res.success) {
         // If we are currently viewing this session, navigate home
-        if (getParam("sid") === sessionId) {
-          updateURL({ sid: null });
-        }
+        if (getParam("sid") === sessionId) updateURL({ sid: null });
       } else {
         alert(res.error);
       }
@@ -32,13 +37,20 @@ export const DeleteSessionButton = ({ sessionId }: { sessionId: string }) => {
 
   return (
     <Button
-      size="icon-sm"
+      size="icon"
       variant="ghost"
       disabled={isPending}
       onClick={handleDelete}
-      className="text-muted-foreground hover:text-red size-4 transition-colors hover:bg-transparent!"
+      className={cn(
+        "text-muted-foreground hover:bg-red/10 hover:text-red",
+        className,
+      )}
     >
-      <TrashIcon className="size-5" />
+      {isPending ? (
+        <RandomIcon className="animate-spin" />
+      ) : (
+        <TrashIcon className="size-5" />
+      )}
     </Button>
   );
 };

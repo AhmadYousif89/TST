@@ -3,26 +3,9 @@
 import { ObjectId } from "mongodb";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+
 import connectToDB from "@/lib/db";
-
-import { getRandomText } from "./data";
 import { AnonUserDoc, TypingSessionDoc, KeystrokeDoc } from "@/lib/types";
-import { TextCategory, TextDifficulty } from "@/app/(home)/engine/types";
-
-type RandomTextActionParams = {
-  textId: string;
-  category: TextCategory;
-  difficulty: TextDifficulty;
-};
-
-export async function getRandomTextAction({
-  textId,
-  category,
-  difficulty,
-}: RandomTextActionParams) {
-  const randomText = await getRandomText({ id: textId, category, difficulty });
-  return randomText ? randomText._id.toString() : null;
-}
 
 export async function deleteSessionAction(sessionId: string) {
   const cookieStore = await cookies();

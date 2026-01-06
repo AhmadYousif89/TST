@@ -1,12 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
-
-import {
-  useEngineActions,
-  useEngineConfig,
-} from "@/app/(home)/engine/engine.context";
-import { getRandomTextAction } from "@/app/dal/actions";
+import { useEngineActions } from "@/app/(home)/engine/engine.context";
 import { useUrlState } from "@/hooks/use-url-state";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,26 +10,19 @@ import {
 } from "@/components/ui/tooltip";
 import { RandomIcon } from "@/components/random.icon";
 
-export const RandomButton = () => {
-  const [isPending, startTransition] = useTransition();
+type Props = {
+  randomId: string | null;
+};
+
+export const RandomButton = ({ randomId }: Props) => {
   const { resetSession } = useEngineActions();
-  const { textData } = useEngineConfig();
-  const { updateURL } = useUrlState();
+  const { updateURL, isPending } = useUrlState();
 
   const handleRandomize = () => {
-    if (!textData) return;
+    if (!randomId) return;
 
     resetSession();
-
-    startTransition(async () => {
-      const nextId = await getRandomTextAction({
-        textId: textData._id.toString(),
-        category: textData.category,
-        difficulty: textData.difficulty,
-      });
-
-      if (nextId) updateURL({ id: nextId });
-    });
+    updateURL({ id: randomId });
   };
 
   return (

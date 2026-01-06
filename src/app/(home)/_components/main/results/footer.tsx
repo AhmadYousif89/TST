@@ -20,6 +20,9 @@ import { Button } from "@/components/ui/button";
 import { ReplayIcon } from "@/components/replay.icon";
 import { CopyLinkIcon } from "@/components/copy.icon";
 import { RestartIcon } from "@/components/restart.icon";
+import { NextTextButton } from "./next-text.button";
+import { RandomIcon } from "@/components/random.icon";
+import { DeleteSessionButton } from "../delete-session.button";
 
 type Props = {
   caption?: string;
@@ -27,19 +30,22 @@ type Props = {
   session?: TypingSessionDoc;
   isOwner?: boolean;
   text?: string;
+  nextTextId?: string | null;
 };
 
 export const ResultFooter = ({
+  caption,
+  nextTextId,
   isNewRecord = false,
   isOwner = true,
   session,
   text,
 }: Props) => {
-  const { updateURL } = useUrlState();
   const [copied, setCopied] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [isReplayVisible, setIsReplayVisible] = useState(false);
 
-  const [isAnimating, setIsAnimating] = useState(false);
+  const { updateURL, isPending } = useUrlState();
 
   const handleShare = () => {
     const url = window.location.href;
@@ -55,22 +61,28 @@ export const ResultFooter = ({
   };
 
   return (
-    <footer className="text-background relative flex flex-col items-center justify-center gap-4">
-      {session && <ChartSection session={session} />}
+    <footer className="text-background relative flex flex-col items-center justify-center gap-4 py-4">
+      {session && !session.isInvalid && <ChartSection session={session} />}
 
-      <div
-        className={cn(
-          "grid w-full transition-[grid-template-rows] duration-300 ease-in-out",
-          isReplayVisible ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-        )}
-        onTransitionEnd={() => setIsAnimating(false)}
-      >
-        <Activity mode={isReplayVisible || isAnimating ? "visible" : "hidden"}>
-          <ReplaySection session={session} text={text} />
-        </Activity>
-      </div>
+      {!session?.isInvalid && (
+        <div
+          className={cn(
+            "grid w-full transition-[grid-template-rows] duration-300 ease-in-out",
+            isReplayVisible ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          )}
+          onTransitionEnd={() => setIsAnimating(false)}
+        >
+          <Activity
+            mode={isReplayVisible || isAnimating ? "visible" : "hidden"}
+          >
+            <ReplaySection session={session} text={text} />
+          </Activity>
+        </div>
+      )}
 
       <div className="flex items-center justify-center gap-4">
+        {/* Next Text */}
+        {nextTextId && <NextTextButton nextTextId={nextTextId} />}
         {/* Restart */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -80,33 +92,37 @@ export const ResultFooter = ({
               className="text-foreground"
               onClick={() => updateURL({ sid: null })}
             >
-              <RestartIcon />
+              {isPending ? (
+                <RandomIcon className="animate-spin opacity-60" />
+              ) : (
+                <RestartIcon />
+              )}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <span>Restart</span>
+            <span>{caption}</span>
           </TooltipContent>
         </Tooltip>
-
         {/* Replay Test */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="text-foreground"
-              onClick={toggleReplay}
-            >
-              <ReplayIcon />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <span>Replay</span>
-          </TooltipContent>
-        </Tooltip>
-
+        {!session?.isInvalid && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-foreground"
+                onClick={toggleReplay}
+              >
+                <ReplayIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>Replay</span>
+            </TooltipContent>
+          </Tooltip>
+        )}
         {/* Share Link */}
-        {isOwner && (
+        {isOwner && !session?.isInvalid && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -118,20 +134,27 @@ export const ResultFooter = ({
                 <CopyLinkIcon />
                 <span
                   className={cn(
-                    "text-6 text-muted-foreground absolute left-1/2 -translate-x-1/2 transition duration-200 ease-in-out",
+                    "text-muted-foreground absolute left-1/2 -translate-x-1/2 text-[12px] transition duration-200 ease-in-out",
                     copied
                       ? "translate-y-10 opacity-100"
                       : "translate-y-full opacity-0",
                   )}
                 >
-                  Copied!
+                  Link Copied!
                 </span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>Copy result link</span>
+              <span>Share Result</span>
             </TooltipContent>
           </Tooltip>
+        )}
+
+        {isOwner && session?._id && (
+          <DeleteSessionButton
+            sessionId={session._id.toString()}
+            className="text-foreground *:size-6"
+          />
         )}
 
         {!isNewRecord && (

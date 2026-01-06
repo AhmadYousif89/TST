@@ -59,7 +59,7 @@ export const Header = ({ user }: { user: AnonUserDoc | null }) => {
                 <NotificationIcon />
               </Button>
             </DrawerTrigger>
-            <DrawerContent>
+            <DrawerContent className="w-[calc(100%-1.5rem)]!">
               <DrawerHeader className="items-center border-b">
                 <DrawerTitle>History</DrawerTitle>
                 <DrawerDescription>

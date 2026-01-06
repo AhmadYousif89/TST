@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { getUserHistory } from "@/app/dal/user";
-import { formatTime, getModeLabel } from "@/app/(home)/engine/engine-logic";
+import { getModeLabel } from "@/app/(home)/engine/engine-logic";
 import { DeleteSessionButton } from "./delete-session.button";
 
 export const HistoryPanel = async () => {
@@ -50,18 +50,18 @@ export const HistoryPanel = async () => {
     const isBest = session._id === bestSession?._id;
 
     return (
-      <div key={session._id} className="group relative flex items-center px-5">
+      <div key={session._id} className="group relative flex items-center px-6">
         <Link
           href={buildLink(session)}
           className={cn(
-            "relative flex w-full items-center justify-between rounded-md border px-2 py-4 transition-all duration-200 sm:p-4",
+            "relative flex w-full items-center justify-between rounded-md border p-4 transition-all duration-200",
             "hover:border-muted-foreground hover:bg-blue-400/5",
             session.isInvalid && "opacity-60",
             isBest &&
-              "border-yellow/60 shadow-[0_0_15px_rgba(250,204,21,0.15)]",
+              "border-yellow/75 hover:border-yellow/75 shadow-[0_0_15px_rgba(250,204,21,0.15)]",
           )}
         >
-          {/* Best session indicator (Crown) */}
+          {/* Best session (Crown icon) */}
           {isBest && (
             <div className="text-yellow absolute -top-4 -right-3 z-10 rotate-12 drop-shadow-sm">
               <svg
@@ -79,7 +79,7 @@ export const HistoryPanel = async () => {
             <div className="flex items-center gap-2">
               <span className="text-2 font-mono">
                 {Math.round(session.wpm)}
-                <span className="text-6 text-muted-foreground ml-0.5 font-normal uppercase">
+                <span className="text-6 text-muted-foreground ml-0.5 uppercase">
                   wpm
                 </span>
               </span>
@@ -89,19 +89,18 @@ export const HistoryPanel = async () => {
                 </span>
               )}
             </div>
-            <div className="text-6 text-muted-foreground flex items-center gap-2 whitespace-nowrap">
-              <span>{Math.round(session.accuracy)}% acc</span>
-              <span>•</span>
-              <span>{formatTime(session.durationMs / 1000)}</span>
+            <div className="text-6 text-muted-foreground flex items-center gap-1 font-mono tracking-widest whitespace-nowrap uppercase">
+              <span className="font-bold">{Math.round(session.accuracy)}%</span>
+              <span>acc</span>
             </div>
           </div>
 
           <div className="flex flex-col items-end gap-1 text-right">
             <div className="flex items-center gap-1.5">
               <span className="text-6 rounded-full bg-blue-600/10 px-2 py-0.5 font-medium text-blue-400 capitalize">
-                {session.category}
+                {session.difficulty}
               </span>
-              <span className="text-6 rounded-full bg-blue-600/10 px-2 py-0.5 font-medium whitespace-nowrap text-blue-400">
+              <span className="text-6 min-w-24 rounded-full bg-blue-600/10 px-2 py-0.5 text-center font-medium whitespace-nowrap text-blue-400">
                 {getModeLabel(session.mode)}
               </span>
             </div>
@@ -115,8 +114,8 @@ export const HistoryPanel = async () => {
             </span>
           </div>
 
-          <div className="absolute top-1/2 -left-4.5 -translate-y-1/2 group-hover:flex md:hidden">
-            <DeleteSessionButton sessionId={session._id} />
+          <div className="absolute top-1/2 -left-5 hidden -translate-y-1/2 group-hover:block">
+            <DeleteSessionButton sessionId={session._id} className="size-4" />
           </div>
         </Link>
       </div>

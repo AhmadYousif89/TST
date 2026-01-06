@@ -6,9 +6,10 @@ import { ResultSummary } from "./summary";
 type Props = {
   session: TypingSessionDoc;
   text: string;
+  nextTextId?: string | null;
 };
 
-export const BaselineRound = ({ session, text }: Props) => {
+export const BaselineRound = ({ session, text, nextTextId }: Props) => {
   return (
     <>
       <ResultHeader
@@ -16,7 +17,7 @@ export const BaselineRound = ({ session, text }: Props) => {
         subTitle="You’ve set the bar. Now the real challenge begins—time to beat it."
       />
       <ResultSummary session={session} />
-      <ResultFooter session={session} text={text} />
+      <ResultFooter session={session} text={text} nextTextId={nextTextId} />
     </>
   );
 };

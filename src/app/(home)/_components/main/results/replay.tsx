@@ -150,7 +150,7 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
             word={word}
             charStates={charStates}
             cursor={cursorIndex}
-            className="text-5! md:text-4!"
+            isReplay
           />
         ))}
       </div>

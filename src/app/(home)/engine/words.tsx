@@ -65,9 +65,16 @@ type WordProps = {
   charStates: any[];
   cursor: number;
   className?: string;
+  isReplay?: boolean;
 };
 
-export const Word = ({ word, charStates, cursor, className }: WordProps) => {
+export const Word = ({
+  word,
+  charStates,
+  cursor,
+  className,
+  isReplay,
+}: WordProps) => {
   const lastCharObj = word[word.length - 1];
   const isLastCharSpace = lastCharObj.char === " ";
   const endIndex = lastCharObj.index;
@@ -84,7 +91,10 @@ export const Word = ({ word, charStates, cursor, className }: WordProps) => {
     <div
       data-error={wordHasError}
       className={cn(
-        "text-1-regular-mobile md:text-1-regular relative flex items-center",
+        "relative flex items-center",
+        isReplay
+          ? "text-5 md:text-4"
+          : "text-1-regular-mobile md:text-1-regular",
         className,
       )}
     >
