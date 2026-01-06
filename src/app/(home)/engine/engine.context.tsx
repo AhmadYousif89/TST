@@ -58,6 +58,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const { textData, mode } = data;
   const { updateURL, isPending } = useUrlState();
   const searchParams = useSearchParams();
+  const sid = searchParams.get("sid");
 
   const [state, dispatch] = useReducer(engineReducer, {
     ...initialState,
@@ -179,17 +180,10 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   // Reset session when data changes (category/difficulty change)
   useEffect(() => {
     const currentTextId = textData?._id?.toString() || null;
-    const hasSid = !!searchParams.get("sid");
     // Only reset if the text actually changed and we are NOT looking at results
-    if (
-      prevTextIdRef.current &&
-      prevTextIdRef.current !== currentTextId &&
-      !hasSid
-    ) {
-      resetSession();
-    }
+    if (prevTextIdRef.current !== currentTextId && !sid) resetSession();
     prevTextIdRef.current = currentTextId;
-  }, [textData?._id, resetSession, searchParams]);
+  }, [textData?._id, resetSession, sid]);
 
   /* -------------------- TIMER & METRICS -------------------- */
 
@@ -197,18 +191,17 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const prevModeRef = useRef<TextMode>(mode);
   // Sync timeLeft when mode changes and reset session
   useEffect(() => {
-    if (prevModeRef.current !== mode) resetSession();
+    if (prevModeRef.current !== mode && !sid) resetSession();
     prevModeRef.current = mode;
-  }, [mode, resetSession]);
+  }, [mode, resetSession, sid]);
 
   // Track previous session ID to detect when it's cleared
-  const prevSidRef = useRef<string | null>(searchParams.get("sid"));
+  const prevSidRef = useRef<string | null>(sid);
   // Reset session when session param is cleared (user clicked restart or manually cleared URL)
   useEffect(() => {
-    const sessionId = searchParams.get("sid");
-    if (prevSidRef.current && !sessionId) resetSession();
-    prevSidRef.current = sessionId;
-  }, [searchParams, resetSession]);
+    if (prevSidRef.current && !sid) resetSession();
+    prevSidRef.current = sid;
+  }, [sid, resetSession]);
 
   // Update metrics when session ends
   useEffect(() => {

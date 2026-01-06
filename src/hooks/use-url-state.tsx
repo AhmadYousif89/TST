@@ -9,14 +9,6 @@ import {
   TextMode,
 } from "@/app/(home)/engine/types";
 
-type URLParamMap = {
-  difficulty: TextDifficulty;
-  category: TextCategory;
-  mode: TextMode;
-  id?: string;
-  sid?: string;
-};
-
 export function useUrlState() {
   const router = useRouter();
   const pathname = usePathname();
@@ -38,34 +30,31 @@ export function useUrlState() {
       if (next === current) return;
 
       startTransition(() => {
-        router.push(next, { scroll: false });
+        router.replace(next, { scroll: false });
       });
     },
     [searchParams, pathname, router],
   );
 
-  function getParam<K extends keyof URLParamMap>(
-    key: K,
-  ): URLParamMap[K] | undefined;
-  function getParam<K extends keyof URLParamMap>(
-    key: K,
-    defaultValue: URLParamMap[K],
-  ): URLParamMap[K];
-  function getParam(key: string, defaultValue?: string) {
-    const raw = searchParams.get(key);
-    if (raw == null) return defaultValue;
+  const getParam = useCallback(
+    (key: string, defaultValue?: string) => {
+      if (!searchParams) return defaultValue;
+      const raw = searchParams.get(key);
+      if (raw == null) return defaultValue;
 
-    switch (key) {
-      case "difficulty":
-        return (raw || defaultValue) as TextDifficulty | undefined;
-      case "category":
-        return (raw || defaultValue) as TextCategory | undefined;
-      case "mode":
-        return (raw || defaultValue) as TextMode | undefined;
-      default:
-        return raw;
-    }
-  }
+      switch (key) {
+        case "difficulty":
+          return (raw || defaultValue) as TextDifficulty | undefined;
+        case "category":
+          return (raw || defaultValue) as TextCategory | undefined;
+        case "mode":
+          return (raw || defaultValue) as TextMode | undefined;
+        default:
+          return raw;
+      }
+    },
+    [searchParams],
+  );
 
   return { updateURL, getParam, isPending };
 }
