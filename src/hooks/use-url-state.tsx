@@ -14,6 +14,7 @@ type URLParamMap = {
   category: TextCategory;
   mode: TextMode;
   id?: string;
+  sid?: string;
 };
 
 export function useUrlState() {

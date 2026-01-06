@@ -67,3 +67,26 @@ export async function getSession(sessionId: string) {
     return null;
   }
 }
+
+export async function getUserHistory() {
+  const anonUserId = await getAnonUserId();
+  if (!anonUserId) return [];
+
+  try {
+    const { db } = await connectToDB();
+    const sessions = await db
+      .collection<TypingSessionDoc>("typing_sessions")
+      .find({ anonUserId })
+      .sort({ finishedAt: -1 })
+      .toArray();
+
+    return sessions.map((s) => ({
+      ...s,
+      _id: s._id.toString(),
+      textId: s.textId.toString(),
+    }));
+  } catch (error) {
+    console.error("Error fetching user history:", error);
+    return [];
+  }
+}
