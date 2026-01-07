@@ -27,7 +27,7 @@ export const Header = ({ user }: { user: AnonUserDoc | null }) => {
         <div className="bg-border mr-2 ml-4 h-8 w-px" />
 
         <Drawer>
-          <DrawerTrigger asChild>
+          <DrawerTrigger asChild suppressHydrationWarning>
             <Button size="icon" variant="ghost">
               <SettingsIcon />
             </Button>
@@ -54,7 +54,7 @@ export const Header = ({ user }: { user: AnonUserDoc | null }) => {
 
         {user && user.totalSessions > 0 && (
           <Drawer direction="right">
-            <DrawerTrigger asChild>
+            <DrawerTrigger asChild suppressHydrationWarning>
               <Button size="icon" variant="ghost">
                 <NotificationIcon />
               </Button>
