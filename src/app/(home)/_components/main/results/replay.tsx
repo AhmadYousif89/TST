@@ -44,15 +44,33 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
 
   const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
 
-  // Get cursor position
-  const cursorIndex = useMemo(() => {
-    if (currentIndex === 0) return 0;
+  // Get cursor position and extra offset
+  const { cursor: cursorIndex, extraOffset } = useMemo(() => {
+    let cursor = 0;
 
-    if (currentIndex < ks.length) {
-      return ks[currentIndex].charIndex;
+    // Iterate through all played keystrokes to calculate current cursor state
+    for (const k of replayedKeystrokes) {
+      if (k.typedChar === "Backspace") {
+        if (k.skipOrigin !== undefined) {
+          cursor = k.skipOrigin;
+        } else {
+          cursor = k.charIndex;
+        }
+      } else {
+        const isExtra = characters[k.charIndex] === " " && k.typedChar !== " ";
+        if (isExtra) {
+          cursor = k.charIndex;
+        } else {
+          cursor = k.charIndex + 1;
+        }
+      }
     }
-    return characters.length;
-  }, [currentIndex, ks, characters.length]);
+
+    // Calculate extra offset based on the current state at the cursor
+    const currentExtras = charStates[cursor]?.extras?.length || 0;
+
+    return { cursor, extraOffset: currentExtras };
+  }, [replayedKeystrokes, characters, charStates]);
 
   // Get keystroke timestamp
   const currentTimeMs = useMemo(() => {
@@ -141,7 +159,7 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
           containerRef={containerRef}
           isFocused={isPlaying}
           cursor={cursorIndex}
-          extraOffset={0} // Replay should not track extra chars anymore
+          extraOffset={extraOffset}
           cursorStyle="underline"
         />
         {groupedWords.map((word, wordIndex) => (

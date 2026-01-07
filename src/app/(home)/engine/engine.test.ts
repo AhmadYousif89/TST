@@ -373,6 +373,73 @@ describe("getCharStates", () => {
       extras: [],
     });
   });
+
+  it("removes main char first on backspace (Standard Behavior)", () => {
+    // Target: "T"
+    // Sequence: Typed 'T' (Correct), Typed 'x' (Extra), BS.
+    const keystrokes: Keystroke[] = [
+      {
+        charIndex: 0,
+        expectedChar: "T",
+        typedChar: "T",
+        isCorrect: true,
+        timestampMs: 100,
+      },
+      {
+        charIndex: 0, // Extra on index 0
+        expectedChar: "T",
+        typedChar: "x",
+        isCorrect: false,
+        timestampMs: 200,
+      },
+      {
+        charIndex: 0,
+        expectedChar: "T",
+        typedChar: "Backspace",
+        isCorrect: false,
+        timestampMs: 300,
+      },
+    ];
+    const states = getCharStates(chars, keystrokes);
+    // Original Logic: 'T' (typedChar) removed first. 'x' (extra) remains.
+    expect(states[0].state).toBe("not-typed");
+    expect(states[0].typedChar).toBe("");
+    expect(states[0].extras).toEqual(["x"]);
+  });
+
+  it("removes main char first on backspace (Space)", () => {
+    // Target: " " (at index 3)
+    // Sequence: Typed ' ' (Correct), Typed 'x' (Extra), BS.
+    const spaceIndex = 3;
+    const keystrokes: Keystroke[] = [
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: " ",
+        isCorrect: true,
+        timestampMs: 100,
+      },
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "x", // Extra
+        isCorrect: false,
+        timestampMs: 200,
+      },
+      {
+        charIndex: spaceIndex,
+        expectedChar: " ",
+        typedChar: "Backspace",
+        isCorrect: false,
+        timestampMs: 300,
+      },
+    ];
+    const states = getCharStates(chars, keystrokes);
+    // Original Logic: ' ' removed. 'x' remains.
+    expect(states[spaceIndex].state).toBe("not-typed");
+    expect(states[spaceIndex].typedChar).toBe("");
+    expect(states[spaceIndex].extras).toEqual(["x"]);
+  });
 });
 
 /* ------------------ getCharStates - additional edge cases ------------------ */

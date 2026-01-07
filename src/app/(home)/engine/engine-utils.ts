@@ -1,4 +1,5 @@
 import { UserSettings } from "./types";
+import { TextCategory, TextDifficulty, TextMode } from "./types";
 
 export const getInitialSettings = (): UserSettings => {
   const defaultSettings: UserSettings = {
@@ -33,3 +34,19 @@ export const getInitialSettings = (): UserSettings => {
 
   return defaultSettings;
 };
+
+type SearchParams = { [key: string]: string | string[] | undefined };
+
+export function parseSearchParams(sp: SearchParams) {
+  const category =
+    typeof sp.category === "string" ? (sp.category as TextCategory) : "general";
+  const difficulty =
+    typeof sp.difficulty === "string"
+      ? (sp.difficulty as TextDifficulty)
+      : "easy";
+  const mode = typeof sp.mode === "string" ? (sp.mode as TextMode) : "t:60";
+  const id = typeof sp.id === "string" ? sp.id : undefined;
+  const sessionId = typeof sp.sid === "string" ? sp.sid : undefined;
+
+  return { category, difficulty, mode, id, sessionId };
+}

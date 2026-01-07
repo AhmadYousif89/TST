@@ -1,9 +1,9 @@
-import { getInitialText, getNextText, getRandomText } from "../dal/data";
 import { getSession, getUser, getAnonUserId } from "../dal/user";
+import { getInitialText, getNextText, getRandomText } from "../dal/data";
 
 import { SoundProvider } from "./engine/sound.context";
 import { EngineProvider } from "./engine/engine.context";
-import { TextCategory, TextDifficulty, TextMode } from "./engine/types";
+import { parseSearchParams } from "./engine/engine-utils";
 
 import { Header } from "./_components/header";
 import { MainContent } from "./_components/main/content";
@@ -13,16 +13,7 @@ import { LoadingOverlay } from "./_components/main/loading-overlay";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
-
-  const category =
-    typeof sp.category === "string" ? (sp.category as TextCategory) : "general";
-  const difficulty =
-    typeof sp.difficulty === "string"
-      ? (sp.difficulty as TextDifficulty)
-      : "easy";
-  const mode = typeof sp.mode === "string" ? (sp.mode as TextMode) : "t:60";
-  const id = typeof sp.id === "string" ? sp.id : undefined;
-  const sessionId = typeof sp.sid === "string" ? sp.sid : undefined;
+  const { category, difficulty, mode, id, sessionId } = parseSearchParams(sp);
 
   const user = await getUser();
   const currentAnonUserId = await getAnonUserId();
