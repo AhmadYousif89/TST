@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { RandomIcon } from "@/components/random.icon";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 type Props = {
   randomId: string | null;
@@ -17,6 +18,7 @@ type Props = {
 export const RandomButton = ({ randomId }: Props) => {
   const { resetSession } = useEngineActions();
   const { updateURL, isPending } = useUrlState();
+  const isMobile = useMediaQuery("(max-width: 1024px)");
 
   const handleRandomize = () => {
     if (!randomId) return;
@@ -26,7 +28,7 @@ export const RandomButton = ({ randomId }: Props) => {
   };
 
   return (
-    <Tooltip>
+    <Tooltip open={isMobile ? false : undefined}>
       <TooltipTrigger asChild>
         <Button
           size="icon"

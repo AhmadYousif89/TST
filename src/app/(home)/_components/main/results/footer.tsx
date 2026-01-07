@@ -8,6 +8,7 @@ import Star1 from "@/assets/images/pattern-star-1.svg";
 import { cn } from "@/lib/utils";
 import { TypingSessionDoc } from "@/lib/types";
 import { useUrlState } from "@/hooks/use-url-state";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 import { AnalyticSection } from "./analytics";
 import { NextTextButton } from "./next-text.button";
@@ -42,6 +43,7 @@ export const ResultFooter = ({
   text,
 }: Props) => {
   const [copied, setCopied] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 1024px)");
   const [showReplay, setShowReplay] = useState(false);
   const [isAnimatingReplay, setIsAnimatingReplay] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -86,7 +88,7 @@ export const ResultFooter = ({
         {/* Next Text */}
         {nextTextId && <NextTextButton nextTextId={nextTextId} inSession />}
         {/* Restart */}
-        <Tooltip>
+        <Tooltip open={isMobile ? false : undefined}>
           <TooltipTrigger asChild>
             <Button
               size="icon"
@@ -105,10 +107,11 @@ export const ResultFooter = ({
             <span>{caption}</span>
           </TooltipContent>
         </Tooltip>
-        {/* Replay Test */}
+
         {!session?.isInvalid && (
           <>
-            <Tooltip>
+            {/* Input History */}
+            <Tooltip open={isMobile ? false : undefined}>
               <TooltipTrigger asChild>
                 <Button
                   size="icon"
@@ -123,8 +126,8 @@ export const ResultFooter = ({
                 <span>Input History</span>
               </TooltipContent>
             </Tooltip>
-
-            <Tooltip>
+            {/* Replay Test */}
+            <Tooltip open={isMobile ? false : undefined}>
               <TooltipTrigger asChild>
                 <Button
                   size="icon"
@@ -143,7 +146,7 @@ export const ResultFooter = ({
         )}
         {/* Share Link */}
         {isOwner && !session?.isInvalid && (
-          <Tooltip>
+          <Tooltip open={isMobile ? false : undefined}>
             <TooltipTrigger asChild>
               <Button
                 size="icon"

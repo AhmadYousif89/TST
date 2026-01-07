@@ -9,10 +9,10 @@ import { deleteSessionAction } from "@/app/dal/actions";
 import { useUrlState } from "@/hooks/use-url-state";
 import { RandomIcon } from "@/components/random.icon";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  ResponsiveTooltip,
+  ResponsiveTooltipContent,
+  ResponsiveTooltipTrigger,
+} from "@/components/responsive-tooltip";
 
 type Props = {
   sessionId: string;
@@ -47,8 +47,8 @@ export const DeleteSessionButton = ({
 
   if (inSession) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
+      <ResponsiveTooltip>
+        <ResponsiveTooltipTrigger asChild>
           <Button
             size="icon"
             variant="ghost"
@@ -65,11 +65,11 @@ export const DeleteSessionButton = ({
               <TrashIcon className="size-5" />
             )}
           </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
+        </ResponsiveTooltipTrigger>
+        <ResponsiveTooltipContent side="bottom">
           <span>Delete Session</span>
-        </TooltipContent>
-      </Tooltip>
+        </ResponsiveTooltipContent>
+      </ResponsiveTooltip>
     );
   }
 

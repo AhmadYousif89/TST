@@ -1,20 +1,84 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import { TypingSessionDoc } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import {
+  ResponsiveTooltip,
+  ResponsiveTooltipContent,
+  ResponsiveTooltipTrigger,
+} from "@/components/responsive-tooltip";
+import { Button } from "@/components/ui/button";
+import { HeatmapIcon } from "@/components/heatmap.icon";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { HeatmapIcon } from "@/components/heatmap.icon";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 type HeatmapProps = {
   session: TypingSessionDoc;
   text?: string;
 };
+
+const WordItem = memo(
+  ({
+    word,
+    stats,
+    getBucket,
+    isEnabled,
+  }: {
+    word: string;
+    stats: any;
+    getBucket: (wpm: number) => number;
+    isEnabled: boolean;
+  }) => {
+    const wpm = stats?.wpm || 0;
+    const hasError = stats?.hasError;
+    const errorIndices = stats?.errorCharIndices;
+
+    // If disabled, don't color. If enabled, use bucket color.
+    const colorVariable =
+      isEnabled && stats && stats.wpm > 0
+        ? HEATMAP_COLORS[getBucket(wpm)]
+        : undefined;
+
+    const content = isEnabled ? (
+      word
+    ) : (
+      <span className={cn(hasError && "decoration-red underline decoration-2")}>
+        {word.split("").map((char, charIdx) => (
+          <span
+            key={charIdx}
+            className={cn(errorIndices?.has(charIdx) && "text-red")}
+          >
+            {char}
+          </span>
+        ))}
+      </span>
+    );
+
+    return (
+      <ResponsiveTooltip delayDuration={0}>
+        <ResponsiveTooltipTrigger asChild>
+          <div
+            style={{ color: colorVariable }}
+            className={cn(
+              "cursor-default font-mono",
+              !colorVariable && "text-muted-foreground",
+            )}
+          >
+            {content}
+          </div>
+        </ResponsiveTooltipTrigger>
+        <ResponsiveTooltipContent side="top">
+          <p>{Math.round(wpm)} wpm</p>
+        </ResponsiveTooltipContent>
+      </ResponsiveTooltip>
+    );
+  },
+);
 
 const HEATMAP_COLORS = [
   "var(--red-500)", // Very Slow
@@ -26,6 +90,7 @@ const HEATMAP_COLORS = [
 
 export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
   const [isEnabled, setIsEnabled] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 1024px)");
 
   const analysis = useMemo(() => {
     if (!session.keystrokes || session.keystrokes.length === 0 || !text) {
@@ -49,57 +114,61 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
     >();
 
     const words = text.split(" ");
-    let charIndexPointer = 0;
-
     const wordWPMsList: number[] = [];
 
-    let previousWordEndTime = 0; // Timestamp of the last word that was typed
-    let lastTypedWordIndex = -1; // Index of the last word that was typed
+    let charIndexPointer = 0;
+    let lastTypedWordIndex = -1;
+    let previousWordEndTime = 0;
 
-    words.forEach((word, wordIdx) => {
-      const startIndex = charIndexPointer;
-      const endIndex = startIndex + word.length; // without the space
+    // Pre-calculate word boundaries
+    const wordRanges = words.map((word) => {
+      const start = charIndexPointer;
+      const end = start + word.length;
+      charIndexPointer = end + 1;
+      return { start, end };
+    });
 
-      // Find keystrokes relevant to this word (including potential errors)
-      const wordKeystrokes = sortedKeystrokes.filter(
-        (k) =>
-          k.charIndex >= startIndex &&
-          k.charIndex < endIndex &&
-          k.typedChar !== "Backspace",
+    // Group keystrokes by word index for O(N) access
+    const keystrokesPerWord = new Array(words.length)
+      .fill(null)
+      .map(() => [] as any[]);
+    const errorsPerWord = new Array(words.length)
+      .fill(null)
+      .map(() => new Set<number>());
+    const hasErrorPerWord = new Array(words.length).fill(false);
+
+    sortedKeystrokes.forEach((k) => {
+      const wordIdx = wordRanges.findIndex(
+        (r) => k.charIndex >= r.start && k.charIndex <= r.end,
       );
 
-      // Check for errors in this range
-      const hasError = sortedKeystrokes.some(
-        (k) =>
-          ((k.charIndex >= startIndex && k.charIndex < endIndex) || // match char in word
-            (k.charIndex === endIndex && k.expectedChar === " ")) && // OR match the space after (if error on space)
-          !k.isCorrect,
-      );
-
-      // Identify specific char errors
-      const errorCharIndices = new Set<number>();
-      for (let i = 0; i < word.length; i++) {
-        const globalIndex = startIndex + i;
-        const charHasError = sortedKeystrokes.some(
-          (k) => k.charIndex === globalIndex && !k.isCorrect,
-        );
-        if (charHasError) {
-          errorCharIndices.add(i);
+      if (wordIdx !== -1) {
+        if (k.typedChar !== "Backspace") {
+          if (k.charIndex < wordRanges[wordIdx].end) {
+            keystrokesPerWord[wordIdx].push(k);
+          }
+        }
+        if (!k.isCorrect) {
+          hasErrorPerWord[wordIdx] = true;
+          if (k.charIndex < wordRanges[wordIdx].end) {
+            errorsPerWord[wordIdx].add(k.charIndex - wordRanges[wordIdx].start);
+          }
         }
       }
+    });
 
+    words.forEach((word, wordIdx) => {
       let wpm = 0;
+      const hasError = hasErrorPerWord[wordIdx];
+      const errorCharIndices = errorsPerWord[wordIdx];
+      const wordKeystrokes = keystrokesPerWord[wordIdx];
 
       if (wordKeystrokes.length > 0) {
         const lastKeystroke = wordKeystrokes[wordKeystrokes.length - 1];
         const currentWordEndTime = lastKeystroke.timestampMs;
-
-        // duration = (time when we finished this word) - (time when we finished previous word)
         const durationMs = currentWordEndTime - previousWordEndTime;
 
-        // Update for next loop
         previousWordEndTime = currentWordEndTime;
-
         const safeDuration = Math.max(durationMs, 200);
         wpm = word.length / 5 / (safeDuration / 60000);
 
@@ -107,11 +176,9 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
         lastTypedWordIndex = wordIdx;
       }
 
-      if (wpm > 0)
+      if (wpm > 0 || hasError) {
         wordStatsMap.set(wordIdx, { wpm, hasError, word, errorCharIndices });
-
-      // Advance pointer (word + space)
-      charIndexPointer += word.length + 1;
+      }
     });
 
     if (wordWPMsList.length === 0) return null;
@@ -158,7 +225,7 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
           <h3 className="text-muted-foreground/60 text-6 md:text-5 flex items-center gap-2">
             input history
           </h3>
-          <Tooltip>
+          <Tooltip open={isMobile ? false : undefined}>
             <TooltipTrigger asChild>
               <Button
                 size="icon"
@@ -172,7 +239,7 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
                 <HeatmapIcon className="size-5 md:size-6" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="top">
               <span>Toggle Heatmap</span>
             </TooltipContent>
           </Tooltip>
@@ -199,60 +266,16 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
       </div>
 
       {/* Words History */}
-      <div className="text-5 flex flex-wrap gap-x-3.25 gap-y-1 select-none">
-        {words.map((word, i) => {
-          const stats = wordStatsMap.get(i);
-          const wpm = stats?.wpm || 0;
-          const hasError = stats?.hasError;
-          const errorIndices = stats?.errorCharIndices;
-
-          // If disabled, don't color. If enabled, use bucket color.
-          const colorVariable =
-            isEnabled && stats && stats.wpm > 0
-              ? HEATMAP_COLORS[getBucket(wpm)]
-              : undefined;
-
-          const content = isEnabled ? (
-            word
-          ) : (
-            <span
-              className={cn(
-                hasError &&
-                  "decoration-red underline decoration-2 underline-offset-4",
-              )}
-            >
-              {word.split("").map((char, charIdx) => (
-                <span
-                  key={charIdx}
-                  className={cn(errorIndices?.has(charIdx) && "text-red")}
-                >
-                  {char}
-                </span>
-              ))}
-            </span>
-          );
-
-          return (
-            <Tooltip key={i} delayDuration={0}>
-              <TooltipTrigger asChild>
-                <div
-                  style={{ color: colorVariable }}
-                  className={cn(
-                    "cursor-default font-mono transition-colors duration-200",
-                    !colorVariable && "text-muted-foreground",
-                    hasError &&
-                      "decoration-red underline decoration-2 underline-offset-4",
-                  )}
-                >
-                  {content}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>{Math.round(wpm)} wpm</p>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+      <div className="text-5 flex flex-wrap gap-x-3.25 gap-y-1 pb-2 select-none">
+        {words.map((word, i) => (
+          <WordItem
+            key={`${session._id}-${i}`}
+            word={word}
+            stats={wordStatsMap.get(i)}
+            getBucket={getBucket}
+            isEnabled={isEnabled}
+          />
+        ))}
       </div>
     </div>
   );
