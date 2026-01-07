@@ -78,21 +78,16 @@
 
   --neutral-0: oklch(1 0 0);
   --neutral-100: oklch(0.97 0 0);
+  --neutral-200: oklch(0.8 0 0);
   --neutral-400: oklch(0.6675 0.0044 286.28);
   --neutral-500: oklch(0.551 0.0107 286.04);
   --neutral-700: oklch(0.3485 0 0);
   --neutral-800: oklch(0.2686 0 0);
   --neutral-900: oklch(0.1822 0 0);
 
-  --sepia-bg: oklch(0.92 0.03 88);
-  --sepia-fg: oklch(0.25 0.04 45);
-  --sepia-muted: oklch(0.55 0.04 65);
-  --sepia-border: oklch(0.82 0.05 85);
-  --sepia-input: oklch(0.4 0.05 45);
-  --sepia-red: oklch(0.58 0.14 28);
-  --sepia-green: oklch(0.62 0.12 145);
-
+  --orange-500: oklch(72.527% 0.12912 59.64);
   --yellow-400: oklch(0.8933 0.1281 96.72);
+  --blue-200: oklch(73.402% 0.1345 250.148);
   --blue-400: oklch(0.7109 0.1563 250.76);
   --blue-600: oklch(0.611 0.2123 257.82);
   --green-500: oklch(0.7801 0.175 151.08);
@@ -122,13 +117,17 @@
 
 .sepia {
   color-scheme: light;
-  --background: var(--sepia-bg);
-  --foreground: var(--sepia-fg);
-  --muted-foreground: var(--sepia-muted);
-  --border: var(--sepia-border);
-  --input: var(--sepia-input);
-  --red-500: var(--sepia-red);
-  --green-500: var(--sepia-green);
+  --background: oklch(0.97 0.025 70);
+  --foreground: oklch(0.25 0.04 50);
+  --primary: oklch(0.65 0.15 50);
+  --primary-foreground: oklch(0.98 0.01 70);
+  --secondary: oklch(0.93 0.03 70);
+  --secondary-foreground: oklch(0.35 0.04 50);
+  --muted: oklch(0.94 0.025 70);
+  --muted-foreground: oklch(0.5 0.03 50);
+  --border: oklch(0.88 0.04 70);
+  --input: oklch(0.92 0.03 70);
+  --ring: oklch(0.65 0.15 50);
 }
 
 @layer base {

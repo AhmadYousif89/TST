@@ -11,7 +11,7 @@ import { wordsGroup, Cursor, Word } from "@/app/(home)/engine/words";
 import { useReplay } from "./use-replay";
 
 type Props = {
-  session: TypingSessionDoc | undefined;
+  session: TypingSessionDoc;
   text?: string;
 };
 
@@ -19,7 +19,7 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
   const { playSound } = useSound();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const ks = useMemo(() => session?.keystrokes || [], [session?.keystrokes]);
+  const ks = useMemo(() => session.keystrokes || [], [session.keystrokes]);
 
   const characters = useMemo(() => {
     if (!text) return [];
@@ -91,8 +91,8 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
   const currentTimeSec = Math.floor(currentTimeMs / 1000);
 
   return (
-    <div className="overflow-hidden">
-      <div className="flex items-center justify-between py-4">
+    <div className="space-y-2 overflow-hidden">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <p className="text-6 md:text-5 text-muted-foreground/60 tracking-wide">
@@ -153,7 +153,7 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
       {/* Replay */}
       <div
         ref={containerRef}
-        className="relative flex flex-wrap items-center justify-start font-mono leading-normal select-none"
+        className="relative flex flex-wrap items-center justify-start gap-1 font-mono select-none"
       >
         <Cursor
           containerRef={containerRef}
@@ -168,7 +168,7 @@ export const ReplaySection = ({ session, text = "" }: Props) => {
             word={word}
             charStates={charStates}
             cursor={cursorIndex}
-            isReplay
+            className="text-5!"
           />
         ))}
       </div>

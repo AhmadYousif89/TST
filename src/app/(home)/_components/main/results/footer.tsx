@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Activity, useState } from "react";
+import { useState } from "react";
 
 import Star1 from "@/assets/images/pattern-star-1.svg";
 
@@ -9,20 +9,20 @@ import { cn } from "@/lib/utils";
 import { TypingSessionDoc } from "@/lib/types";
 import { useUrlState } from "@/hooks/use-url-state";
 
-import { SessionChart } from "./chart";
-import { ReplaySection } from "./replay";
+import { AnalyticSection } from "./analytics";
+import { NextTextButton } from "./next-text.button";
+import { DeleteSessionButton } from "../delete-session.button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ReplayIcon } from "@/components/replay.icon";
+import { StackIcon } from "@/components/stack.icon";
 import { CopyLinkIcon } from "@/components/copy.icon";
-import { RestartIcon } from "@/components/restart.icon";
-import { NextTextButton } from "./next-text.button";
 import { RandomIcon } from "@/components/random.icon";
-import { DeleteSessionButton } from "../delete-session.button";
+import { ReplayIcon } from "@/components/replay.icon";
+import { RestartIcon } from "@/components/restart.icon";
 
 type Props = {
   caption?: string;
@@ -42,8 +42,10 @@ export const ResultFooter = ({
   text,
 }: Props) => {
   const [copied, setCopied] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isReplayVisible, setIsReplayVisible] = useState(false);
+  const [showReplay, setShowReplay] = useState(false);
+  const [isAnimatingReplay, setIsAnimatingReplay] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [isAnimatingHistory, setIsAnimatingHistory] = useState(false);
 
   const { updateURL, isPending } = useUrlState();
 
@@ -56,33 +58,33 @@ export const ResultFooter = ({
   };
 
   const toggleReplay = () => {
-    setIsReplayVisible(!isReplayVisible);
-    setIsAnimating(true);
+    setShowReplay(!showReplay);
+    setIsAnimatingReplay(true);
+  };
+
+  const toggleHistory = () => {
+    setShowHistory(!showHistory);
+    setIsAnimatingHistory(true);
   };
 
   return (
-    <footer className="text-background relative flex flex-col items-center justify-center gap-4 py-4">
-      {session && !session.isInvalid && <ChartSection session={session} />}
-
-      {!session?.isInvalid && (
-        <div
-          className={cn(
-            "grid w-full transition-[grid-template-rows] duration-300 ease-in-out",
-            isReplayVisible ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-          )}
-          onTransitionEnd={() => setIsAnimating(false)}
-        >
-          <Activity
-            mode={isReplayVisible || isAnimating ? "visible" : "hidden"}
-          >
-            <ReplaySection session={session} text={text} />
-          </Activity>
-        </div>
+    <footer className="text-background relative flex flex-col items-center justify-center gap-4 pb-4">
+      {session && !session.isInvalid && (
+        <AnalyticSection
+          text={text}
+          session={session}
+          showReplay={showReplay}
+          showHistory={showHistory}
+          isAnimatingReplay={isAnimatingReplay}
+          isAnimatingHistory={isAnimatingHistory}
+          setIsAnimatingReplay={setIsAnimatingReplay}
+          setIsAnimatingHistory={setIsAnimatingHistory}
+        />
       )}
 
       <div className="flex items-center justify-center gap-4">
         {/* Next Text */}
-        {nextTextId && <NextTextButton nextTextId={nextTextId} />}
+        {nextTextId && <NextTextButton nextTextId={nextTextId} inSession />}
         {/* Restart */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -99,27 +101,45 @@ export const ResultFooter = ({
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent side="bottom">
             <span>{caption}</span>
           </TooltipContent>
         </Tooltip>
         {/* Replay Test */}
         {!session?.isInvalid && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-foreground"
-                onClick={toggleReplay}
-              >
-                <ReplayIcon />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <span>Replay</span>
-            </TooltipContent>
-          </Tooltip>
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-foreground"
+                  onClick={toggleHistory}
+                >
+                  <StackIcon />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <span>Input History</span>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-foreground"
+                  onClick={toggleReplay}
+                >
+                  <ReplayIcon />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <span>{showReplay ? "Hide Replay" : "Watch Replay"}</span>
+              </TooltipContent>
+            </Tooltip>
+          </>
         )}
         {/* Share Link */}
         {isOwner && !session?.isInvalid && (
@@ -144,7 +164,7 @@ export const ResultFooter = ({
                 </span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom">
               <span>Share Result</span>
             </TooltipContent>
           </Tooltip>
@@ -152,6 +172,7 @@ export const ResultFooter = ({
 
         {isOwner && session?._id && (
           <DeleteSessionButton
+            inSession
             sessionId={session._id.toString()}
             className="text-foreground *:size-6"
           />
@@ -166,13 +187,5 @@ export const ResultFooter = ({
         )}
       </div>
     </footer>
-  );
-};
-
-const ChartSection = ({ session }: { session: TypingSessionDoc }) => {
-  return (
-    <div className="h-64 w-full">
-      <SessionChart session={session} />
-    </div>
   );
 };
