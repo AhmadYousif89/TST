@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TypingSessionDoc } from "@/lib/types";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 type CustomTooltipProps = {
   active?: boolean;
@@ -63,6 +64,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 };
 
 export const SessionChart = ({ session }: { session: TypingSessionDoc }) => {
+  const isDesktop = useMediaQuery("(min-width: 1180px)");
   const chartData = useMemo(() => {
     if (!session.keystrokes || session.keystrokes.length === 0) return [];
 
@@ -116,7 +118,7 @@ export const SessionChart = ({ session }: { session: TypingSessionDoc }) => {
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart
         data={chartData}
-        margin={{ top: 10, right: 0, left: 0, bottom: 20 }}
+        margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
       >
         <CartesianGrid
           strokeDasharray="2 2"
@@ -127,7 +129,6 @@ export const SessionChart = ({ session }: { session: TypingSessionDoc }) => {
         />
         <XAxis
           dataKey="second"
-          stroke="var(--muted-foreground)"
           fontSize={12}
           tickLine={false}
           axisLine={false}
@@ -135,13 +136,30 @@ export const SessionChart = ({ session }: { session: TypingSessionDoc }) => {
         >
           <Label
             value="Seconds"
+            offset={-10}
+            fontSize={10}
             position="insideBottom"
-            offset={-15}
-            fill="var(--muted-foreground)"
-            fontSize={12}
+            fill="var(--muted)"
           />
         </XAxis>
-        <YAxis hide domain={[0, "auto"]} />
+
+        <YAxis
+          hide={!isDesktop}
+          domain={[0, "auto"]}
+          fontSize={10}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fill: "var(--muted-foreground)" }}
+        >
+          <Label
+            value="Word Per Minute"
+            angle={-90}
+            fontSize={10}
+            fill="var(--muted)"
+            position="insideLeft"
+            style={{ textAnchor: "middle" }}
+          />
+        </YAxis>
         <Tooltip
           content={<CustomTooltip />}
           cursor={{ stroke: "var(--muted-foreground)", strokeWidth: 1 }}

@@ -39,7 +39,7 @@ export const ResultHeader = ({
 
 const CompletedIcon = ({ isInvalid }: { isInvalid: boolean }) => {
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex items-center justify-center p-3">
       <div
         className={`animate-ring-pulse absolute size-24 rounded-full md:size-28 ${isInvalid ? "bg-red/10" : "bg-green/10"}`}
         style={{ animationDelay: "0.1s" }}
@@ -48,7 +48,6 @@ const CompletedIcon = ({ isInvalid }: { isInvalid: boolean }) => {
         className={`animate-ring-pulse absolute size-19 rounded-full md:size-21 ${isInvalid ? "bg-red/20" : "bg-green/20"}`}
         style={{ animationDelay: "0.3s" }}
       />
-
       <div
         className={`relative z-10 flex size-14 items-center justify-center rounded-full ${isInvalid ? "bg-red" : "bg-green"}`}
       >

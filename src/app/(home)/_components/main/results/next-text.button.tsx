@@ -14,9 +14,10 @@ import { useUrlState } from "@/hooks/use-url-state";
 type Props = {
   nextTextId: string;
   className?: string;
+  inSession?: boolean;
 };
 
-export const NextTextButton = ({ nextTextId, className }: Props) => {
+export const NextTextButton = ({ nextTextId, className, inSession }: Props) => {
   const { updateURL, isPending } = useUrlState();
 
   return (
@@ -36,7 +37,7 @@ export const NextTextButton = ({ nextTextId, className }: Props) => {
           )}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent side={inSession ? "bottom" : "top"}>
         <span>Next Text</span>
       </TooltipContent>
     </Tooltip>

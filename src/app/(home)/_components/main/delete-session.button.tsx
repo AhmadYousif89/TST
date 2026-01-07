@@ -8,13 +8,23 @@ import { TrashIcon } from "@/components/trash.icon";
 import { deleteSessionAction } from "@/app/dal/actions";
 import { useUrlState } from "@/hooks/use-url-state";
 import { RandomIcon } from "@/components/random.icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {
   sessionId: string;
   className?: string;
+  inSession?: boolean;
 };
 
-export const DeleteSessionButton = ({ sessionId, className }: Props) => {
+export const DeleteSessionButton = ({
+  sessionId,
+  className,
+  inSession,
+}: Props) => {
   const [isPending, startTransition] = useTransition();
   const { updateURL, getParam } = useUrlState();
 
@@ -34,6 +44,34 @@ export const DeleteSessionButton = ({ sessionId, className }: Props) => {
       }
     });
   };
+
+  if (inSession) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            disabled={isPending}
+            onClick={handleDelete}
+            className={cn(
+              "text-muted-foreground hover:bg-red/10 hover:text-red",
+              className,
+            )}
+          >
+            {isPending ? (
+              <RandomIcon className="animate-spin" />
+            ) : (
+              <TrashIcon className="size-5" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <span>Delete Session</span>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
 
   return (
     <Button
