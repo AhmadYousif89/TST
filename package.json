@@ -2,7 +2,10 @@
   "name": "typing-speed-test",
   "version": "0.1.0",
   "private": true,
-  "author": "Ahmad Yousif",
+  "author": {
+    "name": "Ahmad Yousif",
+    "url": "https://github.com/ahmadyousif89"
+  },
   "description": "Typing speed test",
   "license": "MIT",
   "scripts": {
