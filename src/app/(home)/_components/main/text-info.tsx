@@ -9,15 +9,15 @@ export const TextInfo = () => {
 
   return (
     <div className="text-muted-foreground flex items-center justify-center py-8">
-      <Badge className="text-6 bg-muted/25 min-w-24 font-medium capitalize">
+      <Badge className="text-6 bg-muted/50 dark:bg-muted/25 min-w-24 font-medium capitalize">
         {textData?.category}
       </Badge>
       <div className="bg-border mx-2 size-1 rounded-full" />
-      <Badge className="text-6 bg-muted/25 min-w-24 font-medium capitalize">
+      <Badge className="text-6 bg-muted/50 dark:bg-muted/25 min-w-24 font-medium capitalize">
         {textData?.difficulty}
       </Badge>
       <div className="bg-border mx-2 size-1 rounded-full" />
-      <Badge className="text-6 bg-muted/25 min-w-24 font-medium">
+      <Badge className="text-6 bg-muted/50 dark:bg-muted/25 min-w-24 font-medium">
         {getModeLabel(mode)}
       </Badge>
     </div>

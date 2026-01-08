@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-@custom-variant sepia (&:is(.sepia *));
+/* @custom-variant sepia (&:is(.sepia *)); */
 
 @font-face {
   font-family: "Sora";
@@ -57,9 +57,12 @@
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-input: var(--input);
+
   --color-red: var(--red-500);
   --color-green: var(--green-500);
   --color-yellow: var(--yellow-400);
+  --color-orange: var(--orange-400);
+  --color-blue-200: var(--blue-200);
   --color-blue-400: var(--blue-400);
   --color-blue-600: var(--blue-600);
 
@@ -73,11 +76,10 @@
 }
 
 :root {
-  color-scheme: light;
   --radius: 0.625rem;
 
   --neutral-0: oklch(1 0 0);
-  --neutral-100: oklch(0.97 0 0);
+  --neutral-100: oklch(0.95 0 0);
   --neutral-200: oklch(0.8 0 0);
   --neutral-400: oklch(0.6675 0.0044 286.28);
   --neutral-500: oklch(0.551 0.0107 286.04);
@@ -85,7 +87,7 @@
   --neutral-800: oklch(0.2686 0 0);
   --neutral-900: oklch(0.1822 0 0);
 
-  --orange-500: oklch(72.527% 0.12912 59.64);
+  --orange-400: oklch(75.303% 0.11957 60.286);
   --yellow-400: oklch(0.8933 0.1281 96.72);
   --blue-200: oklch(73.402% 0.1345 250.148);
   --blue-400: oklch(0.7109 0.1563 250.76);
@@ -95,27 +97,31 @@
 
   --background: var(--neutral-100);
   --foreground: var(--neutral-900);
-  --primary: var(--neutral-100);
-  --primary-foreground: var(--neutral-800);
-  --muted: var(--neutral-100);
-  --muted-foreground: var(--neutral-400);
+  --primary: var(--neutral-800);
+  --primary-foreground: var(--neutral-100);
+  --secondary: var(--neutral-500);
+  --secondary-foreground: var(--neutral-100);
+  --muted: var(--neutral-200);
+  --muted-foreground: var(--neutral-700);
   --destructive: var(--red-500);
-  --border: var(--neutral-700);
+  --border: var(--neutral-200);
   --ring: var(--blue-400);
   --input: var(--neutral-500);
 }
 
 .dark {
-  color-scheme: dark;
   --background: var(--neutral-900);
   --foreground: var(--neutral-0);
   --primary: var(--neutral-900);
   --primary-foreground: var(--neutral-0);
   --secondary: var(--neutral-800);
+  --secondary-foreground: var(--neutral-0);
   --muted: var(--neutral-500);
+  --muted-foreground: var(--neutral-400);
+  --border: var(--neutral-700);
 }
 
-.sepia {
+/* .sepia {
   color-scheme: light;
   --background: oklch(0.97 0.025 70);
   --foreground: oklch(0.25 0.04 50);
@@ -128,7 +134,7 @@
   --border: oklch(0.88 0.04 70);
   --input: oklch(0.92 0.03 70);
   --ring: oklch(0.65 0.15 50);
-}
+} */
 
 @layer base {
   * {

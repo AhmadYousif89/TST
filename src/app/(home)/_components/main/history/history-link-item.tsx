@@ -33,15 +33,15 @@ export const HistoryLinkItem = ({
           isActive && "border-muted-foreground bg-blue-400/5",
           isBest &&
             !isActive &&
-            "border-yellow/75 hover:border-yellow/75 shadow-[0_0_15px_rgba(250,204,21,0.15)]",
+            "dark:border-yellow/75 border-orange dark:hover:border-yellow/75 hover:border-orange shadow-[0_0_15px_rgba(230,156,96,0.5)] dark:shadow-[0_0_15px_rgba(250,204,21,0.5)]",
           isBest &&
             isActive &&
-            "border-yellow/75 shadow-[0_0_15px_rgba(250,204,21,0.15)]",
+            "dark:border-yellow/75 border-orange shadow-[0_0_15px_rgba(230,156,96,0.5)] dark:shadow-[0_0_15px_rgba(250,204,21,0.5)]",
         )}
       >
         {/* Best session (Crown icon) */}
         {isBest && (
-          <div className="text-yellow absolute -top-4 -right-3 z-10 rotate-12 drop-shadow-sm">
+          <div className="text-orange dark:text-yellow absolute -top-4 -right-3 z-10 rotate-12 drop-shadow-sm">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

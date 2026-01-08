@@ -8,7 +8,8 @@ export const Metrics = () => {
   const { mode, status } = useEngineConfig();
 
   let timeLeftStyle = "";
-  if (status === "typing" || status === "paused") timeLeftStyle = "text-yellow";
+  if (status === "typing" || status === "paused")
+    timeLeftStyle = "dark:text-yellow text-orange";
   if (mode !== "passage" && timeLeft < 10) timeLeftStyle = "text-red";
   if (mode === "passage" && status === "finished") timeLeftStyle = "text-green";
 

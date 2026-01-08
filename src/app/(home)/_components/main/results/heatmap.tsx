@@ -82,8 +82,8 @@ const WordItem = memo(
 
 const HEATMAP_COLORS = [
   "var(--red-500)", // Very Slow
-  "var(--orange-500)", // Slow
-  "var(--neutral-200)", // Below Avg
+  "var(--orange-400)", // Slow
+  "var(--neutral-200)", // Avg
   "var(--blue-200)", // Fast
   "var(--blue-600)", // Very Fast
 ];
@@ -220,7 +220,7 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
   return (
     <div className="space-y-2 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 pt-2">
         <div className="flex items-center gap-2">
           <h3 className="text-muted-foreground/60 text-6 md:text-5 flex items-center gap-2">
             input history
@@ -230,13 +230,15 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
               <Button
                 size="icon"
                 variant="ghost"
+                aria-pressed={isEnabled}
+                aria-label="Toggle Heatmap"
                 className={cn(
-                  "size-6 rounded-full",
+                  "group size-6 rounded-full hover:bg-transparent!",
                   isEnabled ? "text-foreground" : "text-muted-foreground",
                 )}
                 onClick={() => setIsEnabled(!isEnabled)}
               >
-                <HeatmapIcon className="size-5 md:size-6" />
+                <HeatmapIcon className="group-hover:text-red group-aria-pressed:text-red size-5 md:size-6" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">
@@ -251,7 +253,7 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
             {HEATMAP_COLORS.map((color, i) => (
               <div
                 key={i}
-                className="text-background cursor-default px-1 pb-0.5 font-mono sm:px-2"
+                className="text-background cursor-default px-1 py-0.5 font-mono sm:px-2"
                 style={{ backgroundColor: color }}
               >
                 {i === 0

@@ -33,9 +33,7 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="dark"
           enableSystem={false}
-          enableColorScheme={false}
           disableTransitionOnChange
-          themes={["light", "dark", "sepia"]}
         >
           {children}
         </ThemeProvider>

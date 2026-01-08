@@ -27,9 +27,9 @@ export const ThemeSelector = () => {
         <ToggleGroupItem value="light" aria-label="Light">
           Light
         </ToggleGroupItem>
-        <ToggleGroupItem value="sepia" aria-label="Sepia">
+        {/* <ToggleGroupItem value="sepia" aria-label="Sepia">
           Sepia
-        </ToggleGroupItem>
+        </ToggleGroupItem> */}
       </ToggleGroup>
     </div>
   );

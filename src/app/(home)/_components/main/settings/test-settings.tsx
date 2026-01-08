@@ -59,8 +59,7 @@ export const TestSettings = () => {
               size="sm"
               className={cn(
                 "min-w-26 md:min-w-32",
-                mode !== "passage" &&
-                  "hover:text-foreground border-0 bg-blue-600",
+                mode !== "passage" && "border-0 bg-blue-400 dark:bg-blue-600",
               )}
             >
               <SelectValue placeholder="Timed" />
@@ -71,32 +70,22 @@ export const TestSettings = () => {
               className="duration-300 ease-out"
             >
               <SelectGroup>
-                <SelectItem value="15" className="text-6 md:text-5">
-                  Timed (15s)
-                </SelectItem>
+                <SelectItem value="15">Timed (15s)</SelectItem>
                 <SelectSeparator className="bg-border my-1 h-px w-full" />
-                <SelectItem value="30" className="text-6 md:text-5">
-                  Timed (30s)
-                </SelectItem>
+                <SelectItem value="30">Timed (30s)</SelectItem>
                 <SelectSeparator className="bg-border my-1 h-px w-full" />
-                <SelectItem value="60" className="text-6 md:text-5">
-                  Timed (60s)
-                </SelectItem>
+                <SelectItem value="60">Timed (60s)</SelectItem>
                 <SelectSeparator className="bg-border my-1 h-px w-full" />
-                <SelectItem value="120" className="text-6 md:text-5">
-                  Timed (120s)
-                </SelectItem>
+                <SelectItem value="120">Timed (120s)</SelectItem>
                 <SelectSeparator className="bg-border my-1 h-px w-full" />
-                <SelectItem value="180" className="text-6 md:text-5">
-                  Timed (180s)
-                </SelectItem>
+                <SelectItem value="180">Timed (180s)</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
           <Toggle
             variant="outline"
             aria-label="Passage"
-            className="text-6 md:text-5 h-8"
+            className="h-8"
             pressed={mode === "passage"}
             onPressedChange={(pressed) =>
               handleModeChange(pressed ? "passage" : "t:60")

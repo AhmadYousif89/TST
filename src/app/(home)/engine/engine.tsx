@@ -438,10 +438,12 @@ export const EngineContainer = () => {
           className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
         >
           <div className="flex flex-col items-center gap-3">
-            <p className="text-yellow text-4 animate-pulse">Test Paused</p>
-            <p className="text-foreground text-4 flex items-center gap-1 font-medium tracking-wide">
+            <p className="text-orange dark:text-yellow text-2 animate-pulse font-medium">
+              Test Paused
+            </p>
+            <p className="text-foreground text-5 flex items-center gap-1 font-medium tracking-wide">
               <ArrowIcon />
-              <span>Click to resume</span>
+              <span>Click here to resume</span>
             </p>
           </div>
         </div>

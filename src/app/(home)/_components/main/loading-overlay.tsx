@@ -7,6 +7,10 @@ export const LoadingOverlay = () => {
 
   if (!isLoadingResults) return null;
 
+  return <Loader />;
+};
+
+export const Loader = () => {
   return (
     <div className="bg-background/50 animate-in fade-in absolute inset-0 z-50 flex flex-col items-center justify-center duration-300">
       <div className="flex flex-col items-center gap-4">

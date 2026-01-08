@@ -41,7 +41,7 @@ export const Results = async ({
       </Wrapper>
     );
   }
-  // For valid sessions where user is owner, we try to show personalized stats
+
   const isBaseline = user?.totalSessions === 1;
   const isNewRecord = user && !isBaseline && session.wpm >= user.bestWpm;
 

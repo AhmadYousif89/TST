@@ -53,6 +53,7 @@ export const SoundSettings = () => {
       </span>
       <div className="flex items-center gap-2">
         <Select
+          // open
           value={soundName}
           onValueChange={(val) => setSoundName(val as SoundNames)}
         >
@@ -60,7 +61,9 @@ export const SoundSettings = () => {
             size="sm"
             className={cn(
               "min-w-26.5",
-              soundName === "none" ? "" : "border-0 bg-blue-600",
+              soundName === "none"
+                ? "text-muted-foreground hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400"
+                : "border-0 bg-blue-400 dark:bg-blue-600",
             )}
           >
             <SelectValue placeholder="Sound" />
@@ -96,19 +99,19 @@ export const SoundSettings = () => {
 
         <div className="relative" ref={sliderRef}>
           <Toggle
-            variant="outline"
             size="sm"
+            variant="outline"
+            aria-label="Volume settings"
             pressed={showVolumeSlider || isMuted}
             onPressedChange={() => setShowVolumeSlider(!showVolumeSlider)}
-            aria-label="Volume settings"
-            className="h-8 w-8 p-0"
+            className="text-muted-foreground dark:aria-pressed:text-foreground size-8"
           >
             {isMuted || volume === 0 ? <VolumeOff /> : <VolumeOn />}
           </Toggle>
 
           {showVolumeSlider && (
             <div
-              className="bg-background border-border animate-in fade-in slide-in-from-bottom-2 absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 rounded-md border px-1 py-4 shadow-xl lg:mb-4"
+              className="bg-background border-border animate-in fade-in slide-in-from-bottom-2 absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 rounded-md border px-0 py-4 shadow-xl lg:mb-4"
               onPointerDown={(e) => e.stopPropagation()}
             >
               <div className="flex flex-col items-center gap-3">
@@ -119,22 +122,22 @@ export const SoundSettings = () => {
                   type="range"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="bg-secondary h-28 w-1.5 cursor-pointer appearance-none rounded-full accent-blue-600 [direction:rtl] [writing-mode:vertical-lr]"
+                  className="bg-secondary h-28 w-1 cursor-pointer appearance-none rounded-full [direction:rtl] [writing-mode:vertical-lr]"
                 />
                 <div className="text-foreground text-6 w-10 text-center">
                   {Math.round((isMuted ? 0 : volume) * 100)}%
                 </div>
               </div>
-              <div className="border-popover absolute top-full left-1/2 -mt-px -translate-x-1/2 border-8 border-transparent border-t-inherit" />
+              {/* Arrow */}
+              <div className="absolute top-full left-1/2 -mt-px -translate-x-1/2 border-8 border-transparent border-t-inherit" />
             </div>
           )}
         </div>
 
         <Button
           size="sm"
-          variant="outline"
           onClick={() => playSound()}
-          className="h-8 border-0 py-0"
+          className="hover:text-muted-foreground text-background dark:text-foreground dark:bg-muted bg-muted-foreground/60 border-0 hover:bg-blue-400 dark:hover:bg-blue-600"
           disabled={soundName === "none" || isMuted}
         >
           Play

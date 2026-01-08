@@ -14,8 +14,10 @@ export const Logo = () => {
         className="size-8 self-start"
       />
       <div className="hidden gap-0.5 md:grid">
-        <span className="text-2">Typing Speed Test</span>
-        <span className="text-muted-foreground text-6">
+        <span className="text-2 from-muted-foreground dark:from-foreground/90 bg-linear-to-br to-blue-400 bg-clip-text text-transparent">
+          Typing Speed Test
+        </span>
+        <span className="dark:text-muted-foreground text-6">
           Type as fast as you can in 60 seconds
         </span>
       </div>
