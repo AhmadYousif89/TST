@@ -31,7 +31,8 @@ export const SessionStatistics = ({ session }: Props) => {
 
     for (let s = 1; s <= durationSec; s++) {
       const startTime = (s - 1) * 1000;
-      const endTime = s * 1000;
+      const bucketDurationMs = Math.min(1000, session.durationMs - startTime);
+      const endTime = startTime + bucketDurationMs;
 
       const ksInSecond = session.keystrokes.filter(
         (k) => k.timestampMs >= startTime && k.timestampMs < endTime,
@@ -41,8 +42,8 @@ export const SessionStatistics = ({ session }: Props) => {
         (k) => k.isCorrect && k.typedChar !== "Backspace",
       ).length;
 
-      // WPM for this second = (correct / 5) / (1/60) = correct * 12
-      const instantWpm = correctInSecond * 12;
+      // WPM for this second = (correct / 5) / (duration / 60)
+      const instantWpm = correctInSecond / 5 / (bucketDurationMs / 60000);
       wpmValues.push(instantWpm);
     }
 
@@ -60,8 +61,10 @@ export const SessionStatistics = ({ session }: Props) => {
     let consistency = 0;
     if (mean > 0) {
       const cv = stdDev / mean; // Coefficient of Variation
-      // Using a sigmoid linear for simplicity: 100 - (CV * 100)
-      consistency = Math.max(0, 100 - cv * 100);
+      const slope = 70;
+      // Using a sigmoid linear for simplicity with a slope factor of 70
+      // making the curve steeper and more forgiving to variations
+      consistency = Math.max(0, 100 - cv * slope);
     }
 
     return {
