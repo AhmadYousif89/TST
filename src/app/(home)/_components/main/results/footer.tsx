@@ -69,9 +69,12 @@ export const ResultFooter = ({
     setIsAnimatingHistory(true);
   };
 
+  const sessionIsValid = session && !session.isInvalid; // Not a spam session
+  const sessionHasKeystrokes = sessionIsValid && session.keystrokes?.length; // Has keystrokes
+
   return (
     <footer className="text-background relative flex flex-col items-center justify-center gap-4 pb-4">
-      {session && !session.isInvalid && (
+      {sessionHasKeystrokes ? (
         <AnalyticSection
           text={text}
           session={session}
@@ -82,6 +85,10 @@ export const ResultFooter = ({
           setIsAnimatingReplay={setIsAnimatingReplay}
           setIsAnimatingHistory={setIsAnimatingHistory}
         />
+      ) : (
+        <p className="text-muted-foreground pb-4">
+          Analytics are not available for this test.
+        </p>
       )}
 
       <div className="flex items-center justify-center gap-4">
@@ -108,7 +115,7 @@ export const ResultFooter = ({
           </TooltipContent>
         </Tooltip>
 
-        {!session?.isInvalid && (
+        {sessionHasKeystrokes ? (
           <>
             {/* Input History */}
             <Tooltip open={isMobile ? false : undefined}>
@@ -143,9 +150,9 @@ export const ResultFooter = ({
               </TooltipContent>
             </Tooltip>
           </>
-        )}
+        ) : null}
         {/* Share Link */}
-        {isOwner && !session?.isInvalid && (
+        {isOwner && sessionIsValid ? (
           <Tooltip open={isMobile ? false : undefined}>
             <TooltipTrigger asChild>
               <Button
@@ -171,7 +178,7 @@ export const ResultFooter = ({
               <span>Share Result</span>
             </TooltipContent>
           </Tooltip>
-        )}
+        ) : null}
 
         {isOwner && session?._id && (
           <DeleteSessionButton
