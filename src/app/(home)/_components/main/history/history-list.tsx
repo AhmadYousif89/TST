@@ -59,12 +59,10 @@ export const HistoryList = ({
     <div className="flex flex-col gap-3 overflow-y-auto py-8">
       {sortedValid.map(renderSession)}
 
-      {invalidSessions.length > 0 && (
-        <>
-          <div className="bg-border mx-5 my-4 h-px shrink-0" />
-          {invalidSessions.map(renderSession)}
-        </>
+      {sortedValid.length > 0 && (
+        <div className="bg-border mx-5 my-4 h-px shrink-0" />
       )}
+      {invalidSessions.length > 0 && invalidSessions.map(renderSession)}
     </div>
   );
 };

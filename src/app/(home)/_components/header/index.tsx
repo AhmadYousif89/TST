@@ -48,33 +48,25 @@ export const Header = ({ user }: { user: AnonUserDoc | null }) => {
           </DrawerContent>
         </Drawer>
 
-        {user && user.totalSessions > 0 && (
-          <div className="bg-border mx-2 h-8 w-px" />
-        )}
-
-        {user && user.totalSessions > 0 && (
-          <Drawer direction="right">
-            <DrawerTrigger asChild suppressHydrationWarning>
-              <Button size="icon" variant="ghost">
-                <NotificationIcon />
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="w-[calc(100%-1.5rem)]!">
-              <DrawerHeader className="items-center border-b">
-                <DrawerTitle>History</DrawerTitle>
-                <DrawerDescription>
-                  Review your typing history
-                </DrawerDescription>
-              </DrawerHeader>
-              <HistoryPanel />
-              <DrawerFooter>
-                <DrawerClose asChild>
-                  <Button variant="destructive">Close</Button>
-                </DrawerClose>
-              </DrawerFooter>
-            </DrawerContent>
-          </Drawer>
-        )}
+        <Drawer direction="right">
+          <DrawerTrigger asChild suppressHydrationWarning>
+            <Button size="icon" variant="ghost">
+              <NotificationIcon />
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent className="w-[calc(100%-1.5rem)]!">
+            <DrawerHeader className="items-center border-b">
+              <DrawerTitle>History</DrawerTitle>
+              <DrawerDescription>Review your typing history</DrawerDescription>
+            </DrawerHeader>
+            <HistoryPanel />
+            <DrawerFooter>
+              <DrawerClose asChild>
+                <Button variant="destructive">Close</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </header>
   );

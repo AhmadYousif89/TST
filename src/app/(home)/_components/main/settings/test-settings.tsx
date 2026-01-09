@@ -91,7 +91,7 @@ export const TestSettings = () => {
               handleModeChange(pressed ? "passage" : "t:60")
             }
           >
-            Passage
+            <span className="text-6 md:text-5">Passage</span>
           </Toggle>
         </div>
       </div>

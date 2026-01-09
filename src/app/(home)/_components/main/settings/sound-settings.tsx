@@ -140,7 +140,7 @@ export const SoundSettings = () => {
           className="hover:text-muted-foreground text-background dark:text-foreground dark:bg-muted bg-muted-foreground/60 border-0 hover:bg-blue-400 dark:hover:bg-blue-600"
           disabled={soundName === "none" || isMuted}
         >
-          Play
+          <span className="text-6 md:text-5">Play</span>
         </Button>
       </div>
     </div>
