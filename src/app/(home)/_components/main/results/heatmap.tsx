@@ -2,6 +2,7 @@
 
 import { useMemo, useState, memo } from "react";
 import { TypingSessionDoc } from "@/lib/types";
+import { analyzeHeatmap } from "./heatmap-logic";
 import { cn } from "@/lib/utils";
 import {
   ResponsiveTooltip,
@@ -22,23 +23,19 @@ type HeatmapProps = {
   text?: string;
 };
 
+type WordItemProps = {
+  word: string;
+  stats: any;
+  getBucket: (wpm: number) => number;
+  isEnabled: boolean;
+};
+
 const WordItem = memo(
-  ({
-    word,
-    stats,
-    getBucket,
-    isEnabled,
-  }: {
-    word: string;
-    stats: any;
-    getBucket: (wpm: number) => number;
-    isEnabled: boolean;
-  }) => {
+  ({ word, stats, getBucket, isEnabled }: WordItemProps) => {
     const wpm = stats?.wpm || 0;
     const hasError = stats?.hasError;
     const errorIndices = stats?.errorCharIndices;
 
-    // If disabled, don't color. If enabled, use bucket color.
     const colorVariable =
       isEnabled && stats && stats.wpm > 0
         ? HEATMAP_COLORS[getBucket(wpm)]
@@ -93,124 +90,7 @@ export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
   const analysis = useMemo(() => {
-    if (!session.keystrokes || session.keystrokes.length === 0 || !text) {
-      return null;
-    }
-
-    const { keystrokes } = session;
-    const sortedKeystrokes = [...keystrokes].sort(
-      (a, b) => a.timestampMs - b.timestampMs,
-    );
-
-    // Map word index to stats
-    const wordStatsMap = new Map<
-      number,
-      {
-        wpm: number;
-        word: string;
-        hasError: boolean;
-        errorCharIndices: Set<number>;
-      }
-    >();
-
-    const words = text.split(" ");
-    const wordWPMsList: number[] = [];
-
-    let charIndexPointer = 0;
-    let lastTypedWordIndex = -1;
-    let previousWordEndTime = 0;
-
-    // Pre-calculate word boundaries
-    const wordRanges = words.map((word) => {
-      const start = charIndexPointer;
-      const end = start + word.length;
-      charIndexPointer = end + 1;
-      return { start, end };
-    });
-
-    // Group keystrokes by word index for O(N) access
-    const keystrokesPerWord = new Array(words.length)
-      .fill(null)
-      .map(() => [] as any[]);
-    const errorsPerWord = new Array(words.length)
-      .fill(null)
-      .map(() => new Set<number>());
-    const hasErrorPerWord = new Array(words.length).fill(false);
-
-    sortedKeystrokes.forEach((k) => {
-      const wordIdx = wordRanges.findIndex(
-        (r) => k.charIndex >= r.start && k.charIndex <= r.end,
-      );
-
-      if (wordIdx !== -1) {
-        if (k.typedChar !== "Backspace") {
-          if (k.charIndex < wordRanges[wordIdx].end) {
-            keystrokesPerWord[wordIdx].push(k);
-          }
-        }
-        if (!k.isCorrect) {
-          hasErrorPerWord[wordIdx] = true;
-          if (k.charIndex < wordRanges[wordIdx].end) {
-            errorsPerWord[wordIdx].add(k.charIndex - wordRanges[wordIdx].start);
-          }
-        }
-      }
-    });
-
-    words.forEach((word, wordIdx) => {
-      let wpm = 0;
-      const hasError = hasErrorPerWord[wordIdx];
-      const errorCharIndices = errorsPerWord[wordIdx];
-      const wordKeystrokes = keystrokesPerWord[wordIdx];
-
-      if (wordKeystrokes.length > 0) {
-        const lastKeystroke = wordKeystrokes[wordKeystrokes.length - 1];
-        const currentWordEndTime = lastKeystroke.timestampMs;
-        const durationMs = currentWordEndTime - previousWordEndTime;
-
-        previousWordEndTime = currentWordEndTime;
-        const safeDuration = Math.max(durationMs, 200);
-        wpm = word.length / 5 / (safeDuration / 60000);
-
-        wordWPMsList.push(wpm);
-        lastTypedWordIndex = wordIdx;
-      }
-
-      if (wpm > 0 || hasError) {
-        wordStatsMap.set(wordIdx, { wpm, hasError, word, errorCharIndices });
-      }
-    });
-
-    if (wordWPMsList.length === 0) return null;
-
-    const minWpm = Math.min(...wordWPMsList);
-    const maxWpm = Math.max(...wordWPMsList);
-
-    // Create buckets
-    const spread = maxWpm - minWpm;
-    const step = spread / (HEATMAP_COLORS.length - 1); // 5 colors means 4 steps
-
-    const getBucket = (wpm: number) => {
-      if (wpm <= minWpm + step) return 0;
-      if (wpm <= minWpm + step * 2) return 1;
-      if (wpm <= minWpm + step * 3) return 2;
-      if (wpm <= minWpm + step * 4) return 3;
-      return 4; // Max bucket
-    };
-
-    const buckets = [
-      Math.round(minWpm),
-      Math.round(minWpm + step),
-      Math.round(minWpm + step * 2),
-      Math.round(minWpm + step * 3),
-      Math.round(minWpm + step * 4),
-      Math.round(maxWpm),
-    ];
-
-    // Limit displayed words to typed words + a few context words
-    const displayWords = words.slice(0, lastTypedWordIndex + 3);
-
-    return { wordStatsMap, getBucket, buckets, words: displayWords };
+    return analyzeHeatmap(session, text || "");
   }, [session, text]);
 
   if (!text || !analysis) return null;
