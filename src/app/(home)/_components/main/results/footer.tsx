@@ -66,7 +66,7 @@ export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
         <Image
           src={Star1}
           alt="Star Pattern"
-          className="absolute right-0 -bottom-10 max-md:size-10"
+          className="absolute right-0 -bottom-16 max-md:size-10"
         />
       )}
 
@@ -74,7 +74,7 @@ export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
       {isScreenshotting && (
         <div
           id="screenshot-watermark"
-          className="text-muted text-5 absolute right-0 bottom-4 flex items-end justify-end gap-2 p-4 font-bold"
+          className="text-muted text-5 flex items-end justify-end gap-2 self-end px-4 font-bold"
         >
           <span>
             {new Date().toLocaleDateString("en-GB", {
