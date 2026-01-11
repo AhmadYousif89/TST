@@ -14,6 +14,12 @@ export const useReplay = ({ keystrokes, onComplete, playSound }: Props) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Reset when keystrokes change
+  useEffect(() => {
+    setCurrentIndex(0);
+    setIsPlaying(false);
+  }, [keystrokes]);
+
   const play = useCallback(() => {
     if (currentIndex >= keystrokes.length) setCurrentIndex(0);
     setIsPlaying(true);
@@ -41,6 +47,9 @@ export const useReplay = ({ keystrokes, onComplete, playSound }: Props) => {
 
     const currentKs = keystrokes[currentIndex];
     const prevKs = currentIndex > 0 ? keystrokes[currentIndex - 1] : null;
+
+    if (!currentKs) return;
+
     // We want the delay to be the time between this keystroke and the previous one
     const delay = prevKs
       ? currentKs.timestampMs - prevKs.timestampMs

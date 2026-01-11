@@ -98,9 +98,7 @@ describe("analyzeHeatmap", () => {
 
     // With median WPM as anchor:
     // The fast word (240 WPM) should be in a higher bucket than the slower word (72 WPM)
-    const word0Bucket = getBucket(word0Stats!.wpm);
-    const word1Bucket = getBucket(word1Stats!.wpm);
-    expect(word0Bucket).toBeGreaterThan(word1Bucket);
+    expect(word0Stats!.bucket).toBeGreaterThan(word1Stats!.bucket!);
   });
 
   it("detects errors in words", () => {
@@ -168,13 +166,8 @@ describe("analyzeHeatmap", () => {
     // "sun" + space = 4 keystrokes in 500ms = (4/5) / (500/60000) = 0.8 / 0.00833 = 96 WPM
     expect(word1?.wpm).toBeCloseTo(96, 0);
 
-    // Verify bucket distribution: fast word should be in higher bucket than slower words
-    const getBucket = result!.getBucket;
-    const word0Bucket = getBucket(word0!.wpm);
-    const word1Bucket = getBucket(word1!.wpm);
-
     // First word is faster, should be in a higher bucket
-    expect(word0Bucket).toBeGreaterThan(word1Bucket);
+    expect(word0!.bucket).toBeGreaterThan(word1!.bucket!);
   });
 
   it("handles single word without trailing space", () => {
@@ -286,7 +279,6 @@ describe("analyzeHeatmap", () => {
     const result = analyzeHeatmap(session, mockText);
 
     expect(result).not.toBeNull();
-    const getBucket = result!.getBucket;
 
     // Word 0: 4 keys in 500ms = 96 WPM
     // Word 1: 6 keys in 500ms = 144 WPM
@@ -295,7 +287,7 @@ describe("analyzeHeatmap", () => {
 
     // When speeds are relatively similar, bucket difference should be small
     // word1 is faster, so it should be in same or higher bucket than word0
-    expect(getBucket(word1!.wpm)).toBeGreaterThanOrEqual(getBucket(word0!.wpm));
+    expect(word1!.bucket).toBeGreaterThanOrEqual(word0!.bucket!);
   });
 
   it("handles multiple errors in a single word", () => {
@@ -333,5 +325,86 @@ describe("analyzeHeatmap", () => {
     // Should still produce valid buckets using median
     expect(result?.buckets).toBeDefined();
     expect(result?.buckets.length).toBe(6);
+  });
+
+  it("detects extra characters in a word", () => {
+    const keystrokes = [
+      { charIndex: 0, typedChar: "T", timestampMs: 100, isCorrect: true },
+      { charIndex: 0, typedChar: "t", timestampMs: 150, isCorrect: false }, // Extra
+      { charIndex: 1, typedChar: "h", timestampMs: 200, isCorrect: true },
+      { charIndex: 2, typedChar: "e", timestampMs: 300, isCorrect: true },
+      { charIndex: 3, typedChar: "x", timestampMs: 350, isCorrect: false }, // Extra at space
+      { charIndex: 3, typedChar: " ", timestampMs: 400, isCorrect: true },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session, mockText);
+
+    const stats = result?.wordStatsMap.get(0);
+    expect(stats?.extras).toBeDefined();
+    expect(stats?.extras).toContain("t");
+    expect(stats?.extras).toContain("x");
+  });
+
+  it("detects skips in a word", () => {
+    const keystrokes = [
+      { charIndex: 0, typedChar: "T", timestampMs: 100, isCorrect: true },
+      // Jump from index 0 to index 4 (start of "quick")
+      {
+        charIndex: 4,
+        typedChar: "q",
+        timestampMs: 400,
+        isCorrect: true,
+        skipOrigin: 0,
+      },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session, "The quick");
+
+    const stats = result?.wordStatsMap.get(0);
+    expect(stats?.skipIndex).toBe(0);
+  });
+
+  it("collects typed characters even for skipped words", () => {
+    const keystrokes = [
+      { charIndex: 0, typedChar: "T", timestampMs: 100, isCorrect: true },
+      // Jump from index 0 to index 4 (start of "quick")
+      {
+        charIndex: 4,
+        typedChar: "q",
+        timestampMs: 400,
+        isCorrect: true,
+        skipOrigin: 0,
+      },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session, "The quick");
+
+    const stats = result?.wordStatsMap.get(0);
+    expect(stats?.typedChars).toBe("T");
+  });
+
+  it("collects typedChars with errors and extras", () => {
+    const keystrokes = [
+      { charIndex: 0, typedChar: "t", timestampMs: 100, isCorrect: false }, // error
+      { charIndex: 0, typedChar: "e", timestampMs: 150, isCorrect: false }, // extra after char 0
+      { charIndex: 1, typedChar: "h", timestampMs: 200, isCorrect: true },
+      { charIndex: 2, typedChar: "e", timestampMs: 300, isCorrect: true },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session, "The quick");
+
+    const stats = result?.wordStatsMap.get(0);
+    // typedChars should only contain characters typed at the valid indices of the word
+    // extras are NOT in typedChars, they are in 'extras'
+    // 0: 't' (wrong) -> typedChars[0] = 't'
+    // 0: 'e' (extra) -> extras.push('e')
+    // 1: 'h' (correct) -> typedChars[1] = 'h'
+    // 2: 'e' (correct) -> typedChars[2] = 'e'
+    expect(stats?.typedChars).toBe("the");
+    expect(stats?.extras).toContain("e");
   });
 });

@@ -5,11 +5,14 @@ export type WordStats = {
   word: string;
   hasError: boolean;
   errorCharIndices: Set<number>;
+  extras?: string[];
+  skipIndex?: number;
+  bucket?: number;
+  typedChars?: string;
 };
 
 export type HeatmapAnalysis = {
   wordStatsMap: Map<number, WordStats>;
-  getBucket: (wpm: number) => number;
   buckets: number[];
   words: string[];
 };
@@ -53,6 +56,15 @@ export const analyzeHeatmap = (
     .fill(null)
     .map(() => new Set<number>());
   const hasErrorPerWord = new Array(words.length).fill(false);
+  const extrasPerWord = new Array(words.length)
+    .fill(null)
+    .map(() => [] as string[]);
+  const skipIndexPerWord = new Array(words.length).fill(undefined);
+  const typedCharsPerWord = new Array(words.length)
+    .fill(null)
+    .map((_, i) => new Array(words[i].length).fill(null));
+  // To track typed character indices to detect extras
+  const typedCharsIndices = new Set<number>();
 
   sortedKeystrokes.forEach((k) => {
     const wordIdx = wordRanges.findIndex(
@@ -60,16 +72,44 @@ export const analyzeHeatmap = (
     );
 
     if (wordIdx !== -1) {
+      const range = wordRanges[wordIdx];
       if (k.typedChar !== "Backspace") {
         // Include the space (at wordRanges[wordIdx].end) in the current word's stats
-        if (k.charIndex <= wordRanges[wordIdx].end) {
+        if (k.charIndex <= range.end) {
           keystrokesPerWord[wordIdx].push(k);
+          if (k.charIndex < range.end) {
+            const relIdx = k.charIndex - range.start;
+            if (typedCharsPerWord[wordIdx][relIdx] === null) {
+              typedCharsPerWord[wordIdx][relIdx] = k.typedChar;
+            }
+          }
+        }
+        // Detect Extras
+        const isSpaceIndex = k.charIndex === range.end;
+        if (isSpaceIndex) {
+          if (k.typedChar !== " ") {
+            extrasPerWord[wordIdx].push(k.typedChar);
+          }
+        } else if (typedCharsIndices.has(k.charIndex)) {
+          extrasPerWord[wordIdx].push(k.typedChar);
+        } else {
+          typedCharsIndices.add(k.charIndex);
+        }
+        // Detect Skips
+        if (k.skipOrigin !== undefined) {
+          const skipWordIdx = wordRanges.findIndex(
+            (r) => k.skipOrigin! >= r.start && k.skipOrigin! <= r.end,
+          );
+          if (skipWordIdx !== -1) {
+            skipIndexPerWord[skipWordIdx] =
+              k.skipOrigin - wordRanges[skipWordIdx].start;
+          }
         }
       }
       if (!k.isCorrect) {
         hasErrorPerWord[wordIdx] = true;
-        if (k.charIndex < wordRanges[wordIdx].end) {
-          errorsPerWord[wordIdx].add(k.charIndex - wordRanges[wordIdx].start);
+        if (k.charIndex < range.end) {
+          errorsPerWord[wordIdx].add(k.charIndex - range.start);
         }
       }
     }
@@ -80,26 +120,43 @@ export const analyzeHeatmap = (
     const hasError = hasErrorPerWord[wordIdx];
     const errorCharIndices = errorsPerWord[wordIdx];
     const wordKeystrokes = keystrokesPerWord[wordIdx];
+    const extras = extrasPerWord[wordIdx];
+    const skipIndex = skipIndexPerWord[wordIdx];
+    const typedChars = typedCharsPerWord[wordIdx];
 
-    if (wordKeystrokes.length > 0) {
+    if (
+      wordKeystrokes.length > 0 ||
+      hasError ||
+      skipIndex !== undefined ||
+      extras.length > 0
+    ) {
       const lastKeystroke = wordKeystrokes[wordKeystrokes.length - 1];
-      const currentWordEndTime = lastKeystroke.timestampMs;
-      const durationMs = currentWordEndTime - previousWordEndTime;
+      if (lastKeystroke) {
+        const currentWordEndTime = lastKeystroke.timestampMs;
+        const durationMs = currentWordEndTime - previousWordEndTime;
 
-      previousWordEndTime = currentWordEndTime;
-      const safeDuration = Math.max(durationMs, 200);
+        previousWordEndTime = currentWordEndTime;
+        const safeDuration = Math.max(durationMs, 200);
 
-      // Use actual typed character count, not full word length
-      // This prevents incomplete words from having inflated WPM
-      const typedCharCount = wordKeystrokes.length;
-      wpm = typedCharCount / 5 / (safeDuration / 60000);
+        // Use actual typed character count, not full word length
+        // This prevents incomplete words from having inflated WPM
+        const typedCharCount = wordKeystrokes.length;
+        wpm = typedCharCount / 5 / (safeDuration / 60000);
 
-      wordWPMsList.push(wpm);
-      lastTypedWordIndex = wordIdx;
+        wordWPMsList.push(wpm);
+        lastTypedWordIndex = wordIdx;
+      }
+
+      wordStatsMap.set(wordIdx, {
+        wpm,
+        hasError,
+        word,
+        errorCharIndices,
+        extras: extras.length > 0 ? extras : undefined,
+        skipIndex,
+        typedChars: typedChars.map((c) => c || "").join(""),
+      });
     }
-
-    if (wpm > 0 || hasError)
-      wordStatsMap.set(wordIdx, { wpm, hasError, word, errorCharIndices });
   });
 
   if (wordWPMsList.length === 0) return null;
@@ -122,6 +179,11 @@ export const analyzeHeatmap = (
     return 4;
   };
 
+  // Assign buckets to words
+  wordStatsMap.forEach((stats) => {
+    if (stats.wpm > 0) stats.bucket = getBucket(stats.wpm);
+  });
+
   const buckets = [
     Math.round(Math.min(...wordWPMsList)),
     b1,
@@ -134,5 +196,5 @@ export const analyzeHeatmap = (
   // Limit displayed words to typed words + a few context words
   const displayWords = words.slice(0, lastTypedWordIndex + 3);
 
-  return { wordStatsMap, getBucket, buckets, words: displayWords };
+  return { wordStatsMap, buckets, words: displayWords };
 };

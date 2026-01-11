@@ -76,7 +76,7 @@ export const ReplaySection = () => {
 
   // Get keystroke timestamp
   const currentTimeMs = useMemo(() => {
-    if (currentIndex === 0) return 0;
+    if (currentIndex === 0 || !ks[currentIndex - 1]) return 0;
 
     return ks[currentIndex - 1].timestampMs;
   }, [currentIndex, ks]);

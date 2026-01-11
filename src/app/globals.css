@@ -109,6 +109,8 @@
   --border: var(--neutral-200);
   --ring: var(--blue-400);
   --input: var(--neutral-500);
+
+  --heatmap-neutral: var(--neutral-500);
 }
 
 .dark {
@@ -121,6 +123,8 @@
   --muted: var(--neutral-500);
   --muted-foreground: var(--neutral-400);
   --border: var(--neutral-700);
+
+  --heatmap-neutral: var(--neutral-200);
 }
 
 /* .sepia {
