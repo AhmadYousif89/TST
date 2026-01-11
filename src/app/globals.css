@@ -66,6 +66,8 @@
   --color-blue-400: var(--blue-400);
   --color-blue-600: var(--blue-600);
 
+  --animate-flash: flash 0.5s ease-out forwards;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -245,6 +247,15 @@
   to {
     opacity: 0;
     transform: translateY(-100%);
+  }
+}
+
+@keyframes flash {
+  from {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 0;
   }
 }
 

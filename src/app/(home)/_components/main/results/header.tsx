@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 
 import Star2 from "@/assets/images/pattern-star-2.svg";
@@ -24,12 +26,12 @@ export const ResultHeader = ({
           <Image
             src={Star2}
             alt="Star Pattern"
-            className="absolute top-1/4 left-0 -z-10 max-md:size-5"
+            className="absolute top-1/4 left-4 max-md:size-5"
           />
           <CompletedIcon isInvalid={isInvalid} />
         </>
       )}
-      <div className="flex flex-col gap-2.5 pt-4 text-center md:pt-6">
+      <div className="mt-4 flex flex-col gap-2.5 text-center md:mt-6">
         <h1 className="text-1-mobile md:text-1 text-foreground">{title}</h1>
         <p className="text-muted-foreground text-5 md:text-3">{subTitle}</p>
       </div>

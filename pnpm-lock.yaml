@@ -38,6 +38,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      modern-screenshot:
+        specifier: ^4.6.7
+        version: 4.6.7
       mongodb:
         specifier: ^7.0.0
         version: 7.0.0
@@ -1593,6 +1596,9 @@ packages:
 
   memory-pager@1.5.0:
     resolution: {integrity: sha512-ZS4Bp4r/Zoeq6+NLJpP+0Zzm0pR8whtGPf1XExKLJBAczGMnSi3It14OiNCStjQjM6NU1okjQGSxgEZN8eBYKg==}
+
+  modern-screenshot@4.6.7:
+    resolution: {integrity: sha512-0GhgI6i6le4AhKzCvLYjwEmsP47kTsX45iT5yuAzsLTi/7i3Rjxe8fbH2VjGJLuyOThwsa0CdQAPd4auoEtsZg==}
 
   mongodb-connection-string-url@7.0.0:
     resolution: {integrity: sha512-irhhjRVLE20hbkRl4zpAYLnDMM+zIZnp0IDB9akAFFUZp/3XdOfwwddc7y6cNvF2WCEtfTYRwYbIfYa2kVY0og==}
@@ -3369,6 +3375,8 @@ snapshots:
   mdn-data@2.12.2: {}
 
   memory-pager@1.5.0: {}
+
+  modern-screenshot@4.6.7: {}
 
   mongodb-connection-string-url@7.0.0:
     dependencies:

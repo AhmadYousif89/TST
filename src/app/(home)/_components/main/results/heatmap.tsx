@@ -1,10 +1,16 @@
 "use client";
 
 import { useMemo, useState, memo } from "react";
-import { TypingSessionDoc } from "@/lib/types";
+
+import { cn } from "@/lib/utils";
 import { useResult } from "./result.context";
 import { analyzeHeatmap } from "./heatmap-logic";
-import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ResponsiveTooltip,
   ResponsiveTooltipContent,
@@ -12,17 +18,6 @@ import {
 } from "@/components/responsive-tooltip";
 import { Button } from "@/components/ui/button";
 import { HeatmapIcon } from "@/components/heatmap.icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useMediaQuery } from "@/hooks/use-media-query";
-
-type HeatmapProps = {
-  session: TypingSessionDoc;
-  text?: string;
-};
 
 type WordItemProps = {
   word: string;
@@ -87,9 +82,11 @@ const HEATMAP_COLORS = [
 ];
 
 export const HeatmapHistory = () => {
-  const { session, text } = useResult();
+  const { session, text, isScreenshotting } = useResult();
   const [isEnabled, setIsEnabled] = useState(false);
   const isMobile = useMediaQuery("(max-width: 1024px)");
+
+  const effectiveIsEnabled = isScreenshotting || isEnabled;
 
   const analysis = useMemo(() => {
     return analyzeHeatmap(session, text || "");
@@ -112,12 +109,9 @@ export const HeatmapHistory = () => {
               <Button
                 size="icon"
                 variant="ghost"
-                aria-pressed={isEnabled}
+                aria-pressed={isEnabled || isScreenshotting}
                 aria-label="Toggle Heatmap"
-                className={cn(
-                  "group size-6 rounded-full hover:bg-transparent!",
-                  isEnabled ? "text-foreground" : "text-muted-foreground",
-                )}
+                className="text-muted-foreground group dark:hover:text-muted-foreground size-6 rounded-full hover:bg-transparent!"
                 onClick={() => setIsEnabled(!isEnabled)}
               >
                 <HeatmapIcon className="group-hover:text-red group-aria-pressed:text-red size-5 md:size-6" />
@@ -130,7 +124,7 @@ export const HeatmapHistory = () => {
         </div>
 
         {/* Legend / Heat Map */}
-        {isEnabled && (
+        {effectiveIsEnabled && (
           <div className="text-6 flex items-center overflow-hidden rounded-full font-mono">
             {HEATMAP_COLORS.map((color, i) => (
               <div
@@ -157,7 +151,7 @@ export const HeatmapHistory = () => {
             word={word}
             stats={wordStatsMap.get(i)}
             getBucket={getBucket}
-            isEnabled={isEnabled}
+            isEnabled={effectiveIsEnabled}
           />
         ))}
       </div>

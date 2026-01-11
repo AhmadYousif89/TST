@@ -1,83 +1,45 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import Star1 from "@/assets/images/pattern-star-1.svg";
 
-import { cn } from "@/lib/utils";
-import { TypingSessionDoc } from "@/lib/types";
-import { useUrlState } from "@/hooks/use-url-state";
-import { useMediaQuery } from "@/hooks/use-media-query";
-
+import { useResult } from "./result.context";
 import { AnalyticSection } from "./analytics";
-import { NextTextButton } from "./next-text.button";
-import { DeleteSessionButton } from "../delete-session.button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { StackIcon } from "@/components/stack.icon";
-import { CopyLinkIcon } from "@/components/copy.icon";
-import { RandomIcon } from "@/components/random.icon";
-import { ReplayIcon } from "@/components/replay.icon";
-import { RestartIcon } from "@/components/restart.icon";
+import { ResultToolbar } from "./toolbar.result";
+import { LogoImage } from "../../header/logo";
 
 type Props = {
   caption?: string;
   isNewRecord?: boolean;
-  session?: TypingSessionDoc;
-  isOwner?: boolean;
-  text?: string;
-  nextTextId?: string | null;
 };
 
-export const ResultFooter = ({
-  caption,
-  nextTextId,
-  isNewRecord = false,
-  isOwner = true,
-  session,
-  text,
-}: Props) => {
-  const [copied, setCopied] = useState(false);
-  const isMobile = useMediaQuery("(max-width: 1024px)");
+export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
+  const { session, isScreenshotting } = useResult();
   const [showReplay, setShowReplay] = useState(false);
   const [isAnimatingReplay, setIsAnimatingReplay] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isAnimatingHistory, setIsAnimatingHistory] = useState(false);
 
-  const { updateURL, isPending } = useUrlState();
-
-  const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  const toggleReplay = () => {
-    setShowReplay(!showReplay);
+  const toggleReplay = useCallback(() => {
+    setShowReplay((prev) => !prev);
     setIsAnimatingReplay(true);
-  };
+  }, []);
 
-  const toggleHistory = () => {
-    setShowHistory(!showHistory);
+  const toggleHistory = useCallback(() => {
+    setShowHistory((prev) => !prev);
     setIsAnimatingHistory(true);
-  };
+  }, []);
 
-  const sessionIsValid = session && !session.isInvalid; // Not a spam session
-  const sessionHasKeystrokes = sessionIsValid && session.keystrokes?.length; // Has keystrokes
+  const sessionIsValid = session && !session.isInvalid;
+  const sessionHasKeystrokes =
+    sessionIsValid && (session.keystrokes?.length ?? 0) > 0;
 
   return (
     <footer className="text-background relative flex flex-col items-center justify-center gap-4 pb-4">
       {sessionHasKeystrokes ? (
         <AnalyticSection
-          text={text}
-          session={session}
           showReplay={showReplay}
           showHistory={showHistory}
           isAnimatingReplay={isAnimatingReplay}
@@ -86,116 +48,46 @@ export const ResultFooter = ({
           setIsAnimatingHistory={setIsAnimatingHistory}
         />
       ) : (
-        <p className="text-muted-foreground pb-4">
+        <p className="text-muted-foreground pb-4 whitespace-nowrap">
           Analytics are not available for this test.
         </p>
       )}
 
-      <div className="flex items-center justify-center gap-4">
-        {/* Next Text */}
-        {nextTextId && <NextTextButton nextTextId={nextTextId} inSession />}
-        {/* Restart */}
-        <Tooltip open={isMobile ? false : undefined}>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="text-foreground"
-              onClick={() => updateURL({ sid: null })}
-            >
-              {isPending ? (
-                <RandomIcon className="animate-spin opacity-60" />
-              ) : (
-                <RestartIcon />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <span>{caption}</span>
-          </TooltipContent>
-        </Tooltip>
+      {!isScreenshotting && (
+        <ResultToolbar
+          caption={caption}
+          isNewRecord={isNewRecord}
+          toggleHistory={toggleHistory}
+          toggleReplay={toggleReplay}
+        />
+      )}
 
-        {sessionHasKeystrokes ? (
-          <>
-            {/* Input History */}
-            <Tooltip open={isMobile ? false : undefined}>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-foreground"
-                  onClick={toggleHistory}
-                >
-                  <StackIcon />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <span>Input History</span>
-              </TooltipContent>
-            </Tooltip>
-            {/* Replay Test */}
-            <Tooltip open={isMobile ? false : undefined}>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-foreground"
-                  onClick={toggleReplay}
-                >
-                  <ReplayIcon />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <span>{showReplay ? "Hide Replay" : "Watch Replay"}</span>
-              </TooltipContent>
-            </Tooltip>
-          </>
-        ) : null}
-        {/* Share Link */}
-        {isOwner && sessionIsValid ? (
-          <Tooltip open={isMobile ? false : undefined}>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-foreground relative"
-                onClick={handleShare}
-              >
-                <CopyLinkIcon />
-                <span
-                  className={cn(
-                    "text-muted-foreground absolute left-1/2 -translate-x-1/2 text-[12px] transition duration-200 ease-in-out",
-                    copied
-                      ? "translate-y-10 opacity-100"
-                      : "translate-y-full opacity-0",
-                  )}
-                >
-                  Link Copied!
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <span>Share Result</span>
-            </TooltipContent>
-          </Tooltip>
-        ) : null}
+      {!isNewRecord && (
+        <Image
+          src={Star1}
+          alt="Star Pattern"
+          className="absolute right-0 -bottom-10 max-md:size-10"
+        />
+      )}
 
-        {isOwner && session?._id && (
-          <DeleteSessionButton
-            inSession
-            sessionId={session._id.toString()}
-            className="text-foreground *:size-6"
-          />
-        )}
-
-        {!isNewRecord && (
-          <Image
-            src={Star1}
-            alt="Star Pattern"
-            className="absolute right-0 -bottom-10 -z-10 max-md:size-10"
-          />
-        )}
-      </div>
+      {/* Watermark */}
+      {isScreenshotting && (
+        <div
+          id="screenshot-watermark"
+          className="text-muted text-5 absolute right-0 bottom-4 flex items-end justify-end gap-2 p-4 font-bold"
+        >
+          <span>
+            {new Date().toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+          <span className="flex items-end gap-1 border-l-2 pl-2">
+            <LogoImage className="size-6" /> TST
+          </span>
+        </div>
+      )}
     </footer>
   );
 };

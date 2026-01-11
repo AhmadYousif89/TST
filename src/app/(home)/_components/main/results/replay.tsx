@@ -3,6 +3,7 @@
 import { useMemo, useRef } from "react";
 
 import { TypingSessionDoc } from "@/lib/types";
+import { useResult } from "./result.context";
 import { Button } from "@/components/ui/button";
 import { useSound } from "@/app/(home)/engine/sound.context";
 import { getCharStates } from "@/app/(home)/engine/engine-logic";
@@ -15,7 +16,8 @@ type Props = {
   text?: string;
 };
 
-export const ReplaySection = ({ session, text = "" }: Props) => {
+export const ReplaySection = () => {
+  const { session, text = "" } = useResult();
   const { playSound } = useSound();
   const containerRef = useRef<HTMLDivElement>(null);
 
