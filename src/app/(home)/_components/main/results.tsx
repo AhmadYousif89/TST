@@ -1,11 +1,12 @@
+import { getInitialText } from "@/app/dal/data";
+import { AnonUserDoc, TypingSessionDoc } from "@/lib/types";
+
+import { ResultProvider } from "./results/result.context";
 import { NormalRound } from "./results/normal.result";
 import { BaselineRound } from "./results/baseline.result";
 import { NewRecordRound } from "./results/new-record.result";
 import { InvalidRound } from "./results/invalid.result";
 import { SharedRound } from "./results/shared.result";
-
-import { AnonUserDoc, TypingSessionDoc } from "@/lib/types";
-import { getInitialText } from "@/app/dal/data";
 
 type Props = {
   user: AnonUserDoc | null;
@@ -22,22 +23,43 @@ export const Results = async ({
 }: Props) => {
   if (!session) return null;
 
+  const isOwner = currentAnonUserId === session.anonUserId;
+  const textData = await getInitialText({ id: session.textId.toString() });
+  const text = textData?.text || "";
+
   if (session.isInvalid) {
     return (
       <Wrapper>
-        <InvalidRound session={session} />
+        <ResultProvider
+          session={session}
+          text={text}
+          user={user}
+          nextTextId={nextTextId}
+          isOwner={isOwner}
+        >
+          <InvalidRound />
+        </ResultProvider>
       </Wrapper>
     );
   }
 
-  const isOwner = currentAnonUserId === session.anonUserId;
-
-  const textData = await getInitialText({ id: session.textId.toString() });
-
   if (!isOwner) {
     return (
       <Wrapper>
-        <SharedRound session={session} text={textData?.text || ""} />
+        <ResultProvider
+          session={session}
+          text={text}
+          user={user}
+          nextTextId={nextTextId}
+          isOwner={isOwner}
+        >
+          <div
+            id="result-screen"
+            className="bg-background flex flex-col gap-6 md:gap-8"
+          >
+            <SharedRound />
+          </div>
+        </ResultProvider>
       </Wrapper>
     );
   }
@@ -47,25 +69,26 @@ export const Results = async ({
 
   return (
     <Wrapper>
-      {isBaseline ? (
-        <BaselineRound
-          session={session}
-          text={textData?.text || ""}
-          nextTextId={nextTextId}
-        />
-      ) : isNewRecord ? (
-        <NewRecordRound
-          session={session}
-          text={textData?.text || ""}
-          nextTextId={nextTextId}
-        />
-      ) : (
-        <NormalRound
-          session={session}
-          text={textData?.text || ""}
-          nextTextId={nextTextId}
-        />
-      )}
+      <ResultProvider
+        session={session}
+        text={text}
+        user={user}
+        nextTextId={nextTextId}
+        isOwner={isOwner}
+      >
+        <div
+          id="result-screen"
+          className="bg-background flex flex-col gap-6 md:gap-8"
+        >
+          {isBaseline ? (
+            <BaselineRound />
+          ) : isNewRecord ? (
+            <NewRecordRound />
+          ) : (
+            <NormalRound />
+          )}
+        </div>
+      </ResultProvider>
     </Wrapper>
   );
 };

@@ -59,6 +59,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const { updateURL, isPending } = useUrlState();
   const searchParams = useSearchParams();
   const sid = searchParams.get("sid");
+  const id = textData?._id?.toString() || null;
 
   const [state, dispatch] = useReducer(engineReducer, {
     ...initialState,
@@ -175,33 +176,28 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   /* -------------------- EFFECTS -------------------- */
 
-  // Track previous text ID to detect text changes
-  const prevTextIdRef = useRef<string | null>(null);
-  // Reset session when data changes (category/difficulty change)
-  useEffect(() => {
-    const currentTextId = textData?._id?.toString() || null;
-    // Only reset if the text actually changed and we are NOT looking at results
-    if (prevTextIdRef.current !== currentTextId && !sid) resetSession();
-    prevTextIdRef.current = currentTextId;
-  }, [textData?._id, resetSession, sid]);
-
-  /* -------------------- TIMER & METRICS -------------------- */
-
-  // Track previous mode to detect mode changes
   const prevModeRef = useRef<TextMode>(mode);
-  // Sync timeLeft when mode changes and reset session
+
   useEffect(() => {
     if (prevModeRef.current !== mode && !sid) resetSession();
     prevModeRef.current = mode;
   }, [mode, resetSession, sid]);
 
-  // Track previous session ID to detect when it's cleared
   const prevSidRef = useRef<string | null>(sid);
-  // Reset session when session param is cleared (user clicked restart or manually cleared URL)
+
   useEffect(() => {
     if (prevSidRef.current && !sid) resetSession();
     prevSidRef.current = sid;
   }, [sid, resetSession]);
+
+  const prevIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (prevIdRef.current !== id && !sid) resetSession();
+    prevIdRef.current = id;
+  }, [id, resetSession, sid]);
+
+  /* -------------------- TIMER & METRICS -------------------- */
 
   // Update metrics when session ends
   useEffect(() => {

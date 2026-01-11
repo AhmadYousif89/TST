@@ -1,6 +1,9 @@
-import { TypingSessionDoc } from "@/lib/types";
+"use client";
 
-export const ResultSummary = ({ session }: { session: TypingSessionDoc }) => {
+import { useResult } from "./result.context";
+
+export const ResultSummary = () => {
+  const { session } = useResult();
   const { wpm, accuracy, errorCount, charCount } = session;
 
   return (

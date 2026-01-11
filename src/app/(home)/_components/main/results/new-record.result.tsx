@@ -3,18 +3,11 @@
 import { useEffect } from "react";
 import confetti from "canvas-confetti";
 
-import { TypingSessionDoc } from "@/lib/types";
 import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";
 import { ResultFooter } from "./footer";
 
-type Props = {
-  session: TypingSessionDoc;
-  text: string;
-  nextTextId?: string | null;
-};
-
-export const NewRecordRound = ({ session, text, nextTextId }: Props) => {
+export const NewRecordRound = () => {
   useEffect(() => {
     confetti({
       particleCount: 200,
@@ -35,14 +28,8 @@ export const NewRecordRound = ({ session, text, nextTextId }: Props) => {
         title="High Score Smashed!"
         subTitle="You’re getting faster. That was incredible typing."
       />
-      <ResultSummary session={session} />
-      <ResultFooter
-        isNewRecord
-        session={session}
-        text={text}
-        caption="Beat The Score"
-        nextTextId={nextTextId}
-      />
+      <ResultSummary />
+      <ResultFooter isNewRecord caption="Beat The Score" />
     </>
   );
 };

@@ -1,15 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { TypingSessionDoc } from "@/lib/types";
 import { Keystroke } from "@/app/(home)/engine/types";
 import { getModeLabel } from "@/app/(home)/engine/engine-logic";
+import { useResult } from "./result.context";
 
-type Props = {
-  session: TypingSessionDoc;
-};
+export const SessionStatistics = () => {
+  const { session } = useResult();
 
-export const SessionStatistics = ({ session }: Props) => {
   const stats = useMemo(() => {
     if (!session.keystrokes || session.keystrokes.length === 0) {
       return {

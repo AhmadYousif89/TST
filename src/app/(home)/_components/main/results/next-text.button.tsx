@@ -11,16 +11,25 @@ import { RandomIcon } from "@/components/random.icon";
 import { ChevronIcon } from "@/components/chevron.icon";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useOptionalResult } from "./result.context";
 
 type Props = {
-  nextTextId: string;
   className?: string;
-  inSession?: boolean;
+  inResults?: boolean;
+  nextTextId?: string | null;
 };
 
-export const NextTextButton = ({ nextTextId, className, inSession }: Props) => {
+export const NextTextButton = ({
+  className,
+  inResults,
+  nextTextId: nextTextIdProp,
+}: Props) => {
+  const result = useOptionalResult();
+  const nextTextId = nextTextIdProp ?? result?.nextTextId;
   const { updateURL, isPending } = useUrlState();
   const isMobile = useMediaQuery("(max-width: 1024px)");
+
+  if (!nextTextId) return null;
 
   return (
     <Tooltip open={isMobile ? false : undefined}>
@@ -39,7 +48,7 @@ export const NextTextButton = ({ nextTextId, className, inSession }: Props) => {
           )}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side={inSession ? "bottom" : "top"}>
+      <TooltipContent side={inResults ? "bottom" : "top"}>
         <span>Next Text</span>
       </TooltipContent>
     </Tooltip>

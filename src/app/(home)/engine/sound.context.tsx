@@ -39,47 +39,8 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
   const warningBufferRef = useRef<AudioBuffer | null>(null);
   const warningSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
-  const loadSoundSet = useCallback(async (name: SoundNames) => {
-    if (name === "none") return [];
-    if (buffersCacheRef.current.has(name))
-      return buffersCacheRef.current.get(name)!;
-
-    const ctx = audioCtxRef.current;
-    if (!ctx) return [];
-
-    const config = SOUND_CONFIG[name];
-    if (!config) return [];
-
-    const newBuffers: AudioBuffer[] = [];
-    const loadPromises = [];
-
-    for (let i = 1; i <= config.count; i++) {
-      const url = `/assets/sounds/${config.folder}/${config.prefix}${i}.wav`;
-      loadPromises.push(
-        fetch(url)
-          .then((res) => res.arrayBuffer())
-          .then((data) => ctx.decodeAudioData(data))
-          .then((buffer) => {
-            newBuffers.push(buffer);
-          })
-          .catch((err) => console.error(`Failed to load sound ${url}:`, err)),
-      );
-    }
-
-    await Promise.all(loadPromises);
-    buffersCacheRef.current.set(name, newBuffers);
-    return newBuffers;
-  }, []);
-
-  // Preload sound set whenever it changes
-  useEffect(() => {
-    if (soundName !== "none" && audioCtxRef.current) {
-      loadSoundSet(soundName);
-    }
-  }, [soundName, loadSoundSet]);
-
-  // Initialize AudioContext and load warning sound
-  useEffect(() => {
+  const initAudioCtx = useCallback(() => {
+    if (audioCtxRef.current) return audioCtxRef.current;
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = ctx;
 
@@ -91,26 +52,68 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
       })
       .catch((err) => console.error("Failed to load warning sound:", err));
 
-    // Preload initial sound set
-    if (soundName !== "none") {
-      loadSoundSet(soundName);
-    }
+    return ctx;
+  }, []);
 
+  const loadSoundSet = useCallback(
+    async (name: SoundNames) => {
+      if (name === "none") return [];
+      if (buffersCacheRef.current.has(name))
+        return buffersCacheRef.current.get(name)!;
+
+      const ctx = initAudioCtx();
+      if (!ctx) return [];
+
+      const config = SOUND_CONFIG[name];
+      if (!config) return [];
+
+      const newBuffers: AudioBuffer[] = [];
+      const loadPromises = [];
+
+      for (let i = 1; i <= config.count; i++) {
+        const url = `/assets/sounds/${config.folder}/${config.prefix}${i}.wav`;
+        loadPromises.push(
+          fetch(url)
+            .then((res) => res.arrayBuffer())
+            .then((data) => ctx.decodeAudioData(data))
+            .then((buffer) => {
+              newBuffers.push(buffer);
+            })
+            .catch((err) => console.error(`Failed to load sound ${url}:`, err)),
+        );
+      }
+
+      await Promise.all(loadPromises);
+      buffersCacheRef.current.set(name, newBuffers);
+      return newBuffers;
+    },
+    [initAudioCtx],
+  );
+
+  // Preload sound set whenever it changes
+  useEffect(() => {
+    if (soundName !== "none") loadSoundSet(soundName);
+  }, [soundName, loadSoundSet]);
+
+  // Clean up on unmount
+  useEffect(() => {
     return () => {
-      if (ctx.state !== "closed") ctx.close();
+      if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+        audioCtxRef.current.close();
+      }
     };
   }, []);
 
   const playSound = useCallback(async () => {
     if (isMuted || soundName === "none") return;
 
-    const ctx = audioCtxRef.current;
+    const ctx = initAudioCtx();
     if (!ctx) return;
 
     const buffers = await loadSoundSet(soundName);
     if (buffers.length === 0) return;
 
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended") await ctx.resume();
 
     const source = ctx.createBufferSource();
     const randomIndex = Math.floor(Math.random() * buffers.length);
@@ -123,16 +126,16 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
     source.connect(gainNode);
     gainNode.connect(ctx.destination);
     source.start(0);
-  }, [loadSoundSet, isMuted, soundName, volume]);
+  }, [loadSoundSet, isMuted, soundName, volume, initAudioCtx]);
 
-  const playWarningSound = useCallback(() => {
+  const playWarningSound = useCallback(async () => {
     if (isMuted) return;
 
-    const ctx = audioCtxRef.current;
+    const ctx = initAudioCtx();
     const buffer = warningBufferRef.current;
     if (!ctx || !buffer) return;
 
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended") await ctx.resume();
 
     if (warningSourceRef.current) {
       try {
@@ -156,7 +159,7 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
     source.stop(ctx.currentTime + 0.9);
 
     warningSourceRef.current = source;
-  }, [isMuted, volume]);
+  }, [isMuted, volume, initAudioCtx]);
 
   const stopWarningSound = useCallback(() => {
     if (warningSourceRef.current) {
