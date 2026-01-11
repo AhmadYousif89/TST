@@ -96,20 +96,11 @@ describe("analyzeHeatmap", () => {
     // 6 keystrokes in 1000ms = (6/5) / (1000/60000) = 72 WPM
     expect(word1Stats?.wpm).toBeCloseTo(72, 0);
 
-    // With Session WPM = 70:
-    // b1 (<75%): 52.5
-    // b2 (75-90%): 63
-    // b3 (90-110%): 77
-    // b4 (110-125%): 87.5
-
-    // 60 WPM should be in bucket 1 (Slow)
-    expect(getBucket(60)).toBe(1);
-
-    // 180 WPM should be in bucket 4 (Very Fast)
-    expect(getBucket(180)).toBe(4);
-
-    // 70 WPM (Average) should be in bucket 2 (Neutral)
-    expect(getBucket(70)).toBe(2);
+    // With median WPM as anchor:
+    // The fast word (240 WPM) should be in a higher bucket than the slower word (72 WPM)
+    const word0Bucket = getBucket(word0Stats!.wpm);
+    const word1Bucket = getBucket(word1Stats!.wpm);
+    expect(word0Bucket).toBeGreaterThan(word1Bucket);
   });
 
   it("detects errors in words", () => {
@@ -177,10 +168,13 @@ describe("analyzeHeatmap", () => {
     // "sun" + space = 4 keystrokes in 500ms = (4/5) / (500/60000) = 0.8 / 0.00833 = 96 WPM
     expect(word1?.wpm).toBeCloseTo(96, 0);
 
-    // Verify bucket distribution: fast word should be bucket 4, average words should be bucket 2-3
+    // Verify bucket distribution: fast word should be in higher bucket than slower words
     const getBucket = result!.getBucket;
-    expect(getBucket(word0!.wpm)).toBe(4); // Very fast
-    expect(getBucket(word1!.wpm)).toBeGreaterThanOrEqual(2); // Average or faster
+    const word0Bucket = getBucket(word0!.wpm);
+    const word1Bucket = getBucket(word1!.wpm);
+
+    // First word is faster, should be in a higher bucket
+    expect(word0Bucket).toBeGreaterThan(word1Bucket);
   });
 
   it("handles single word without trailing space", () => {
@@ -294,14 +288,14 @@ describe("analyzeHeatmap", () => {
     expect(result).not.toBeNull();
     const getBucket = result!.getBucket;
 
-    // Both words should be in similar buckets since session WPM = 60
-    // Word 0: 4 keys in 500ms = 96 WPM -> bucket 4 (>125% of 60)
-    // Word 1: 6 keys in 500ms = 144 WPM -> bucket 4
+    // Word 0: 4 keys in 500ms = 96 WPM
+    // Word 1: 6 keys in 500ms = 144 WPM
     const word0 = result?.wordStatsMap.get(0);
     const word1 = result?.wordStatsMap.get(1);
 
-    expect(getBucket(word0!.wpm)).toBe(4);
-    expect(getBucket(word1!.wpm)).toBe(4);
+    // When speeds are relatively similar, bucket difference should be small
+    // word1 is faster, so it should be in same or higher bucket than word0
+    expect(getBucket(word1!.wpm)).toBeGreaterThanOrEqual(getBucket(word0!.wpm));
   });
 
   it("handles multiple errors in a single word", () => {

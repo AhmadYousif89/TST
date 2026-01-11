@@ -2,6 +2,7 @@
 
 import { useMemo, useState, memo } from "react";
 import { TypingSessionDoc } from "@/lib/types";
+import { useResult } from "./result.context";
 import { analyzeHeatmap } from "./heatmap-logic";
 import { cn } from "@/lib/utils";
 import {
@@ -85,7 +86,8 @@ const HEATMAP_COLORS = [
   "var(--blue-600)", // Very Fast
 ];
 
-export const HeatmapHistory = ({ session, text }: HeatmapProps) => {
+export const HeatmapHistory = () => {
+  const { session, text } = useResult();
   const [isEnabled, setIsEnabled] = useState(false);
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
