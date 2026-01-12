@@ -49,7 +49,7 @@ export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
         />
       ) : (
         <p className="text-muted-foreground pb-4 whitespace-nowrap">
-          Analytics are not available for this test.
+          Analytics are no longer available for this test.
         </p>
       )}
 
@@ -66,7 +66,7 @@ export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
         <Image
           src={Star1}
           alt="Star Pattern"
-          className="absolute right-0 -bottom-16 max-md:size-10"
+          className="absolute right-0 -bottom-20 max-md:size-10"
         />
       )}
 

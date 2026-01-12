@@ -52,7 +52,7 @@ export type TypingSessionDoc = {
   errorCount: number;
   durationMs: number;
   isInvalid?: boolean; // For spam or invalid sessions
-  keystrokes?: KeystrokeDoc[]; // Only for populating session analytic chart
+  keystrokes?: KeystrokeDoc[]; // Only for populating session analytics
 
   startedAt: Date;
   finishedAt: Date;

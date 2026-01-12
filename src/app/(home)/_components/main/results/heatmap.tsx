@@ -95,25 +95,23 @@ const WordItem = memo(({ word, stats, isHeatmapVisible }: WordItemProps) => {
           {content}
         </div>
       </ResponsiveTooltipTrigger>
-      <ResponsiveTooltipContent>
+      <ResponsiveTooltipContent side="top">
         <div className="flex flex-col items-center gap-1">
           <p className="font-medium">{Math.round(wpm)} wpm</p>
-          {(skipIndex !== undefined || hasExtras) && (
-            <div className="text-muted-foreground text-5 font-mono font-medium">
-              {word.split("").map((char, i) => {
-                if (skipIndex !== undefined && i >= skipIndex) return null; // Don't show skipped chars
-                const isError = errorIndices?.has(i);
-                return (
-                  <span key={i} className={cn(isError && "text-red")}>
-                    {stats?.typedChars?.[i] || char}
-                  </span>
-                );
-              })}
-              {extras && extras.length > 0 && (
-                <span className="text-red">{extras.join("")}</span>
-              )}
-            </div>
-          )}
+          {/* {(skipIndex !== undefined || hasExtras) && ( */}
+          <div className="text-muted-foreground text-5 font-mono font-medium">
+            {word.split("").map((char, i) => {
+              if (skipIndex !== undefined && i >= skipIndex) return null; // Don't show skipped chars
+              const isError = errorIndices?.has(i);
+              return (
+                <span key={i} className={cn(isError && "text-red")}>
+                  {stats?.typedChars?.[i] || char}
+                </span>
+              );
+            })}
+            {hasExtras && <span className="text-red">{extras.join("")}</span>}
+          </div>
+          {/* // )} */}
         </div>
       </ResponsiveTooltipContent>
     </ResponsiveTooltip>

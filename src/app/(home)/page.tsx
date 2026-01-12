@@ -49,9 +49,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           {!!sessionData ? (
             <Results
               user={user}
+              text={textData.text}
               session={sessionData}
-              currentAnonUserId={currentAnonUserId}
               nextTextId={nextId}
+              currentAnonUserId={currentAnonUserId}
             />
           ) : (
             <MainContent nextTextId={nextId} randomId={randomId} />

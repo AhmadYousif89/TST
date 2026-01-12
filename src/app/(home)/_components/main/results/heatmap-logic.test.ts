@@ -86,7 +86,6 @@ describe("analyzeHeatmap", () => {
     const result = analyzeHeatmap(session, mockText);
 
     expect(result).not.toBeNull();
-    const getBucket = result!.getBucket;
 
     const word0Stats = result?.wordStatsMap.get(0);
     const word1Stats = result?.wordStatsMap.get(1);
@@ -330,7 +329,6 @@ describe("analyzeHeatmap", () => {
   it("detects extra characters in a word", () => {
     const keystrokes = [
       { charIndex: 0, typedChar: "T", timestampMs: 100, isCorrect: true },
-      { charIndex: 0, typedChar: "t", timestampMs: 150, isCorrect: false }, // Extra
       { charIndex: 1, typedChar: "h", timestampMs: 200, isCorrect: true },
       { charIndex: 2, typedChar: "e", timestampMs: 300, isCorrect: true },
       { charIndex: 3, typedChar: "x", timestampMs: 350, isCorrect: false }, // Extra at space
@@ -342,7 +340,6 @@ describe("analyzeHeatmap", () => {
 
     const stats = result?.wordStatsMap.get(0);
     expect(stats?.extras).toBeDefined();
-    expect(stats?.extras).toContain("t");
     expect(stats?.extras).toContain("x");
   });
 
@@ -401,10 +398,93 @@ describe("analyzeHeatmap", () => {
     // typedChars should only contain characters typed at the valid indices of the word
     // extras are NOT in typedChars, they are in 'extras'
     // 0: 't' (wrong) -> typedChars[0] = 't'
-    // 0: 'e' (extra) -> extras.push('e')
+    // 0: 'e' (duplicate) -> ignored for static view
     // 1: 'h' (correct) -> typedChars[1] = 'h'
     // 2: 'e' (correct) -> typedChars[2] = 'e'
     expect(stats?.typedChars).toBe("the");
-    expect(stats?.extras).toContain("e");
+    expect(stats?.extras).toBeUndefined();
+  });
+
+  it("handles backspacing and correcting errors correctly", () => {
+    const text = "across";
+    const keystrokes = [
+      // Initially type "cros" (all wrong) - 'c' at 0, 'r' at 1, 'o' at 2, 's' at 3
+      { charIndex: 0, typedChar: "c", isCorrect: false, timestampMs: 100 },
+      { charIndex: 1, typedChar: "r", isCorrect: false, timestampMs: 200 },
+      { charIndex: 2, typedChar: "o", isCorrect: false, timestampMs: 300 },
+      { charIndex: 3, typedChar: "s", isCorrect: false, timestampMs: 400 },
+      // Backspace 4 times - clearing indices 3, 2, 1, 0
+      {
+        charIndex: 3,
+        typedChar: "Backspace",
+        isCorrect: true,
+        timestampMs: 500,
+      },
+      {
+        charIndex: 2,
+        typedChar: "Backspace",
+        isCorrect: true,
+        timestampMs: 600,
+      },
+      {
+        charIndex: 1,
+        typedChar: "Backspace",
+        isCorrect: true,
+        timestampMs: 700,
+      },
+      {
+        charIndex: 0,
+        typedChar: "Backspace",
+        isCorrect: true,
+        timestampMs: 800,
+      },
+      // Corrected to "across"
+      { charIndex: 0, typedChar: "a", isCorrect: true, timestampMs: 900 },
+      { charIndex: 1, typedChar: "c", isCorrect: true, timestampMs: 1000 },
+      { charIndex: 2, typedChar: "r", isCorrect: true, timestampMs: 1100 },
+      { charIndex: 3, typedChar: "o", isCorrect: true, timestampMs: 1200 },
+      { charIndex: 4, typedChar: "s", isCorrect: true, timestampMs: 1300 },
+      { charIndex: 5, typedChar: "s", isCorrect: true, timestampMs: 1400 },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session, text);
+
+    const stats = result?.wordStatsMap.get(0);
+    // Should maintain the first incorrect chars typed at each position ("cros" from first attempt)
+    // plus the correct chars typed at the end ("ss" from second attempt)
+    expect(stats?.typedChars).toBe("crosss");
+    // Errors at 0, 1, 2, 3 should be maintained even if corrected
+    expect(stats?.errorCharIndices.size).toBe(4);
+    expect(stats?.errorCharIndices.has(0)).toBe(true);
+    expect(stats?.errorCharIndices.has(1)).toBe(true);
+    expect(stats?.errorCharIndices.has(2)).toBe(true);
+    expect(stats?.errorCharIndices.has(3)).toBe(true);
+    // No extras because they were backspaced or overwritten correctly
+    expect(stats?.extras).toBeUndefined();
+    // hasError should still be true because mistakes WERE made
+    expect(stats?.hasError).toBe(true);
+  });
+
+  it("marks omitted characters as errors in incomplete words", () => {
+    // Text: "across" but typed "acro" and stopped (indices 4 and 5 omitted)
+    const keystrokes = [
+      { charIndex: 0, typedChar: "a", timestampMs: 100, isCorrect: true },
+      { charIndex: 1, typedChar: "c", timestampMs: 200, isCorrect: true },
+      { charIndex: 2, typedChar: "r", timestampMs: 300, isCorrect: true },
+      { charIndex: 3, typedChar: "o", timestampMs: 400, isCorrect: true },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session, "across");
+
+    const stats = result?.wordStatsMap.get(0);
+    // Indices 0-3 are correct, 4-5 are null (not typed)
+    expect(stats?.errorCharIndices.has(0)).toBe(false);
+    expect(stats?.errorCharIndices.has(3)).toBe(false);
+
+    expect(stats?.errorCharIndices.has(4)).toBe(true); // 's'
+    expect(stats?.errorCharIndices.has(5)).toBe(true); // 's'
+    expect(stats?.errorCharIndices.size).toBe(2);
   });
 });

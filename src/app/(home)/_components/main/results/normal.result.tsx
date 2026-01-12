@@ -1,5 +1,3 @@
-"use client";
-
 import { ResultFooter } from "./footer";
 import { ResultHeader } from "./header";
 import { ResultSummary } from "./summary";

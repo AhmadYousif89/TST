@@ -63,53 +63,63 @@ export const analyzeHeatmap = (
   const typedCharsPerWord = new Array(words.length)
     .fill(null)
     .map((_, i) => new Array(words[i].length).fill(null));
-  // To track typed character indices to detect extras
-  const typedCharsIndices = new Set<number>();
 
   sortedKeystrokes.forEach((k) => {
+    const isBackspace = k.typedChar === "Backspace";
+
     const wordIdx = wordRanges.findIndex(
       (r) => k.charIndex >= r.start && k.charIndex <= r.end,
     );
 
     if (wordIdx !== -1) {
       const range = wordRanges[wordIdx];
-      if (k.typedChar !== "Backspace") {
-        // Include the space (at wordRanges[wordIdx].end) in the current word's stats
-        if (k.charIndex <= range.end) {
-          keystrokesPerWord[wordIdx].push(k);
-          if (k.charIndex < range.end) {
-            const relIdx = k.charIndex - range.start;
-            if (typedCharsPerWord[wordIdx][relIdx] === null) {
-              typedCharsPerWord[wordIdx][relIdx] = k.typedChar;
-            }
+      const relIdx = k.charIndex - range.start; // Relative index within the word
+
+      if (isBackspace) {
+        // Backspacing only removes extras. Valid slots are not cleared to preserve first-typed data.
+        if (extrasPerWord[wordIdx].length > 0) {
+          extrasPerWord[wordIdx].pop();
+        }
+        return;
+      }
+      // Track keystrokes associated with this word for WPM calculation
+      keystrokesPerWord[wordIdx].push(k);
+
+      const isSpaceIndex = relIdx === words[wordIdx].length;
+
+      if (relIdx < words[wordIdx].length) {
+        // Record the first incorrect character typed, or the first correct one
+        // if no error has occurred at this position yet.
+        const currentEntry = typedCharsPerWord[wordIdx][relIdx];
+        const currentIsError = errorsPerWord[wordIdx].has(relIdx);
+
+        if (currentEntry === null || (!currentIsError && !k.isCorrect)) {
+          typedCharsPerWord[wordIdx][relIdx] = k.typedChar;
+          if (!k.isCorrect) {
+            errorsPerWord[wordIdx].add(relIdx);
+            hasErrorPerWord[wordIdx] = true;
           }
         }
-        // Detect Extras
-        const isSpaceIndex = k.charIndex === range.end;
-        if (isSpaceIndex) {
-          if (k.typedChar !== " ") {
-            extrasPerWord[wordIdx].push(k.typedChar);
-          }
-        } else if (typedCharsIndices.has(k.charIndex)) {
+        // Note: subsequent keystrokes at the same valid index (word range)
+        // are ignored for the static word view to prevent "mangled" strings
+        // like "crosssacro" for "across". They are still counted in WPM.
+      } else {
+        // Extras: any typed char at or beyond the word's expected length (including the space index)
+        const isSpace = isSpaceIndex && k.typedChar === " ";
+        if (!isSpace) {
           extrasPerWord[wordIdx].push(k.typedChar);
-        } else {
-          typedCharsIndices.add(k.charIndex);
-        }
-        // Detect Skips
-        if (k.skipOrigin !== undefined) {
-          const skipWordIdx = wordRanges.findIndex(
-            (r) => k.skipOrigin! >= r.start && k.skipOrigin! <= r.end,
-          );
-          if (skipWordIdx !== -1) {
-            skipIndexPerWord[skipWordIdx] =
-              k.skipOrigin - wordRanges[skipWordIdx].start;
-          }
+          hasErrorPerWord[wordIdx] = true;
         }
       }
-      if (!k.isCorrect) {
-        hasErrorPerWord[wordIdx] = true;
-        if (k.charIndex < range.end) {
-          errorsPerWord[wordIdx].add(k.charIndex - range.start);
+
+      // Detect Skips: record where the cursor jumped from
+      if (k.skipOrigin !== undefined) {
+        const skipWordIdx = wordRanges.findIndex(
+          (r) => k.skipOrigin! >= r.start && k.skipOrigin! <= r.end,
+        );
+        if (skipWordIdx !== -1) {
+          skipIndexPerWord[skipWordIdx] =
+            k.skipOrigin - wordRanges[skipWordIdx].start;
         }
       }
     }
@@ -123,6 +133,13 @@ export const analyzeHeatmap = (
     const extras = extrasPerWord[wordIdx];
     const skipIndex = skipIndexPerWord[wordIdx];
     const typedChars = typedCharsPerWord[wordIdx];
+
+    // Mark remaining untyped characters (skipped) as errors if any
+    for (let i = 0; i < word.length; i++) {
+      if (typedChars[i] === null) {
+        errorsPerWord[wordIdx].add(i);
+      }
+    }
 
     if (
       wordKeystrokes.length > 0 ||
