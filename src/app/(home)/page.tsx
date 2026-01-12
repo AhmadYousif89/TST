@@ -17,8 +17,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   const user = await getUser();
   const currentAnonUserId = await getAnonUserId();
-  const textData = await getInitialText({ id, category, difficulty });
+
   const sessionData = sessionId ? await getSession(sessionId) : null;
+  const targetId = sessionData?.textId || id;
+
+  const textData = await getInitialText({ id: targetId, category, difficulty });
 
   if (!textData) {
     return (
