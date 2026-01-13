@@ -415,7 +415,7 @@ export const EngineContainer = () => {
       {status === "idle" && showOverlay && (
         <div
           onClick={() => containerRef.current?.focus()}
-          className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
+          className="bg-background/5 absolute z-20 flex h-43.25 w-full items-center justify-center md:h-54.5"
         >
           <div className="flex flex-col items-center gap-5">
             <Button
@@ -435,7 +435,7 @@ export const EngineContainer = () => {
       {status === "paused" && showOverlay && (
         <div
           onClick={handleResumeSession}
-          className="bg-background/5 absolute inset-0 z-20 flex items-center justify-center"
+          className="bg-background/5 absolute z-20 flex h-43.25 w-full items-center justify-center md:h-54.5"
         >
           <div className="flex flex-col items-center gap-3">
             <p className="text-orange dark:text-yellow text-2 animate-pulse font-medium">

@@ -54,7 +54,7 @@ export const Header = ({ user }: { user: AnonUserDoc | null }) => {
               <NotificationIcon />
             </Button>
           </DrawerTrigger>
-          <DrawerContent className="w-[calc(100%-1.5rem)]!">
+          <DrawerContent className="w-[calc(100%-4rem)]!">
             <DrawerHeader className="items-center border-b">
               <DrawerTitle>History</DrawerTitle>
               <DrawerDescription>Review your typing history</DrawerDescription>
