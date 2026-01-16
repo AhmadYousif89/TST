@@ -189,3 +189,17 @@ export const isWordPerfect = (
   const lastCharExtras = charStates[endIndex]?.extras?.length || 0;
   return lastCharExtras === 0;
 };
+
+export function getWordRanges(text: string) {
+  let startIdxPointer = 0;
+  const words = text.split(" ");
+
+  const wordRanges = words.map((word) => {
+    const start = startIdxPointer;
+    const end = start + word.length;
+    startIdxPointer = end + 1;
+    return { start, end };
+  });
+
+  return wordRanges;
+}

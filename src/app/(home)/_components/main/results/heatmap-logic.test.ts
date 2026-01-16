@@ -27,7 +27,7 @@ describe("analyzeHeatmap", () => {
 
   it("returns null for empty keystrokes", () => {
     const session = createMockSession([]);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
     expect(result).toBeNull();
   });
 
@@ -36,7 +36,7 @@ describe("analyzeHeatmap", () => {
       { charIndex: 0, typedChar: "T", timestampMs: 100, isCorrect: true },
     ];
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, "");
+    const result = analyzeHeatmap(session.keystrokes, "");
     expect(result).toBeNull();
   });
 
@@ -52,7 +52,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     expect(result).not.toBeNull();
     const stats = result?.wordStatsMap.get(0);
@@ -83,7 +83,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes, 70);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     expect(result).not.toBeNull();
 
@@ -109,7 +109,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     const stats = result?.wordStatsMap.get(0);
     expect(stats?.hasError).toBe(true);
@@ -147,7 +147,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes, 45);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     expect(result).not.toBeNull();
 
@@ -180,7 +180,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes, 60);
-    const result = analyzeHeatmap(session, "Hello");
+    const result = analyzeHeatmap(session.keystrokes, "Hello");
 
     expect(result).not.toBeNull();
     expect(result?.wordStatsMap.size).toBe(1);
@@ -199,7 +199,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes, 40);
-    const result = analyzeHeatmap(session, "Hello world");
+    const result = analyzeHeatmap(session.keystrokes, "Hello world");
 
     expect(result).not.toBeNull();
     expect(result?.wordStatsMap.size).toBe(1);
@@ -226,7 +226,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes, 50);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     expect(result).not.toBeNull();
     const word0 = result?.wordStatsMap.get(0);
@@ -249,7 +249,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes, 100);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     expect(result).not.toBeNull();
     const word0 = result?.wordStatsMap.get(0);
@@ -275,7 +275,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes, 60);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     expect(result).not.toBeNull();
 
@@ -298,7 +298,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     const stats = result?.wordStatsMap.get(0);
     expect(stats?.hasError).toBe(true);
@@ -318,7 +318,7 @@ describe("analyzeHeatmap", () => {
 
     // Session with 0 WPM (edge case)
     const session = createMockSession(keystrokes, 0);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     expect(result).not.toBeNull();
     // Should still produce valid buckets using median
@@ -336,7 +336,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, mockText);
+    const result = analyzeHeatmap(session.keystrokes, mockText);
 
     const stats = result?.wordStatsMap.get(0);
     expect(stats?.extras).toBeDefined();
@@ -357,7 +357,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, "The quick");
+    const result = analyzeHeatmap(session.keystrokes, "The quick");
 
     const stats = result?.wordStatsMap.get(0);
     expect(stats?.skipIndex).toBe(0);
@@ -377,10 +377,13 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, "The quick");
+    const result = analyzeHeatmap(session.keystrokes, "The quick");
 
     const stats = result?.wordStatsMap.get(0);
-    expect(stats?.typedChars).toBe("T");
+    expect(stats?.hasError).toBe(true);
+    expect(stats?.typedChars).toBe("T\0\0");
+    expect(stats?.typedChars?.length).toBe(3);
+    expect(stats?.errorCharIndices.size).toBe(2);
   });
 
   it("collects typedChars with errors and extras", () => {
@@ -392,7 +395,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, "The quick");
+    const result = analyzeHeatmap(session.keystrokes, "The quick");
 
     const stats = result?.wordStatsMap.get(0);
     // typedChars should only contain characters typed at the valid indices of the word
@@ -448,7 +451,7 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, text);
+    const result = analyzeHeatmap(session.keystrokes, text);
 
     const stats = result?.wordStatsMap.get(0);
     // Should maintain the first incorrect chars typed at each position ("cros" from first attempt)
@@ -466,8 +469,37 @@ describe("analyzeHeatmap", () => {
     expect(stats?.hasError).toBe(true);
   });
 
-  it("marks omitted characters as errors in incomplete words", () => {
-    // Text: "across" but typed "acro" and stopped (indices 4 and 5 omitted)
+  it("marks omitted characters as errors in intermediate words", () => {
+    // Text: "across word" but skipped "ss" of across and typed "word"
+    const text = "across word";
+    const keystrokes = [
+      { charIndex: 0, typedChar: "a", timestampMs: 100, isCorrect: true },
+      { charIndex: 1, typedChar: "c", timestampMs: 200, isCorrect: true },
+      { charIndex: 2, typedChar: "r", timestampMs: 300, isCorrect: true },
+      { charIndex: 3, typedChar: "o", timestampMs: 400, isCorrect: true },
+      // Jump to "word"
+      {
+        charIndex: 7,
+        typedChar: "w",
+        timestampMs: 500,
+        isCorrect: true,
+        skipOrigin: 3,
+      },
+      { charIndex: 8, typedChar: "o", timestampMs: 600, isCorrect: true },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session.keystrokes, text);
+
+    const stats = result?.wordStatsMap.get(0);
+    // Indices 4-5 are NOT typed and it's not the last word, so they ARE errors
+    expect(stats?.errorCharIndices.has(4)).toBe(true); // 's'
+    expect(stats?.errorCharIndices.has(5)).toBe(true); // 's'
+  });
+
+  it("does not mark trailing untyped characters as errors for the last word", () => {
+    // Text: "across word" but only typed "acro"
+    const text = "across word";
     const keystrokes = [
       { charIndex: 0, typedChar: "a", timestampMs: 100, isCorrect: true },
       { charIndex: 1, typedChar: "c", timestampMs: 200, isCorrect: true },
@@ -476,15 +508,12 @@ describe("analyzeHeatmap", () => {
     ];
 
     const session = createMockSession(keystrokes);
-    const result = analyzeHeatmap(session, "across");
+    const result = analyzeHeatmap(session.keystrokes, text);
 
     const stats = result?.wordStatsMap.get(0);
-    // Indices 0-3 are correct, 4-5 are null (not typed)
-    expect(stats?.errorCharIndices.has(0)).toBe(false);
-    expect(stats?.errorCharIndices.has(3)).toBe(false);
-
-    expect(stats?.errorCharIndices.has(4)).toBe(true); // 's'
-    expect(stats?.errorCharIndices.has(5)).toBe(true); // 's'
-    expect(stats?.errorCharIndices.size).toBe(2);
+    // Indices 4-5 are NOT typed but it IS the last word, so they are NOT errors
+    expect(stats?.errorCharIndices.has(4)).toBe(false); // 's'
+    expect(stats?.errorCharIndices.has(5)).toBe(false); // 's'
+    expect(stats?.errorCharIndices.size).toBe(0);
   });
 });

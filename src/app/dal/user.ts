@@ -56,11 +56,19 @@ export async function getSession(sessionId: string) {
             sessionId: k.sessionId.toString(),
           }));
 
+    const isFirst =
+      (await db.collection("typing_sessions").countDocuments({
+        anonUserId: session.anonUserId,
+        finishedAt: { $lt: session.finishedAt },
+        isInvalid: { $ne: true },
+      })) === 0;
+
     return {
       ...session,
       _id: session._id.toString(),
       textId: session.textId.toString(),
       keystrokes: ks,
+      isFirst,
     };
   } catch (error) {
     console.error("Error fetching session:", error);

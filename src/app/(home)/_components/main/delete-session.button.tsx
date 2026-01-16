@@ -77,10 +77,11 @@ export const DeleteSessionButton = ({
     <Button
       size="icon"
       variant="ghost"
+      data-deleting={isPending}
       disabled={isPending}
       onClick={handleDelete}
       className={cn(
-        "text-muted-foreground hover:bg-red/10 hover:text-red",
+        "text-muted-foreground hover:bg-red/10 hover:text-red data-[deleting=true]:text-red",
         className,
       )}
     >

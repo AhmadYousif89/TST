@@ -1,5 +1,4 @@
-import { UserSettings } from "./types";
-import { TextCategory, TextDifficulty, TextMode } from "./types";
+import { TextCategory, TextDifficulty, TextMode, UserSettings } from "./types";
 
 export const getInitialSettings = (): UserSettings => {
   const defaultSettings: UserSettings = {

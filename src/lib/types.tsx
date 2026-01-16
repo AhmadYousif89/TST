@@ -56,6 +56,7 @@ export type TypingSessionDoc = {
 
   startedAt: Date;
   finishedAt: Date;
+  isFirst?: boolean;
 };
 
 // keystrokes collection

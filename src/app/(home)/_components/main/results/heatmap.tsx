@@ -53,12 +53,20 @@ const WordItem = memo(({ word, stats, isHeatmapVisible }: WordItemProps) => {
     const result = [];
 
     chars.forEach((char, idx) => {
+      const isUntyped = stats?.typedChars?.[idx] === "\0";
+      const isError = !isHeatmapVisible && errorIndices?.has(idx);
+
       if (skipIndex === idx)
         result.push(<ErrorIndicator key={`skip-${idx}`} className="mx-px" />);
 
-      const isError = !isHeatmapVisible && errorIndices?.has(idx);
       result.push(
-        <span key={idx} className={cn(isError && "text-red")}>
+        <span
+          key={idx}
+          className={cn(
+            isError && "text-red",
+            isUntyped && !isError && "opacity-60",
+          )}
+        >
           {char}
         </span>,
       );
@@ -90,6 +98,7 @@ const WordItem = memo(({ word, stats, isHeatmapVisible }: WordItemProps) => {
           className={cn(
             "cursor-default font-mono",
             isHeatmapVisible ? "text-muted" : "text-muted-foreground",
+            wpm === 0 && "dark:opacity-60",
           )}
         >
           {content}
@@ -98,20 +107,22 @@ const WordItem = memo(({ word, stats, isHeatmapVisible }: WordItemProps) => {
       <ResponsiveTooltipContent side="top">
         <div className="flex flex-col items-center gap-1">
           <p className="font-medium">{Math.round(wpm)} wpm</p>
-          {/* {(skipIndex !== undefined || hasExtras) && ( */}
           <div className="text-muted-foreground text-5 font-mono font-medium">
             {word.split("").map((char, i) => {
-              if (skipIndex !== undefined && i >= skipIndex) return null; // Don't show skipped chars
+              if ((skipIndex !== undefined && i >= skipIndex) || wpm === 0)
+                return null; // Don't show skipped chars or 0 wpm words
+              const typedChar = stats?.typedChars?.[i];
+              if (typedChar === "\0") return null;
+
               const isError = errorIndices?.has(i);
               return (
                 <span key={i} className={cn(isError && "text-red")}>
-                  {stats?.typedChars?.[i] || char}
+                  {typedChar || char}
                 </span>
               );
             })}
             {hasExtras && <span className="text-red">{extras.join("")}</span>}
           </div>
-          {/* // )} */}
         </div>
       </ResponsiveTooltipContent>
     </ResponsiveTooltip>
@@ -126,7 +137,7 @@ export const HeatmapHistory = () => {
   const effectiveIsEnabled = isScreenshotting || isHeatmapVisible;
 
   const analysis = useMemo(() => {
-    return analyzeHeatmap(session, text || "");
+    return analyzeHeatmap(session.keystrokes, text || "");
   }, [session, text]);
 
   if (!text || !analysis) return null;

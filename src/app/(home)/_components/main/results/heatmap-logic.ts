@@ -1,3 +1,5 @@
+import { getWordRanges } from "@/app/(home)/engine/engine-logic";
+import { Keystroke } from "@/app/(home)/engine/types";
 import { TypingSessionDoc } from "@/lib/types";
 
 export type WordStats = {
@@ -18,14 +20,11 @@ export type HeatmapAnalysis = {
 };
 
 export const analyzeHeatmap = (
-  session: TypingSessionDoc,
+  keystrokes: TypingSessionDoc["keystrokes"],
   text: string,
-): HeatmapAnalysis | null => {
-  if (!session.keystrokes || session.keystrokes.length === 0 || !text) {
-    return null;
-  }
+) => {
+  if (!keystrokes || keystrokes.length === 0 || !text) return null;
 
-  const { keystrokes } = session;
   const sortedKeystrokes = [...keystrokes].sort(
     (a, b) => a.timestampMs - b.timestampMs,
   );
@@ -34,35 +33,20 @@ export const analyzeHeatmap = (
   const wordStatsMap = new Map<number, WordStats>();
 
   const words = text.split(" ");
+  const wordRanges = getWordRanges(text);
   const wordWPMsList: number[] = [];
 
-  let charIndexPointer = 0;
-  let lastTypedWordIndex = -1;
-  let previousWordEndTime = 0;
+  const wordData = words.map((word) => ({
+    keystrokes: [] as Keystroke[],
+    errors: new Set<number>(),
+    extras: [] as string[],
+    skipIndex: undefined as number | undefined,
+    typedChars: new Array(word.length).fill(null),
+    maxRelIdx: -1,
+    hasTypingError: false,
+  }));
 
-  // Pre-calculate word boundaries
-  const wordRanges = words.map((word) => {
-    const start = charIndexPointer;
-    const end = start + word.length;
-    charIndexPointer = end + 1;
-    return { start, end };
-  });
-
-  // Group keystrokes by word index for O(N) access
-  const keystrokesPerWord = new Array(words.length)
-    .fill(null)
-    .map(() => [] as any[]);
-  const errorsPerWord = new Array(words.length)
-    .fill(null)
-    .map(() => new Set<number>());
-  const hasErrorPerWord = new Array(words.length).fill(false);
-  const extrasPerWord = new Array(words.length)
-    .fill(null)
-    .map(() => [] as string[]);
-  const skipIndexPerWord = new Array(words.length).fill(undefined);
-  const typedCharsPerWord = new Array(words.length)
-    .fill(null)
-    .map((_, i) => new Array(words[i].length).fill(null));
+  /* ------------------- Keystroke Processing ------------------- */
 
   sortedKeystrokes.forEach((k) => {
     const isBackspace = k.typedChar === "Backspace";
@@ -72,117 +56,141 @@ export const analyzeHeatmap = (
     );
 
     if (wordIdx !== -1) {
+      const data = wordData[wordIdx];
       const range = wordRanges[wordIdx];
-      const relIdx = k.charIndex - range.start; // Relative index within the word
+      const relIdx = k.charIndex - range.start;
 
       if (isBackspace) {
-        // Backspacing only removes extras. Valid slots are not cleared to preserve first-typed data.
-        if (extrasPerWord[wordIdx].length > 0) {
-          extrasPerWord[wordIdx].pop();
-        }
+        if (data.extras.length > 0) data.extras.pop();
         return;
       }
-      // Track keystrokes associated with this word for WPM calculation
-      keystrokesPerWord[wordIdx].push(k);
 
-      const isSpaceIndex = relIdx === words[wordIdx].length;
+      data.keystrokes.push(k);
 
       if (relIdx < words[wordIdx].length) {
-        // Record the first incorrect character typed, or the first correct one
-        // if no error has occurred at this position yet.
-        const currentEntry = typedCharsPerWord[wordIdx][relIdx];
-        const currentIsError = errorsPerWord[wordIdx].has(relIdx);
+        data.maxRelIdx = Math.max(data.maxRelIdx, relIdx);
+        const currentEntry = data.typedChars[relIdx];
+        const currentIsError = data.errors.has(relIdx);
 
         if (currentEntry === null || (!currentIsError && !k.isCorrect)) {
-          typedCharsPerWord[wordIdx][relIdx] = k.typedChar;
+          data.typedChars[relIdx] = k.typedChar;
           if (!k.isCorrect) {
-            errorsPerWord[wordIdx].add(relIdx);
-            hasErrorPerWord[wordIdx] = true;
+            data.errors.add(relIdx);
+            data.hasTypingError = true;
           }
         }
-        // Note: subsequent keystrokes at the same valid index (word range)
-        // are ignored for the static word view to prevent "mangled" strings
-        // like "crosssacro" for "across". They are still counted in WPM.
       } else {
-        // Extras: any typed char at or beyond the word's expected length (including the space index)
-        const isSpace = isSpaceIndex && k.typedChar === " ";
+        const isSpace = relIdx === words[wordIdx].length && k.typedChar === " ";
         if (!isSpace) {
-          extrasPerWord[wordIdx].push(k.typedChar);
-          hasErrorPerWord[wordIdx] = true;
+          data.extras.push(k.typedChar);
+          data.hasTypingError = true;
         }
       }
 
-      // Detect Skips: record where the cursor jumped from
       if (k.skipOrigin !== undefined) {
         const skipWordIdx = wordRanges.findIndex(
           (r) => k.skipOrigin! >= r.start && k.skipOrigin! <= r.end,
         );
         if (skipWordIdx !== -1) {
-          skipIndexPerWord[skipWordIdx] =
+          wordData[skipWordIdx].skipIndex =
             k.skipOrigin - wordRanges[skipWordIdx].start;
         }
       }
     }
   });
 
+  // Determine the last word that received any keystroke
+  let absoluteLastTypedWordIdx = -1;
+  sortedKeystrokes.forEach((k) => {
+    const wordIdx = wordRanges.findIndex(
+      (r) =>
+        k.charIndex >= r.start &&
+        (k.charIndex < r.end || (k.charIndex === r.end && k.typedChar !== " ")),
+    );
+    if (wordIdx !== -1 && wordIdx > absoluteLastTypedWordIdx) {
+      absoluteLastTypedWordIdx = wordIdx;
+    }
+  });
+
+  /* ----------------- Word Stats ----------------- */
+
+  let prevWordEndTime = 0;
+  let lastTypedWordIdx = -1;
+
   words.forEach((word, wordIdx) => {
     let wpm = 0;
-    const hasError = hasErrorPerWord[wordIdx];
-    const errorCharIndices = errorsPerWord[wordIdx];
-    const wordKeystrokes = keystrokesPerWord[wordIdx];
-    const extras = extrasPerWord[wordIdx];
-    const skipIndex = skipIndexPerWord[wordIdx];
-    const typedChars = typedCharsPerWord[wordIdx];
+    const data = wordData[wordIdx];
+    const {
+      errors,
+      keystrokes: wordKeystrokes,
+      extras,
+      skipIndex,
+      typedChars,
+      maxRelIdx,
+      hasTypingError,
+    } = data;
 
-    // Mark remaining untyped characters (skipped) as errors if any
-    for (let i = 0; i < word.length; i++) {
-      if (typedChars[i] === null) {
-        errorsPerWord[wordIdx].add(i);
-      }
-    }
-
-    if (
+    // A word is included in the map if it was interacted with
+    const shouldInclude =
       wordKeystrokes.length > 0 ||
-      hasError ||
+      hasTypingError ||
       skipIndex !== undefined ||
-      extras.length > 0
-    ) {
+      extras.length > 0;
+
+    if (shouldInclude) {
+      // Mark remaining untyped characters (skipped) as errors
+      for (let i = 0; i < word.length; i++) {
+        if (typedChars[i] === null) {
+          const isLastWord = wordIdx === absoluteLastTypedWordIdx;
+          const isBeforeEnd = i < maxRelIdx;
+          const wasSkipped = skipIndex !== undefined && i >= skipIndex;
+
+          if (!isLastWord || isBeforeEnd || wasSkipped) {
+            errors.add(i);
+          }
+        }
+      }
+
       const lastKeystroke = wordKeystrokes[wordKeystrokes.length - 1];
       if (lastKeystroke) {
         const currentWordEndTime = lastKeystroke.timestampMs;
-        const durationMs = currentWordEndTime - previousWordEndTime;
-
-        previousWordEndTime = currentWordEndTime;
+        const durationMs = currentWordEndTime - prevWordEndTime;
+        prevWordEndTime = currentWordEndTime;
         const safeDuration = Math.max(durationMs, 200);
-
-        // Use actual typed character count, not full word length
-        // This prevents incomplete words from having inflated WPM
         const typedCharCount = wordKeystrokes.length;
         wpm = typedCharCount / 5 / (safeDuration / 60000);
-
         wordWPMsList.push(wpm);
-        lastTypedWordIndex = wordIdx;
+        lastTypedWordIdx = wordIdx;
       }
 
       wordStatsMap.set(wordIdx, {
         wpm,
-        hasError,
+        hasError: hasTypingError || errors.size > 0,
         word,
-        errorCharIndices,
+        errorCharIndices: errors,
         extras: extras.length > 0 ? extras : undefined,
         skipIndex,
-        typedChars: typedChars.map((c) => c || "").join(""),
+        typedChars: typedChars.map((c) => c || "\0").join(""),
       });
     }
   });
 
+  const buckets = getBuckets(wordWPMsList, wordStatsMap) || [];
+  // Limit displayed words to typed words + a few context words
+  const displayWords = words.slice(0, lastTypedWordIdx + 3);
+
+  return { wordStatsMap, buckets, words: displayWords };
+};
+
+function getBuckets(
+  wordWPMsList: number[],
+  wordStatsMap: Map<number, WordStats>,
+) {
   if (wordWPMsList.length === 0) return null;
 
   const sortedWpms = [...wordWPMsList].sort((a, b) => a - b);
   const medianWpm = sortedWpms[Math.floor(sortedWpms.length / 2)];
 
-  // Use the MEDIAN word WPM as baseline anchor instead of session WPM.
-  // Session WPM includes overhead (pauses, corrections, backspaces) that doesn't reflect per-word speed accurately.
   const b1 = Math.round(medianWpm * 0.75);
   const b2 = Math.round(medianWpm * 0.9);
   const b3 = Math.round(medianWpm * 1.1);
@@ -196,22 +204,18 @@ export const analyzeHeatmap = (
     return 4;
   };
 
-  // Assign buckets to words
   wordStatsMap.forEach((stats) => {
     if (stats.wpm > 0) stats.bucket = getBucket(stats.wpm);
   });
 
   const buckets = [
-    Math.round(Math.min(...wordWPMsList)),
-    b1,
-    b2,
-    b3,
-    b4,
-    Math.round(Math.max(...wordWPMsList)),
+    Math.round(Math.min(...wordWPMsList)), // min WPM
+    b1, // 75% of median
+    b2, // 90% of median
+    b3, // 110% of median
+    b4, // 125% of median
+    Math.round(Math.max(...wordWPMsList)), // max WPM
   ];
 
-  // Limit displayed words to typed words + a few context words
-  const displayWords = words.slice(0, lastTypedWordIndex + 3);
-
-  return { wordStatsMap, buckets, words: displayWords };
-};
+  return buckets;
+}

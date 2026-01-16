@@ -45,8 +45,9 @@ export const Results = ({
 const ResultLayout = () => {
   const { session, isScreenshotting, isOwner, user } = useResult();
 
-  const isBaseline = user?.totalSessions === 1;
-  const isNewRecord = user && !isBaseline && session.wpm >= user.bestWpm;
+  const isNewRecord =
+    user && user.totalSessions > 1 && session.wpm >= user.bestWpm;
+  const isBaseline = !!session.isFirst && !isNewRecord;
 
   return (
     <main className="py-4 md:py-6">
