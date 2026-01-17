@@ -254,6 +254,7 @@ export const EngineContainer = () => {
       e.preventDefault();
       e.stopPropagation();
 
+      if (status === "paused") resumeSession();
       if (cursor === 0 && extraOffset === 0) return;
       if (cursor <= lockedCursorRef.current && extraOffset === 0) return;
 

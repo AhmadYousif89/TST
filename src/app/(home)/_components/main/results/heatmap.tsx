@@ -146,9 +146,9 @@ export const HeatmapHistory = () => {
   const { wordStatsMap, buckets, words } = analysis;
 
   return (
-    <div className="space-y-2 overflow-hidden">
+    <div className="overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-4 pt-2">
+      <div className="flex items-center gap-4 py-2">
         <div className="flex items-center gap-2">
           <h3 className="text-muted-foreground/60 text-6 md:text-5 flex items-center gap-2">
             input history
@@ -193,7 +193,7 @@ export const HeatmapHistory = () => {
       </div>
 
       {/* Words History */}
-      <div className="text-5 flex flex-wrap gap-x-3.25 gap-y-1 pb-2 select-none">
+      <div className="text-5 flex flex-wrap gap-x-3.25 gap-y-1 select-none">
         {words.map((word, i) => (
           <WordItem
             key={`${session._id}-${i}`}

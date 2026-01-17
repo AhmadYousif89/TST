@@ -2,7 +2,6 @@
 
 import { useMemo, useRef } from "react";
 
-import { TypingSessionDoc } from "@/lib/types";
 import { useResult } from "./result.context";
 import { Button } from "@/components/ui/button";
 import { useSound } from "@/app/(home)/engine/sound.context";
@@ -10,11 +9,6 @@ import { getCharStates } from "@/app/(home)/engine/engine-logic";
 import { wordsGroup, Cursor, Word } from "@/app/(home)/engine/words";
 
 import { useReplay } from "./use-replay";
-
-type Props = {
-  session: TypingSessionDoc;
-  text?: string;
-};
 
 export const ReplaySection = () => {
   const { session, text = "" } = useResult();
@@ -93,8 +87,8 @@ export const ReplaySection = () => {
   const currentTimeSec = Math.floor(currentTimeMs / 1000);
 
   return (
-    <div className="space-y-2 overflow-hidden">
-      <div className="flex items-center justify-between">
+    <div className="overflow-hidden">
+      <div className="flex items-center justify-between py-2">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <p className="text-6 md:text-5 text-muted-foreground/60 tracking-wide">
@@ -103,10 +97,10 @@ export const ReplaySection = () => {
             <div className="flex items-center">
               {/* Play/Pause button */}
               <Button
-                size="icon-sm"
+                size="icon"
                 variant="ghost"
                 onClick={isPlaying ? pause : play}
-                className="text-muted-foreground"
+                className="text-muted-foreground size-6 rounded-full"
               >
                 {isPlaying ? (
                   <svg
@@ -128,10 +122,10 @@ export const ReplaySection = () => {
               </Button>
               {/* Reset button */}
               <Button
-                size="icon-sm"
+                size="icon"
                 variant="ghost"
                 onClick={reset}
-                className="text-muted-foreground"
+                className="text-muted-foreground size-6 rounded-full"
               >
                 <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />

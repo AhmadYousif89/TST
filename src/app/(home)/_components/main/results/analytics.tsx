@@ -35,7 +35,7 @@ export const AnalyticSection = ({
       <div className="h-50 w-full">
         <SessionChart />
       </div>
-      <div className="mx-auto grid w-full max-w-5xl gap-4">
+      <div className="mx-auto grid w-full max-w-5xl">
         <SessionStatistics />
         <div
           className={cn(

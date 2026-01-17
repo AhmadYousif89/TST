@@ -77,7 +77,7 @@ export const SessionStatistics = () => {
   }, [session]);
 
   return (
-    <div className="flex items-start justify-between gap-4 font-mono">
+    <div className="flex items-start justify-between gap-4 py-2 font-mono">
       {/* Test Type */}
       <div className="flex flex-col gap-1">
         <span className="text-6 md:text-5 text-muted-foreground">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Drawer,
   DrawerClose,
@@ -28,6 +29,22 @@ export const Wrapper = ({
 }: Props) => {
   const { isSettingsOpen, isHistoryOpen } = useEngineConfig();
   const { setIsSettingsOpen, setIsHistoryOpen } = useEngineActions();
+
+  // Ensure panels receive focus when opened via keyboard shortcuts
+  useEffect(() => {
+    if (isSettingsOpen || isHistoryOpen) {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
+      // Small delay to ensure the portal is rendered
+      const timer = setTimeout(() => {
+        const drawer = document.querySelector('[data-slot="drawer-content"]');
+        if (drawer instanceof HTMLElement) drawer.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isSettingsOpen, isHistoryOpen]);
 
   return (
     <div className="flex items-center">
