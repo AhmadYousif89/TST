@@ -516,4 +516,101 @@ describe("analyzeHeatmap", () => {
     expect(stats?.errorCharIndices.has(5)).toBe(false); // 's'
     expect(stats?.errorCharIndices.size).toBe(0);
   });
+
+  it("preserves extra characters even after backspacing (corrected extras)", () => {
+    // Text: "The"
+    const keystrokes = [
+      { charIndex: 0, typedChar: "T", timestampMs: 100, isCorrect: true },
+      { charIndex: 1, typedChar: "h", timestampMs: 200, isCorrect: true },
+      { charIndex: 2, typedChar: "e", timestampMs: 300, isCorrect: true },
+      // Type extra "x" at index 3
+      { charIndex: 3, typedChar: "x", timestampMs: 400, isCorrect: false },
+      // Backspace the "x"
+      {
+        charIndex: 3,
+        typedChar: "Backspace",
+        timestampMs: 500,
+        isCorrect: true,
+      },
+      // Type space to finish word
+      { charIndex: 3, typedChar: " ", timestampMs: 600, isCorrect: true },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session.keystrokes, "The quick");
+
+    const stats = result?.wordStatsMap.get(0);
+    // The extra "x" should still be in extras even though it was backspaced
+    expect(stats?.extras).toBeDefined();
+    expect(stats?.extras).toContain("x");
+    expect(stats?.hasError).toBe(true);
+  });
+
+  it("handles multiple extras and backspacing followed by a skip 'snn' case", () => {
+    const text = "The sun";
+    // "The" is [0,3], "sun" is [4,7]
+    const keystrokes = [
+      // Word 0: "The "
+      { charIndex: 0, typedChar: "T", timestampMs: 100, isCorrect: true },
+      { charIndex: 1, typedChar: "h", timestampMs: 200, isCorrect: true },
+      { charIndex: 2, typedChar: "e", timestampMs: 300, isCorrect: true },
+      { charIndex: 3, typedChar: " ", timestampMs: 400, isCorrect: true },
+      // Word 1: "sun" + extras "nn"
+      { charIndex: 4, typedChar: "s", timestampMs: 500, isCorrect: true },
+      { charIndex: 5, typedChar: "u", timestampMs: 600, isCorrect: true },
+      { charIndex: 6, typedChar: "n", timestampMs: 700, isCorrect: true },
+      // Extras at index 7 (the end of the text "The sun")
+      { charIndex: 7, typedChar: "n", timestampMs: 800, isCorrect: false },
+      { charIndex: 7, typedChar: "n", timestampMs: 900, isCorrect: false },
+      // Backspace back to "s"
+      // In a real scenario with capped cursor at 7:
+      // BS 900 (removes 2nd extra at 7)
+      {
+        charIndex: 7,
+        typedChar: "Backspace",
+        timestampMs: 1000,
+        isCorrect: true,
+      },
+      // BS 800 (removes 1st extra at 7)
+      {
+        charIndex: 7,
+        typedChar: "Backspace",
+        timestampMs: 1100,
+        isCorrect: true,
+      },
+      // BS 'n' at 6
+      {
+        charIndex: 6,
+        typedChar: "Backspace",
+        timestampMs: 1200,
+        isCorrect: true,
+      },
+      // BS 'u' at 5
+      {
+        charIndex: 5,
+        typedChar: "Backspace",
+        timestampMs: 1300,
+        isCorrect: true,
+      },
+      // Hit space to skip remaining "un" of "sun"
+      {
+        charIndex: 7,
+        typedChar: " ",
+        timestampMs: 1400,
+        isCorrect: true,
+        skipOrigin: 5,
+      },
+    ];
+
+    const session = createMockSession(keystrokes);
+    const result = analyzeHeatmap(session.keystrokes, text);
+    const stats = result?.wordStatsMap.get(1);
+
+    expect(result).not.toBeNull();
+    // Verify extras contains BOTH 'n's despite having the same charIndex
+    expect(stats?.extras).toEqual(["n", "n"]);
+    // Verify skipIndex is 1 (relative to "sun" start at 4)
+    expect(stats?.skipIndex).toBe(1);
+    expect(stats?.typedChars).toBe("sun");
+  });
 });

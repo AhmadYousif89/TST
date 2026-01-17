@@ -111,6 +111,7 @@ const WordItem = memo(({ word, stats, isHeatmapVisible }: WordItemProps) => {
             {word.split("").map((char, i) => {
               if ((skipIndex !== undefined && i >= skipIndex) || wpm === 0)
                 return null; // Don't show skipped chars or 0 wpm words
+
               const typedChar = stats?.typedChars?.[i];
               if (typedChar === "\0") return null;
 

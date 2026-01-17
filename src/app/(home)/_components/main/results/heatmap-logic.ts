@@ -36,6 +36,7 @@ export const analyzeHeatmap = (
   const wordRanges = getWordRanges(text);
   const wordWPMsList: number[] = [];
 
+  // Group data by word index
   const wordData = words.map((word) => ({
     keystrokes: [] as Keystroke[],
     errors: new Set<number>(),
@@ -44,30 +45,34 @@ export const analyzeHeatmap = (
     typedChars: new Array(word.length).fill(null),
     maxRelIdx: -1,
     hasTypingError: false,
+    activeExtras: 0,
   }));
 
   /* ------------------- Keystroke Processing ------------------- */
 
   sortedKeystrokes.forEach((k) => {
     const isBackspace = k.typedChar === "Backspace";
-
-    const wordIdx = wordRanges.findIndex(
-      (r) => k.charIndex >= r.start && k.charIndex <= r.end,
-    );
+    // Find the word index that this keystroke belongs to
+    const wordIdx = wordRanges.findIndex((r, idx) => {
+      if (idx === wordRanges.length - 1) return k.charIndex >= r.start;
+      return k.charIndex >= r.start && k.charIndex < wordRanges[idx + 1].start;
+    });
 
     if (wordIdx !== -1) {
       const data = wordData[wordIdx];
       const range = wordRanges[wordIdx];
       const relIdx = k.charIndex - range.start;
+      const isExtra = relIdx >= words[wordIdx].length;
 
       if (isBackspace) {
-        if (data.extras.length > 0) data.extras.pop();
+        // We will keep extras in the array to preserve the "first mistake" history
+        if (isExtra && data.activeExtras > 0) data.activeExtras--;
         return;
       }
 
       data.keystrokes.push(k);
 
-      if (relIdx < words[wordIdx].length) {
+      if (!isExtra) {
         data.maxRelIdx = Math.max(data.maxRelIdx, relIdx);
         const currentEntry = data.typedChars[relIdx];
         const currentIsError = data.errors.has(relIdx);
@@ -80,13 +85,18 @@ export const analyzeHeatmap = (
           }
         }
       } else {
+        // Handle extras
         const isSpace = relIdx === words[wordIdx].length && k.typedChar === " ";
         if (!isSpace) {
-          data.extras.push(k.typedChar);
+          const depth = data.activeExtras;
+          if (data.extras[depth] == null) {
+            data.extras[depth] = k.typedChar;
+          }
+          data.activeExtras++;
           data.hasTypingError = true;
         }
       }
-
+      // Handle skips
       if (k.skipOrigin !== undefined) {
         const skipWordIdx = wordRanges.findIndex(
           (r) => k.skipOrigin! >= r.start && k.skipOrigin! <= r.end,
@@ -102,13 +112,21 @@ export const analyzeHeatmap = (
   // Determine the last word that received any keystroke
   let absoluteLastTypedWordIdx = -1;
   sortedKeystrokes.forEach((k) => {
-    const wordIdx = wordRanges.findIndex(
-      (r) =>
-        k.charIndex >= r.start &&
-        (k.charIndex < r.end || (k.charIndex === r.end && k.typedChar !== " ")),
-    );
-    if (wordIdx !== -1 && wordIdx > absoluteLastTypedWordIdx) {
-      absoluteLastTypedWordIdx = wordIdx;
+    const wordIdx = wordRanges.findIndex((r, idx) => {
+      if (idx === wordRanges.length - 1) return k.charIndex >= r.start;
+      return k.charIndex >= r.start && k.charIndex < wordRanges[idx + 1].start;
+    });
+
+    if (wordIdx !== -1) {
+      const isSpaceAtEnd =
+        k.charIndex === wordRanges[wordIdx].end && k.typedChar === " ";
+      // Only update last word if it wasn't just the space moving us forward,
+      // UNLESS there are no more words.
+      if (!isSpaceAtEnd || wordIdx > absoluteLastTypedWordIdx) {
+        if (wordIdx > absoluteLastTypedWordIdx) {
+          absoluteLastTypedWordIdx = wordIdx;
+        }
+      }
     }
   });
 
@@ -163,12 +181,16 @@ export const analyzeHeatmap = (
         lastTypedWordIdx = wordIdx;
       }
 
+      const filteredExtras = extras.filter(
+        (e) => e !== null && e !== undefined,
+      );
+
       wordStatsMap.set(wordIdx, {
         wpm,
         hasError: hasTypingError || errors.size > 0,
         word,
         errorCharIndices: errors,
-        extras: extras.length > 0 ? extras : undefined,
+        extras: filteredExtras.length > 0 ? filteredExtras : undefined,
         skipIndex,
         typedChars: typedChars.map((c) => c || "\0").join(""),
       });
