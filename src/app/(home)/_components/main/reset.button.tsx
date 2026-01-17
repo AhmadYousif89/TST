@@ -20,7 +20,7 @@ export const ResetButton = () => {
         <Button
           size="icon"
           variant="ghost"
-          onClick={resetSession}
+          onClick={() => resetSession({ showOverlay: false })}
           className="text-muted-foreground"
         >
           <RestartIcon />

@@ -102,6 +102,13 @@ export const EngineContainer = () => {
     if (status === "idle" || cursor === 0) lockedCursorRef.current = 0;
   }, [status, cursor]);
 
+  // Auto-focus input when overlay is hidden in idle state (e.g. after a restart)
+  useEffect(() => {
+    if (status === "idle" && !showOverlay) {
+      hiddenInputRef.current?.focus();
+    }
+  }, [status, showOverlay]);
+
   // Reset pause timer when session is reset
   const pauseTimerRef = useRef<NodeJS.Timeout>(undefined);
   useEffect(() => {
@@ -121,7 +128,7 @@ export const EngineContainer = () => {
 
   const handleTyping = (typedChar: string) => {
     if (status === "finished") return;
-    // Ignore space at the start of a word
+    // Ignore space at the start
     if (typedChar === " " && cursor === 0) return;
 
     playSound();
@@ -229,10 +236,18 @@ export const EngineContainer = () => {
 
   const handleKeydown = (e: React.KeyboardEvent) => {
     if (status === "finished") return;
-    const typedChar = e.key;
 
-    e.preventDefault();
-    e.stopPropagation();
+    const typedChar = e.key;
+    // Allow tab key and modifiers to behave naturally for navigation and shortcuts
+    const isTab = typedChar === "Tab";
+    const isModifier = ["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(
+      typedChar,
+    );
+
+    if (!isTab && !isModifier) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
     // Handle Backspace
     if (typedChar === "Backspace") {
@@ -339,7 +354,8 @@ export const EngineContainer = () => {
     if (typedChar.length === 1) {
       // Ignore special shortcuts that shouldn't trigger typing
       const isControlModifier = e.ctrlKey || e.metaKey || e.altKey;
-      if (isControlModifier) return;
+      if (isControlModifier && e.repeat) return;
+
       handleTyping(typedChar);
     }
   };
@@ -367,7 +383,7 @@ export const EngineContainer = () => {
 
   const handleResumeSession = () => {
     resumeSession();
-    containerRef.current?.focus();
+    hiddenInputRef.current?.focus();
   };
 
   if (!textData) return null;
@@ -383,12 +399,8 @@ export const EngineContainer = () => {
         />
       </div>
 
-      {/* Engine Container */}
       <div
-        tabIndex={0}
         ref={containerRef}
-        onBlur={handleBlur}
-        onFocus={handleFocus}
         className={cn(
           "h-43.25 md:h-54.5",
           "scrollbar-none overflow-hidden overscroll-none scroll-smooth outline-none",
@@ -400,6 +412,8 @@ export const EngineContainer = () => {
       >
         <textarea
           ref={hiddenInputRef}
+          onBlur={handleBlur}
+          onFocus={handleFocus}
           onKeyDown={handleKeydown}
           onBeforeInput={(e) => handleBeforeInput(e)}
           className="pointer-events-none absolute top-0 left-0 h-14 w-6 resize-none overflow-hidden opacity-0 outline-none"
@@ -414,12 +428,12 @@ export const EngineContainer = () => {
       {/* Start backdrop overlay */}
       {status === "idle" && showOverlay && (
         <div
-          onClick={() => containerRef.current?.focus()}
+          onClick={() => hiddenInputRef.current?.focus()}
           className="bg-background/5 absolute z-20 flex h-43.25 w-full items-center justify-center md:h-54.5"
         >
           <div className="flex flex-col items-center gap-5">
             <Button
-              onClick={() => containerRef.current?.focus()}
+              onClick={() => hiddenInputRef.current?.focus()}
               className="hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-400"
             >
               Start Typing Test

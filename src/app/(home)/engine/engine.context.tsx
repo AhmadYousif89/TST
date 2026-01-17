@@ -73,6 +73,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const accumulatedTimeRef = useRef(0);
   const hasUpdatedStatsRef = useRef(false);
 
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   // Handle status changes and guard against race conditions and stale state
   useEffect(() => {
     statusRef.current = state.status;
@@ -97,13 +100,20 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     return accumulatedTimeRef.current + currentElapsed;
   }, []);
 
-  const resetSession = useCallback(() => {
-    dispatch({ type: "RESET", timeLeft: getInitialTime(mode) });
-    keystrokes.current = [];
-    startedAtRef.current = null;
-    accumulatedTimeRef.current = 0;
-    updateURL({ sid: null });
-  }, [mode, updateURL]);
+  const resetSession = useCallback(
+    (opts?: { showOverlay?: boolean }) => {
+      dispatch({
+        type: "RESET",
+        timeLeft: getInitialTime(mode),
+        showOverlay: opts?.showOverlay,
+      });
+      keystrokes.current = [];
+      startedAtRef.current = null;
+      accumulatedTimeRef.current = 0;
+      updateURL({ sid: null });
+    },
+    [mode, updateURL],
+  );
 
   const startSession = useCallback(() => {
     dispatch({ type: "START", timestamp: Date.now() });
@@ -174,7 +184,100 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     dispatch({ type: "SET_CURSOR_STYLE", style });
   }, []);
 
+  const handleSetIsSettingsOpen = useCallback((open: boolean) => {
+    setIsSettingsOpen(open);
+  }, []);
+
+  const handleSetIsHistoryOpen = useCallback((open: boolean) => {
+    setIsHistoryOpen(open);
+  }, []);
+
   /* -------------------- EFFECTS -------------------- */
+
+  const isTabPressed = useRef(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      // Global shortcuts
+      if (e.altKey) {
+        if (key === "s" && !e.repeat) {
+          setIsSettingsOpen((pv) => !pv);
+          setIsHistoryOpen(false);
+          pauseSession();
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return;
+        }
+        if (key === "h" && !e.repeat) {
+          setIsHistoryOpen((pv) => !pv);
+          setIsSettingsOpen(false);
+          pauseSession();
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return;
+        }
+      }
+
+      if (e.key === "Tab") {
+        if (!e.repeat) isTabPressed.current = true;
+
+        if (statusRef.current === "typing") {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+        return;
+      }
+
+      if (isTabPressed.current) {
+        // Allow modifiers to pass through while Tab is held
+        const isModifier = [
+          "Shift",
+          "Control",
+          "Alt",
+          "Meta",
+          "CapsLock",
+        ].includes(e.key);
+        if (isModifier) return;
+
+        if (key === "r" && !e.repeat) {
+          resetSession({ showOverlay: false });
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        } else {
+          // Block other keys from reaching elsewhere while Tab is held
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+        return;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Tab") {
+        isTabPressed.current = false;
+      }
+    };
+
+    const handleBlur = () => {
+      isTabPressed.current = false;
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    window.addEventListener("keyup", handleKeyUp, { capture: true });
+    window.addEventListener("blur", handleBlur, { capture: true });
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      window.removeEventListener("keyup", handleKeyUp, { capture: true });
+      window.removeEventListener("blur", handleBlur, { capture: true });
+    };
+  }, [resetSession, setShowOverlay, pauseSession]);
 
   const prevModeRef = useRef<TextMode>(mode);
 
@@ -186,14 +289,18 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const prevSidRef = useRef<string | null>(sid);
 
   useEffect(() => {
-    if (prevSidRef.current && !sid) resetSession();
+    if (prevSidRef.current && !sid) resetSession({ showOverlay: false });
     prevSidRef.current = sid;
   }, [sid, resetSession]);
 
   const prevIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (prevIdRef.current !== id && !sid) resetSession();
+    if (prevIdRef.current !== id && !sid) {
+      // Only show overlay on the very first load
+      const isInitialLoad = prevIdRef.current === null;
+      resetSession({ showOverlay: isInitialLoad });
+    }
     prevIdRef.current = id;
   }, [id, resetSession, sid]);
 
@@ -298,6 +405,8 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       volume: state.volume,
       isMuted: state.isMuted,
       cursorStyle: state.cursorStyle,
+      isSettingsOpen,
+      isHistoryOpen,
     }),
     [
       mode,
@@ -308,6 +417,8 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       state.volume,
       state.isMuted,
       state.cursorStyle,
+      isSettingsOpen,
+      isHistoryOpen,
     ],
   );
 
@@ -346,6 +457,8 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       setVolume,
       setIsMuted,
       setCursorStyle,
+      setIsSettingsOpen: handleSetIsSettingsOpen,
+      setIsHistoryOpen: handleSetIsHistoryOpen,
     }),
     [
       setCursor,
@@ -361,6 +474,8 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       setVolume,
       setIsMuted,
       setCursorStyle,
+      handleSetIsSettingsOpen,
+      handleSetIsHistoryOpen,
     ],
   );
 

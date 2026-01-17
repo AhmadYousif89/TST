@@ -24,6 +24,7 @@ export function engineReducer(
       return {
         ...initialState,
         timeLeft: action.timeLeft,
+        showOverlay: action.showOverlay ?? initialState.showOverlay,
         volume: state.volume,
         isMuted: state.isMuted,
         soundName: state.soundName,

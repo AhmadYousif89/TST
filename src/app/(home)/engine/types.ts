@@ -71,6 +71,8 @@ export type EngineConfigCtxType = {
   volume: number;
   isMuted: boolean;
   cursorStyle: CursorStyle;
+  isSettingsOpen: boolean;
+  isHistoryOpen: boolean;
 };
 
 export type EngineMetricsCtxType = {
@@ -89,7 +91,7 @@ export type EngineKeystrokeCtxType = {
 
 export type EngineActionsCtxType = {
   endSession: () => void;
-  resetSession: () => void;
+  resetSession: (opts?: { showOverlay?: boolean }) => void;
   startSession: () => void;
   pauseSession: () => void;
   resumeSession: () => void;
@@ -104,10 +106,12 @@ export type EngineActionsCtxType = {
   setVolume: (v: number) => void;
   setIsMuted: (m: boolean) => void;
   setCursorStyle: (style: CursorStyle) => void;
+  setIsSettingsOpen: (open: boolean) => void;
+  setIsHistoryOpen: (open: boolean) => void;
 };
 
 export type EngineAction =
-  | { type: "RESET"; timeLeft: number }
+  | { type: "RESET"; timeLeft: number; showOverlay?: boolean }
   | { type: "START"; timestamp: number }
   | { type: "PAUSE"; timestamp: number }
   | { type: "RESUME"; timestamp: number }

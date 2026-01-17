@@ -23,7 +23,7 @@ export const RandomButton = ({ randomId }: Props) => {
   const handleRandomize = () => {
     if (!randomId) return;
 
-    resetSession();
+    resetSession({ showOverlay: false });
     updateURL({ id: randomId });
   };
 

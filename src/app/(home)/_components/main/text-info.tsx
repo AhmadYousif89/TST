@@ -8,7 +8,7 @@ export const TextInfo = () => {
   const { textData, mode } = useEngineConfig();
 
   return (
-    <div className="text-muted-foreground flex items-center justify-center py-8">
+    <div className="text-muted-foreground flex items-center justify-center py-4">
       <Badge className="text-6 bg-muted/50 dark:bg-muted/25 min-w-24 font-medium capitalize">
         {textData?.category}
       </Badge>
