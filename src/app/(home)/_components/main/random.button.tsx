@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { RandomIcon } from "@/components/random.icon";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { TopLoader } from "@/components/top-loader";
 
 type Props = {
   randomId: string | null;
@@ -28,21 +29,24 @@ export const RandomButton = ({ randomId }: Props) => {
   };
 
   return (
-    <Tooltip open={isMobile ? false : undefined}>
-      <TooltipTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="text-muted-foreground"
-          onClick={handleRandomize}
-          disabled={isPending}
-        >
-          <RandomIcon className={isPending ? "animate-spin" : ""} />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <span>Randomize</span>
-      </TooltipContent>
-    </Tooltip>
+    <>
+      <TopLoader isPending={isPending} />
+      <Tooltip open={isMobile ? false : undefined}>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={handleRandomize}
+            disabled={isPending}
+          >
+            <RandomIcon className={isPending ? "animate-spin" : ""} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <span>Randomize</span>
+        </TooltipContent>
+      </Tooltip>
+    </>
   );
 };

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { createContext, useContext, ReactNode, useState } from "react";
 
 import { TypingSessionDoc, AnonUserDoc } from "@/lib/types";
+import { TopLoader } from "@/components/top-loader";
 
 type ResultContextType = {
   text: string;
@@ -11,11 +12,12 @@ type ResultContextType = {
   session: TypingSessionDoc;
   user: AnonUserDoc | null;
   nextTextId?: string | null;
-  isScreenshotting: boolean;
+  language: "en" | "ar";
   loadingProgress: number;
+  isScreenshotting: boolean;
 
-  setIsScreenshotting: (value: boolean) => void;
   setLoadingProgress: (value: number) => void;
+  setIsScreenshotting: (value: boolean) => void;
 };
 
 const ResultContext = createContext<ResultContextType | undefined>(undefined);
@@ -37,6 +39,7 @@ export const ResultProvider = ({
   user,
   nextTextId,
   isOwner,
+  language,
 }: ResultProviderProps) => {
   const [isScreenshotting, setIsScreenshotting] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -44,31 +47,25 @@ export const ResultProvider = ({
   return (
     <ResultContext.Provider
       value={{
-        session,
         text,
         user,
-        nextTextId,
+        session,
         isOwner,
-        isScreenshotting,
-        setIsScreenshotting,
+        language,
+        nextTextId,
         loadingProgress,
+        isScreenshotting,
         setLoadingProgress,
+        setIsScreenshotting,
       }}
     >
       {children}
+      {isScreenshotting && (
+        <TopLoader progress={loadingProgress} className="duration-1000" />
+      )}
       {isScreenshotting &&
         createPortal(
-          <>
-            <div className="pointer-events-none fixed inset-0 isolate z-1000 grid size-full place-items-start">
-              <div
-                className="bg-green h-1 w-full transition-all duration-1000 ease-out"
-                style={{ width: `${loadingProgress}%` }}
-              />
-            </div>
-            {loadingProgress === 1 && (
-              <div className="animate-flash bg-foreground pointer-events-none fixed inset-0 z-1001" />
-            )}
-          </>,
+          <div className="animate-flash bg-foreground pointer-events-none fixed inset-0 z-1001 delay-50" />,
           document.body,
         )}
     </ResultContext.Provider>

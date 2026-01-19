@@ -12,6 +12,7 @@ import { ChevronIcon } from "@/components/chevron.icon";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useOptionalResult } from "./result.context";
+import { TopLoader } from "@/components/top-loader";
 
 type Props = {
   className?: string;
@@ -32,25 +33,28 @@ export const NextTextButton = ({
   if (!nextTextId) return null;
 
   return (
-    <Tooltip open={isMobile ? false : undefined}>
-      <TooltipTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className={cn("text-foreground", className)}
-          onClick={() => updateURL({ id: nextTextId, sid: null })}
-          disabled={isPending}
-        >
-          {isPending ? (
-            <RandomIcon className="animate-spin opacity-60" />
-          ) : (
-            <ChevronIcon />
-          )}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side={inResults ? "bottom" : "top"}>
-        <span>Next Text</span>
-      </TooltipContent>
-    </Tooltip>
+    <>
+      <TopLoader isPending={isPending} />
+      <Tooltip open={isMobile ? false : undefined}>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={cn("text-foreground", className)}
+            onClick={() => updateURL({ id: nextTextId, sid: null })}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <RandomIcon className="animate-spin opacity-60" />
+            ) : (
+              <ChevronIcon />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side={inResults ? "bottom" : "top"}>
+          <span>Next Text</span>
+        </TooltipContent>
+      </Tooltip>
+    </>
   );
 };

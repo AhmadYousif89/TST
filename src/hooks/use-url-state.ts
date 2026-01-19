@@ -49,6 +49,8 @@ export function useUrlState() {
           return (raw || defaultValue) as TextCategory | undefined;
         case "mode":
           return (raw || defaultValue) as TextMode | undefined;
+        case "lang":
+          return (raw || defaultValue) as "ar" | "en" | undefined;
         default:
           return raw;
       }
