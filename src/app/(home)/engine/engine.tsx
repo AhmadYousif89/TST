@@ -361,7 +361,14 @@ export const EngineContainer = () => {
     }
   };
 
-  const handleBlur = () => {
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (status === "finished") return;
+    e.preventDefault();
+    hiddenInputRef.current?.focus();
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    if (containerRef.current?.contains(e.relatedTarget as Node)) return;
     setIsFocused(false);
     if (status === "typing") {
       pauseTimerRef.current = setTimeout(() => {
@@ -402,6 +409,9 @@ export const EngineContainer = () => {
 
       <div
         ref={containerRef}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        onMouseDown={handleMouseDown}
         className={cn(
           "h-43.25 md:h-54.5",
           "scrollbar-none overflow-hidden overscroll-none scroll-smooth outline-none",
@@ -413,8 +423,6 @@ export const EngineContainer = () => {
       >
         <textarea
           ref={hiddenInputRef}
-          onBlur={handleBlur}
-          onFocus={handleFocus}
           onKeyDown={handleKeydown}
           onBeforeInput={(e) => handleBeforeInput(e)}
           className="pointer-events-none absolute top-0 left-0 h-14 w-6 resize-none overflow-hidden opacity-0 outline-none"
