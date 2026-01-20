@@ -16,10 +16,10 @@ export const MainContent = ({ nextTextId, randomId }: Props) => {
     <>
       <main className="flex grow flex-col">
         <Metrics />
-        <section className="relative flex grow flex-col justify-between">
+        <section className="flex grow flex-col justify-between">
           <EngineContainer />
           <TextInfo />
-          <div className="flex items-center justify-center gap-8 py-4 md:py-8">
+          <div className="flex items-center justify-center gap-8 py-4 md:pt-8 md:pb-0">
             <RandomButton randomId={randomId} />
             {nextTextId && (
               <NextTextButton

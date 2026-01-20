@@ -51,12 +51,12 @@ export type EngineState = {
   wpm: number;
   cursor: number;
   timeLeft: number;
-  progress: number;
   accuracy: number;
   extraOffset: number;
   status: EngineStatus;
   showOverlay: boolean;
   soundName: SoundNames;
+  progress: number;
   volume: number;
   isMuted: boolean;
   cursorStyle: CursorStyle;
@@ -79,12 +79,12 @@ export type EngineMetricsCtxType = {
   wpm: number;
   accuracy: number;
   timeLeft: number;
+  progress: number;
   isLoadingResults: boolean;
 };
 
 export type EngineKeystrokeCtxType = {
   cursor: number;
-  progress: number;
   extraOffset: number;
   keystrokes: React.RefObject<Keystroke[]>;
 };

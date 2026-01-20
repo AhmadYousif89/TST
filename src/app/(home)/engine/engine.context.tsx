@@ -69,7 +69,8 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const keystrokes = useRef<Keystroke[]>([]);
   const statusRef = useRef(state.status);
-  const startedAtRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const sessionStartTimeRef = useRef<number | null>(null);
   const accumulatedTimeRef = useRef(0);
   const hasUpdatedStatsRef = useRef(false);
 
@@ -94,9 +95,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   /* -------------------- ACTIONS -------------------- */
 
   const getTimeElapsed = useCallback(() => {
-    const currentElapsed = startedAtRef.current
-      ? Date.now() - startedAtRef.current
-      : 0;
+    const currentElapsed = timerRef.current ? Date.now() - timerRef.current : 0;
     return accumulatedTimeRef.current + currentElapsed;
   }, []);
 
@@ -108,7 +107,8 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
         showOverlay: opts?.showOverlay,
       });
       keystrokes.current = [];
-      startedAtRef.current = null;
+      timerRef.current = null;
+      sessionStartTimeRef.current = null;
       accumulatedTimeRef.current = 0;
       updateURL({ sid: null });
     },
@@ -117,7 +117,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   const startSession = useCallback(() => {
     dispatch({ type: "START", timestamp: Date.now() });
-    startedAtRef.current = Date.now();
+    const now = Date.now();
+    timerRef.current = now;
+    sessionStartTimeRef.current = now;
     accumulatedTimeRef.current = 0;
     hasUpdatedStatsRef.current = false;
   }, []);
@@ -125,27 +127,27 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const pauseSession = useCallback(() => {
     if (statusRef.current !== "typing") return;
     dispatch({ type: "PAUSE", timestamp: Date.now() });
-    if (startedAtRef.current) {
-      accumulatedTimeRef.current += Date.now() - startedAtRef.current;
-      startedAtRef.current = null;
+    if (timerRef.current) {
+      accumulatedTimeRef.current += Date.now() - timerRef.current;
+      timerRef.current = null;
     }
   }, []);
 
   const resumeSession = useCallback(() => {
     if (statusRef.current !== "paused") return;
     dispatch({ type: "RESUME", timestamp: Date.now() });
-    startedAtRef.current = Date.now();
+    timerRef.current = Date.now();
   }, []);
 
   const endSession = useCallback(() => {
     if (statusRef.current !== "typing" && statusRef.current !== "paused") {
       return;
     }
-    if (statusRef.current === "typing" && startedAtRef.current) {
-      accumulatedTimeRef.current += Date.now() - startedAtRef.current;
+    if (statusRef.current === "typing" && timerRef.current) {
+      accumulatedTimeRef.current += Date.now() - timerRef.current;
     }
     dispatch({ type: "END", timestamp: Date.now() });
-    startedAtRef.current = null;
+    timerRef.current = null;
   }, []);
 
   const setStatus = useCallback((status: EngineStatus) => {
@@ -339,7 +341,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       charCount: totalTyped,
       errorCount,
       durationMs: elapsed,
-      startedAt: startedAtRef.current,
+      startedAt: sessionStartTimeRef.current,
       finishedAt: Date.now(),
       keystrokes: ks,
     };
@@ -427,9 +429,17 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       wpm: state.wpm,
       accuracy: state.accuracy,
       timeLeft: state.timeLeft,
+      progress: state.progress,
       isLoadingResults: isSyncing || isPending,
     }),
-    [state.wpm, state.accuracy, state.timeLeft, isSyncing, isPending],
+    [
+      state.wpm,
+      state.accuracy,
+      state.timeLeft,
+      state.progress,
+      isSyncing,
+      isPending,
+    ],
   );
 
   const keystrokeValue = useMemo(

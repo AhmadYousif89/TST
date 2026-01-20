@@ -26,21 +26,26 @@ type WordsProps = {
   isFocused: boolean;
 };
 
-export const Words = ({ characters, isFocused }: WordsProps) => {
+export const Words = memo(({ characters, isFocused }: WordsProps) => {
   const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
+  const { status, showOverlay } = useEngineConfig();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
   const charStates = useMemo(
     () => getCharStates(characters, keystrokes.current || []),
     [characters, cursor, extraOffset, keystrokes],
   );
 
-  const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
-
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-wrap items-center justify-start font-mono select-none"
+      className={cn(
+        "relative flex flex-wrap font-mono select-none",
+        (status === "idle" || status === "paused") &&
+          showOverlay &&
+          "opacity-50 blur-xs select-none",
+      )}
     >
       <Cursor
         containerRef={containerRef}
@@ -58,7 +63,7 @@ export const Words = ({ characters, isFocused }: WordsProps) => {
       ))}
     </div>
   );
-};
+});
 
 type WordProps = {
   word: { char: string; index: number }[];
@@ -67,55 +72,97 @@ type WordProps = {
   className?: string;
 };
 
-export const Word = ({ word, charStates, cursor, className }: WordProps) => {
-  const lastCharObj = word[word.length - 1];
-  const isLastCharSpace = lastCharObj.char === " ";
-  const endIndex = lastCharObj.index;
-  const wordIsProcessed = cursor > endIndex;
-  const wordHasError =
-    wordIsProcessed &&
-    word.some(
-      (w) =>
-        charStates[w.index].state === "incorrect" ||
-        (charStates[w.index].extras?.length ?? 0) > 0,
-    );
+const areWordsEqual = (prev: WordProps, next: WordProps) => {
+  if (prev.className !== next.className) return false;
 
-  return (
-    <div
-      data-error={wordHasError}
-      className={cn(
-        "relative flex items-center",
-        "text-1-regular-mobile md:text-1-regular",
-        className,
-      )}
-    >
-      {/* Characters */}
-      {word.map(({ char, index }) => {
-        const state = charStates[index].state;
-        return (
-          <Character
-            key={`${index}-${char}`}
-            char={char}
-            state={state}
-            extras={charStates[index].extras}
-            className={cn(
-              index === cursor && "active-cursor text-foreground/80",
-            )}
-          />
-        );
-      })}
-      {/* Error underline */}
-      <div
-        style={{ width: isLastCharSpace ? "calc(100% - 1ch)" : "100%" }}
-        className={cn(
-          "bg-red pointer-events-none absolute bottom-0 left-0 -z-10 h-0.5 rounded-full",
-          "origin-left scale-x-0 transform transition-transform duration-100 ease-in-out",
-          wordHasError && "scale-x-100",
-        )}
-      />
-    </div>
-  );
+  const startIndex = prev.word[0].index;
+  const endIndex = prev.word[prev.word.length - 1].index;
+
+  // If the cursor enters or leaves the word, it must re-render
+  const wasCursorInWord = prev.cursor >= startIndex && prev.cursor <= endIndex;
+  const isCursorInWord = next.cursor >= startIndex && next.cursor <= endIndex;
+  if (wasCursorInWord !== isCursorInWord) return false;
+
+  // If the cursor is inside the word and it moved, we need to re-render to update the active-cursor
+  if (isCursorInWord && prev.cursor !== next.cursor) return false;
+
+  // wordIsProcessed check (affects error underline)
+  const wasProcessed = prev.cursor > endIndex;
+  const isProcessed = next.cursor > endIndex;
+  if (wasProcessed !== isProcessed) return false;
+
+  // Check if character states changed (only for characters in this word)
+  for (let i = 0; i < prev.word.length; i++) {
+    const idx = prev.word[i].index;
+    const p = prev.charStates[idx];
+    const n = next.charStates[idx];
+
+    const charNotEqual =
+      p.state !== n.state ||
+      p.typedChar !== n.typedChar ||
+      p.extras?.length !== n.extras?.length;
+
+    if (charNotEqual) return false;
+
+    // Deep check for extras if they exist
+    if (p.extras && n.extras)
+      for (let j = 0; j < p.extras.length; j++)
+        if (p.extras[j] !== n.extras[j]) return false;
+  }
+
+  return true;
 };
+
+export const Word = memo(
+  ({ word, charStates, cursor, className }: WordProps) => {
+    const lastCharObj = word[word.length - 1];
+    const isLastCharSpace = lastCharObj.char === " ";
+    const endIndex = lastCharObj.index;
+    const wordIsProcessed = cursor > endIndex;
+    const wordHasError =
+      wordIsProcessed &&
+      word.some(
+        (w) =>
+          charStates[w.index].state === "incorrect" ||
+          (charStates[w.index].extras?.length ?? 0) > 0,
+      );
+
+    return (
+      <div
+        data-error={wordHasError}
+        className={cn(
+          "md:text-1-regular text-1-regular-mobile relative flex items-center",
+          className,
+        )}
+      >
+        {/* Characters */}
+        {word.map(({ char, index }) => {
+          const state = charStates[index].state;
+          return (
+            <Character
+              key={`${index}-${char}`}
+              char={char}
+              state={state}
+              extras={charStates[index].extras}
+              className={cn(
+                index === cursor && "active-cursor text-foreground/80",
+              )}
+            />
+          );
+        })}
+        {/* Error underline */}
+        <div
+          style={{ width: isLastCharSpace ? "calc(100% - 1ch)" : "100%" }}
+          className={cn(
+            "bg-red pointer-events-none absolute bottom-0 left-0 -z-10 h-0.5 origin-left scale-x-0 transform rounded-full transition-transform duration-100 ease-in-out",
+            wordHasError && "scale-x-100",
+          )}
+        />
+      </div>
+    );
+  },
+  areWordsEqual,
+);
 
 type CharacterProps = {
   char: string;

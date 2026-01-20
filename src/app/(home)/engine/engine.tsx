@@ -18,9 +18,10 @@ import {
 import { useSound } from "./sound.context";
 
 import { Words } from "./words";
+import { LanguageSwitcher } from "../_components/main/language-switcher";
+import { TimeWarning } from "../_components/main/timer-warning";
 import { Button } from "@/components/ui/button";
 import { ArrowIcon } from "@/components/arrow.icon";
-import { TimeWarning } from "../_components/main/timer-warning";
 
 const RIGHT_SIDE_BUFFER = 40;
 
@@ -34,7 +35,7 @@ export const EngineContainer = () => {
     getTimeElapsed,
     setShowOverlay,
   } = useEngineActions();
-  const { cursor, extraOffset, progress, keystrokes } = useEngineKeystroke();
+  const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
   const { status, textData, showOverlay } = useEngineConfig();
   const { playSound } = useSound();
 
@@ -397,16 +398,9 @@ export const EngineContainer = () => {
   if (!textData) return null;
 
   return (
-    <div className="relative isolate grid grow grid-rows-[auto_1fr_auto] place-items-center">
+    <div className="relative isolate flex grow flex-col justify-center">
       <TimeWarning />
-      {/* Progress Bar */}
-      <div className="bg-border h-px w-full overflow-hidden rounded-full">
-        <div
-          className="h-full bg-blue-600 transition-[width] duration-300 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
+      {/* <LanguageSwitcher /> */}
       <div
         ref={containerRef}
         onBlur={handleBlur}
@@ -416,9 +410,6 @@ export const EngineContainer = () => {
           "h-43.25 md:h-54.5",
           "scrollbar-none overflow-hidden overscroll-none scroll-smooth outline-none",
           "transition-[opacity,filter] duration-300 ease-in-out",
-          (status === "idle" || status === "paused") &&
-            showOverlay &&
-            "opacity-50 blur-xs select-none",
         )}
       >
         <textarea
@@ -432,45 +423,43 @@ export const EngineContainer = () => {
           inputMode="text"
         />
         <Words characters={characters} isFocused={isFocused} />
+        {/* Start backdrop overlay */}
+        {status === "idle" && showOverlay && (
+          <div
+            onClick={() => hiddenInputRef.current?.focus()}
+            className="bg-background/5 absolute top-1/2 z-20 flex h-[inherit] w-full -translate-y-1/2 items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-5">
+              <Button
+                onClick={() => hiddenInputRef.current?.focus()}
+                className="hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-400"
+              >
+                Start Typing Test
+              </Button>
+              <p className="text-foreground pointer-events-none font-semibold">
+                Or click the text and start typing
+              </p>
+            </div>
+          </div>
+        )}
+        {/* Pause backdrop overlay */}
+        {status === "paused" && showOverlay && (
+          <div
+            onClick={handleResumeSession}
+            className="bg-background/5 absolute top-1/2 z-20 flex h-[inherit] w-full -translate-y-1/2 items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-orange dark:text-yellow text-2 animate-pulse font-medium">
+                Test Paused
+              </p>
+              <p className="text-foreground text-5 flex items-center gap-1 font-medium tracking-wide">
+                <ArrowIcon />
+                <span>Click here to resume</span>
+              </p>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Start backdrop overlay */}
-      {status === "idle" && showOverlay && (
-        <div
-          onClick={() => hiddenInputRef.current?.focus()}
-          className="bg-background/5 absolute z-20 flex h-43.25 w-full items-center justify-center md:h-54.5"
-        >
-          <div className="flex flex-col items-center gap-5">
-            <Button
-              onClick={() => hiddenInputRef.current?.focus()}
-              className="hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-400"
-            >
-              Start Typing Test
-            </Button>
-            <p className="text-foreground pointer-events-none font-semibold">
-              Or click the text and start typing
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Pause backdrop overlay */}
-      {status === "paused" && showOverlay && (
-        <div
-          onClick={handleResumeSession}
-          className="bg-background/5 absolute z-20 flex h-43.25 w-full items-center justify-center md:h-54.5"
-        >
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-orange dark:text-yellow text-2 animate-pulse font-medium">
-              Test Paused
-            </p>
-            <p className="text-foreground text-5 flex items-center gap-1 font-medium tracking-wide">
-              <ArrowIcon />
-              <span>Click here to resume</span>
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
