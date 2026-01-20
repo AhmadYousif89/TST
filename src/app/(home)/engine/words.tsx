@@ -74,6 +74,7 @@ type WordProps = {
 
 const areWordsEqual = (prev: WordProps, next: WordProps) => {
   if (prev.className !== next.className) return false;
+  if (prev.word !== next.word) return false;
 
   const startIndex = prev.word[0].index;
   const endIndex = prev.word[prev.word.length - 1].index;
