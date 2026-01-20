@@ -12,7 +12,7 @@ type ResultContextType = {
   session: TypingSessionDoc;
   user: AnonUserDoc | null;
   nextTextId?: string | null;
-  language: "en" | "ar";
+  language?: "en" | "ar";
   loadingProgress: number;
   isScreenshotting: boolean;
 
@@ -39,7 +39,7 @@ export const ResultProvider = ({
   user,
   nextTextId,
   isOwner,
-  language,
+  language = "en",
 }: ResultProviderProps) => {
   const [isScreenshotting, setIsScreenshotting] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
