@@ -23,11 +23,13 @@ export const ResultHeader = ({
         <NewRecordIcon />
       ) : (
         <>
-          <Image
-            src={Star2}
-            alt="Star Pattern"
-            className="absolute top-1/4 left-4 max-md:size-5"
-          />
+          {!isInvalid && (
+            <Image
+              src={Star2}
+              alt="Star Pattern"
+              className="absolute top-1/4 left-4 max-md:size-5"
+            />
+          )}
           <CompletedIcon isInvalid={isInvalid} />
         </>
       )}

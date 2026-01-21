@@ -33,8 +33,7 @@ export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
   }, []);
 
   const sessionIsValid = session && !session.isInvalid;
-  const sessionHasKeystrokes =
-    sessionIsValid && (session.keystrokes?.length ?? 0) > 0;
+  const sessionHasKeystrokes = (session.keystrokes?.length ?? 0) > 0;
 
   return (
     <footer className="text-background relative flex flex-col items-center justify-center gap-4 pb-4">
@@ -47,11 +46,15 @@ export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
           setIsAnimatingReplay={setIsAnimatingReplay}
           setIsAnimatingHistory={setIsAnimatingHistory}
         />
-      ) : (
+      ) : !sessionHasKeystrokes && sessionIsValid ? (
         <p className="text-muted-foreground pb-4 whitespace-nowrap">
           Analytics are no longer available for this test.
         </p>
-      )}
+      ) : !sessionIsValid ? (
+        <p className="text-muted-foreground pb-4 whitespace-nowrap">
+          No analytics available for this test.
+        </p>
+      ) : null}
 
       {!isScreenshotting && (
         <ResultToolbar
@@ -62,7 +65,7 @@ export const ResultFooter = ({ caption, isNewRecord = false }: Props) => {
         />
       )}
 
-      {!isNewRecord && (
+      {!isNewRecord && sessionIsValid && (
         <Image
           src={Star1}
           alt="Star Pattern"
