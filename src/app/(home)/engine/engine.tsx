@@ -36,7 +36,7 @@ export const EngineContainer = () => {
     setShowOverlay,
   } = useEngineActions();
   const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
-  const { status, textData, showOverlay } = useEngineConfig();
+  const { status, textData, showOverlay, isPending } = useEngineConfig();
   const { playSound } = useSound();
 
   const lockedCursorRef = useRef(0);
@@ -110,11 +110,13 @@ export const EngineContainer = () => {
     }
   }, [status, showOverlay]);
 
-  // Reset pause timer when session is reset
+  // Cleanup timers on unmount
   const pauseTimerRef = useRef<NodeJS.Timeout>(undefined);
+  const blurTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   useEffect(() => {
     return () => {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
     };
   }, []);
 
@@ -372,11 +374,9 @@ export const EngineContainer = () => {
     if (containerRef.current?.contains(e.relatedTarget as Node)) return;
     setIsFocused(false);
     if (status === "typing") {
-      pauseTimerRef.current = setTimeout(() => {
-        pauseSession();
-      }, 1000);
+      pauseTimerRef.current = setTimeout(() => pauseSession(), 1000);
     } else {
-      setShowOverlay(true);
+      blurTimeoutRef.current = setTimeout(() => setShowOverlay(true), 300);
     }
   };
 
@@ -387,6 +387,10 @@ export const EngineContainer = () => {
     if (pauseTimerRef.current) {
       clearTimeout(pauseTimerRef.current);
       pauseTimerRef.current = undefined;
+    }
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = undefined;
     }
   };
 
@@ -409,7 +413,6 @@ export const EngineContainer = () => {
         className={cn(
           "h-43.25 md:h-54.5",
           "scrollbar-none overflow-hidden overscroll-none scroll-smooth outline-none",
-          "transition-[opacity,filter] duration-300 ease-in-out",
         )}
       >
         <textarea
@@ -424,7 +427,7 @@ export const EngineContainer = () => {
         />
         <Words characters={characters} isFocused={isFocused} />
         {/* Start backdrop overlay */}
-        {status === "idle" && showOverlay && (
+        {status === "idle" && showOverlay && !isPending && (
           <div
             onClick={() => hiddenInputRef.current?.focus()}
             className="bg-background/5 absolute top-1/2 z-20 flex h-[inherit] w-full -translate-y-1/2 items-center justify-center"
@@ -443,7 +446,7 @@ export const EngineContainer = () => {
           </div>
         )}
         {/* Pause backdrop overlay */}
-        {status === "paused" && showOverlay && (
+        {status === "paused" && showOverlay && !isPending && (
           <div
             onClick={handleResumeSession}
             className="bg-background/5 absolute top-1/2 z-20 flex h-[inherit] w-full -translate-y-1/2 items-center justify-center"

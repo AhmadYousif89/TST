@@ -73,6 +73,7 @@ export type EngineConfigCtxType = {
   cursorStyle: CursorStyle;
   isSettingsOpen: boolean;
   isHistoryOpen: boolean;
+  isPending: boolean;
 };
 
 export type EngineMetricsCtxType = {

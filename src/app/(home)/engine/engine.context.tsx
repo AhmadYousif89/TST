@@ -55,9 +55,10 @@ type EngineProviderProps = {
 };
 
 export const EngineProvider = ({ children, data }: EngineProviderProps) => {
-  const { textData, mode } = data;
   const { updateURL, isPending } = useUrlState();
   const searchParams = useSearchParams();
+
+  const { textData, mode } = data;
   const sid = searchParams.get("sid");
   const id = textData?._id?.toString() || null;
 
@@ -66,7 +67,6 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     timeLeft: getInitialTime(mode),
   });
 
-  const [isSyncing, setIsSyncing] = useState(false);
   const keystrokes = useRef<Keystroke[]>([]);
   const statusRef = useRef(state.status);
   const timerRef = useRef<number | null>(null);
@@ -74,8 +74,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const accumulatedTimeRef = useRef(0);
   const hasUpdatedStatsRef = useRef(false);
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Handle status changes and guard against race conditions and stale state
   useEffect(() => {
@@ -409,6 +410,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       cursorStyle: state.cursorStyle,
       isSettingsOpen,
       isHistoryOpen,
+      isPending,
     }),
     [
       mode,
@@ -421,6 +423,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       state.cursorStyle,
       isSettingsOpen,
       isHistoryOpen,
+      isPending,
     ],
   );
 
