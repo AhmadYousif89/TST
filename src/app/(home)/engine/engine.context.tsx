@@ -32,6 +32,7 @@ import {
 } from "./types";
 import { useUrlState } from "@/hooks/use-url-state";
 import { engineReducer, initialState } from "./reducer";
+import { TopLoader } from "@/components/top-loader";
 
 const EngineConfigCtx = createContext<EngineConfigCtxType | undefined>(
   undefined,
@@ -55,7 +56,7 @@ type EngineProviderProps = {
 };
 
 export const EngineProvider = ({ children, data }: EngineProviderProps) => {
-  const { updateURL, isPending } = useUrlState();
+  const { updateURL: updateURLInternal, isPending } = useUrlState();
   const searchParams = useSearchParams();
 
   const { textData, mode } = data;
@@ -93,7 +94,20 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     dispatch({ type: "SET_CURSOR_STYLE", style: settings.cursorStyle });
   }, []);
 
+  useEffect(() => {
+    if (!isPending && state.pendingAction) {
+      dispatch({ type: "SET_PENDING_ACTION", action: null });
+    }
+  }, [isPending, state.pendingAction]);
+
   /* -------------------- ACTIONS -------------------- */
+  const updateURL = useCallback(
+    (updates: Record<string, string | null>, actionName?: string) => {
+      dispatch({ type: "SET_PENDING_ACTION", action: actionName || "global" });
+      updateURLInternal(updates);
+    },
+    [updateURLInternal],
+  );
 
   const getTimeElapsed = useCallback(() => {
     const currentElapsed = timerRef.current ? Date.now() - timerRef.current : 0;
@@ -101,7 +115,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   }, []);
 
   const resetSession = useCallback(
-    (opts?: { showOverlay?: boolean }) => {
+    (opts?: { showOverlay?: boolean; actionName?: string }) => {
       dispatch({
         type: "RESET",
         timeLeft: getInitialTime(mode),
@@ -111,7 +125,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       timerRef.current = null;
       sessionStartTimeRef.current = null;
       accumulatedTimeRef.current = 0;
-      updateURL({ sid: null });
+      updateURL({ sid: null }, opts?.actionName);
     },
     [mode, updateURL],
   );
@@ -411,11 +425,12 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       isSettingsOpen,
       isHistoryOpen,
       isPending,
+      pendingAction: state.pendingAction,
     }),
     [
       mode,
-      textData,
       state.status,
+      textData,
       state.showOverlay,
       state.soundName,
       state.volume,
@@ -424,6 +439,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       isSettingsOpen,
       isHistoryOpen,
       isPending,
+      state.pendingAction,
     ],
   );
 
@@ -433,16 +449,9 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       accuracy: state.accuracy,
       timeLeft: state.timeLeft,
       progress: state.progress,
-      isLoadingResults: isSyncing || isPending,
+      isLoadingResults: isSyncing,
     }),
-    [
-      state.wpm,
-      state.accuracy,
-      state.timeLeft,
-      state.progress,
-      isSyncing,
-      isPending,
-    ],
+    [state.wpm, state.accuracy, state.timeLeft, state.progress, isSyncing],
   );
 
   const keystrokeValue = useMemo(
@@ -466,6 +475,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       getTimeElapsed,
       setShowOverlay,
+      updateURL,
       setSoundName,
       setVolume,
       setIsMuted,
@@ -483,6 +493,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       getTimeElapsed,
       setShowOverlay,
+      updateURL,
       setSoundName,
       setVolume,
       setIsMuted,
@@ -494,6 +505,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
 
   return (
     <EngineConfigCtx.Provider value={configValue}>
+      <TopLoader isPending={isPending} />
       <EngineMetricsCtx.Provider value={metricsValue}>
         <EngineActionsCtx.Provider value={actionsValue}>
           <EngineKeystrokeCtx.Provider value={keystrokeValue}>

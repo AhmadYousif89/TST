@@ -22,13 +22,13 @@ export const MainContent = ({ nextText, randomText }: Props) => {
           <TextInfo />
           <div className="flex items-center justify-center gap-8 py-4 md:pt-8 md:pb-0">
             <RandomButton randomText={randomText} />
+            <ResetButton />
             {nextText && (
               <NextTextButton
                 nextTextId={nextText._id.toString()}
                 className="text-muted-foreground"
               />
             )}
-            <ResetButton />
           </div>
         </section>
       </main>

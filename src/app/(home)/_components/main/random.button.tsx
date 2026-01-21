@@ -1,7 +1,9 @@
 "use client";
 
-import { useEngineActions } from "@/app/(home)/engine/engine.context";
-import { useUrlState } from "@/hooks/use-url-state";
+import {
+  useEngineActions,
+  useEngineConfig,
+} from "@/app/(home)/engine/engine.context";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -18,9 +20,11 @@ type Props = {
 };
 
 export const RandomButton = ({ randomText }: Props) => {
-  const { resetSession } = useEngineActions();
-  const { updateURL, isPending } = useUrlState();
+  const { updateURL } = useEngineActions();
+  const { isPending, pendingAction } = useEngineConfig();
   const isMobile = useMediaQuery("(max-width: 1024px)");
+
+  const isRandomPending = isPending && pendingAction === "random";
 
   const handleRandomize = () => {
     if (!randomText) return;
@@ -29,13 +33,11 @@ export const RandomButton = ({ randomText }: Props) => {
     const category = randomText.category;
     const difficulty = randomText.difficulty;
 
-    updateURL({ id, category, difficulty });
-    resetSession({ showOverlay: false });
+    updateURL({ id, category, difficulty }, "random");
   };
 
   return (
     <>
-      <TopLoader isPending={isPending} />
       <Tooltip open={isMobile ? false : undefined}>
         <TooltipTrigger asChild>
           <Button
@@ -43,9 +45,9 @@ export const RandomButton = ({ randomText }: Props) => {
             variant="ghost"
             className="text-muted-foreground"
             onClick={handleRandomize}
-            disabled={isPending}
+            disabled={isRandomPending}
           >
-            <RandomIcon className={isPending ? "animate-spin" : ""} />
+            <RandomIcon className={isRandomPending ? "opacity-60" : ""} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

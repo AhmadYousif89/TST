@@ -7,12 +7,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { RandomIcon } from "@/components/random.icon";
 import { ChevronIcon } from "@/components/chevron.icon";
-import { useUrlState } from "@/hooks/use-url-state";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useOptionalResult } from "./result.context";
 import { TopLoader } from "@/components/top-loader";
+import {
+  useEngineActions,
+  useEngineConfig,
+} from "@/app/(home)/engine/engine.context";
 
 type Props = {
   className?: string;
@@ -26,29 +28,27 @@ export const NextTextButton = ({
   nextTextId: nextTextIdProp,
 }: Props) => {
   const result = useOptionalResult();
-  const nextTextId = nextTextIdProp ?? result?.nextText?._id.toString() ?? null;
-  const { updateURL, isPending } = useUrlState();
+  const { updateURL } = useEngineActions();
+  const { isPending, pendingAction } = useEngineConfig();
   const isMobile = useMediaQuery("(max-width: 1024px)");
+
+  const isNextPending = isPending && pendingAction === "next";
+  const nextTextId = nextTextIdProp ?? result?.nextText?._id.toString() ?? null;
 
   if (!nextTextId) return null;
 
   return (
     <>
-      <TopLoader isPending={isPending} />
       <Tooltip open={isMobile ? false : undefined}>
         <TooltipTrigger asChild>
           <Button
             size="icon"
             variant="ghost"
+            disabled={isNextPending}
             className={cn("text-foreground", className)}
-            onClick={() => updateURL({ id: nextTextId, sid: null })}
-            disabled={isPending}
+            onClick={() => updateURL({ id: nextTextId, sid: null }, "next")}
           >
-            {isPending ? (
-              <RandomIcon className="animate-spin opacity-60" />
-            ) : (
-              <ChevronIcon />
-            )}
+            <ChevronIcon className={isNextPending ? "opacity-60" : ""} />
           </Button>
         </TooltipTrigger>
         <TooltipContent side={inResults ? "bottom" : "top"}>

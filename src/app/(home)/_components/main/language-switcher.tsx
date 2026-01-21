@@ -1,8 +1,5 @@
 "use client";
 
-import { useUrlState } from "@/hooks/use-url-state";
-
-import { TopLoader } from "@/components/top-loader";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +7,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { TopLoader } from "@/components/top-loader";
+import {
+  useEngineActions,
+  useEngineConfig,
+} from "@/app/(home)/engine/engine.context";
+import { useUrlState } from "@/hooks/use-url-state";
 
 const LANGS = [
   { label: "arabic", value: "ar" },
@@ -20,18 +23,22 @@ const LANGS = [
 ];
 
 export const LanguageSwitcher = () => {
-  const { updateURL, getParam, isPending } = useUrlState();
+  const { getParam } = useUrlState();
+  const { updateURL } = useEngineActions();
+  const { isPending, pendingAction } = useEngineConfig();
   const currentLang = getParam("lang") || "en";
+
+  const isLangPending = isPending && pendingAction === "lang";
 
   return (
     <>
-      <TopLoader isPending={isPending} />
       <div className="flex items-center justify-center gap-4 py-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               className="text-muted-foreground gap-3 hover:bg-transparent! hover:text-blue-600 dark:hover:text-blue-400"
+              disabled={isLangPending}
             >
               <svg
                 className="size-5"
@@ -57,7 +64,7 @@ export const LanguageSwitcher = () => {
             {LANGS.map((lang) => (
               <DropdownMenuItem
                 key={lang.value}
-                onSelect={() => updateURL({ lang: lang.value })}
+                onSelect={() => updateURL({ lang: lang.value }, "lang")}
                 className="text-muted-foreground py-2 font-mono"
               >
                 {lang.label}

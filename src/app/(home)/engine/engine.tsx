@@ -427,39 +427,43 @@ export const EngineContainer = () => {
         />
         <Words characters={characters} isFocused={isFocused} />
         {/* Start backdrop overlay */}
-        {status === "idle" && showOverlay && !isPending && (
+        {status === "idle" && showOverlay && (
           <div
             onClick={() => hiddenInputRef.current?.focus()}
             className="bg-background/5 absolute top-1/2 z-20 flex h-[inherit] w-full -translate-y-1/2 items-center justify-center"
           >
-            <div className="flex flex-col items-center gap-5">
-              <Button
-                onClick={() => hiddenInputRef.current?.focus()}
-                className="hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-400"
-              >
-                Start Typing Test
-              </Button>
-              <p className="text-foreground pointer-events-none font-semibold">
-                Or click the text and start typing
-              </p>
-            </div>
+            {!isPending && (
+              <div className="flex flex-col items-center gap-5">
+                <Button
+                  onClick={() => hiddenInputRef.current?.focus()}
+                  className="hover:text-foreground min-h-14 min-w-52 border-0 bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-400"
+                >
+                  Start Typing Test
+                </Button>
+                <p className="text-foreground pointer-events-none font-semibold">
+                  Or click the text and start typing
+                </p>
+              </div>
+            )}
           </div>
         )}
         {/* Pause backdrop overlay */}
-        {status === "paused" && showOverlay && !isPending && (
+        {status === "paused" && showOverlay && (
           <div
             onClick={handleResumeSession}
             className="bg-background/5 absolute top-1/2 z-20 flex h-[inherit] w-full -translate-y-1/2 items-center justify-center"
           >
-            <div className="flex flex-col items-center gap-3">
-              <p className="text-orange dark:text-yellow text-3 animate-pulse font-medium">
-                Test Paused
-              </p>
-              <p className="text-foreground text-5 flex items-center gap-1 font-medium tracking-wide">
-                <ArrowIcon />
-                <span>Click here to resume</span>
-              </p>
-            </div>
+            {!isPending && (
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-orange dark:text-yellow text-3 animate-pulse font-medium">
+                  Test Paused
+                </p>
+                <p className="text-foreground text-5 flex items-center gap-1 font-medium tracking-wide">
+                  <ArrowIcon />
+                  <span>Click here to resume</span>
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

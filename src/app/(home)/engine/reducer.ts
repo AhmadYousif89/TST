@@ -13,6 +13,7 @@ export const initialState: EngineState = {
   isMuted: false,
   soundName: "creamy",
   cursorStyle: "pip",
+  pendingAction: null,
 };
 
 export function engineReducer(
@@ -188,6 +189,11 @@ export function engineReducer(
       }
       return newState;
     }
+    case "SET_PENDING_ACTION":
+      return {
+        ...state,
+        pendingAction: action.action,
+      };
 
     default:
       return state;

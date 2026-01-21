@@ -10,7 +10,7 @@ export const BaselineRound = () => {
         subTitle="You’ve set the bar. Now the real challenge begins—time to beat it."
       />
       <ResultSummary />
-      <ResultFooter caption="Beat The Score" />
+      <ResultFooter caption="Beat This Score" />
     </>
   );
 };

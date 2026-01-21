@@ -1,34 +1,54 @@
 "use client";
 
 import {
-  ResponsiveTooltip,
-  ResponsiveTooltipContent,
-  ResponsiveTooltipTrigger,
-} from "@/components/responsive-tooltip";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { RestartIcon } from "@/components/restart.icon";
-import { useEngineActions } from "@/app/(home)/engine/engine.context";
+import {
+  useEngineActions,
+  useEngineConfig,
+} from "@/app/(home)/engine/engine.context";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { cn } from "@/lib/utils";
 
-export const ResetButton = () => {
+type Props = {
+  className?: string;
+  tooltip?: string;
+  actionName?: string;
+  tooltipSide?: "top" | "bottom" | "left" | "right";
+};
+
+export const ResetButton = ({
+  className,
+  tooltip = "Restart",
+  actionName = "restart",
+  tooltipSide = "top",
+}: Props) => {
   const { resetSession } = useEngineActions();
+  const { isPending, pendingAction } = useEngineConfig();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
+  const isResetPending = isPending && pendingAction === actionName;
+
   return (
-    <ResponsiveTooltip>
-      <ResponsiveTooltipTrigger asChild>
+    <Tooltip open={isMobile ? false : undefined}>
+      <TooltipTrigger asChild>
         <Button
           size="icon"
           variant="ghost"
-          onClick={() => resetSession({ showOverlay: false })}
-          className="text-muted-foreground"
+          onClick={() => resetSession({ showOverlay: false, actionName })}
+          className={cn("text-muted-foreground", className)}
+          disabled={isResetPending}
         >
-          <RestartIcon />
+          <RestartIcon className={isResetPending ? "opacity-60" : ""} />
         </Button>
-      </ResponsiveTooltipTrigger>
-      <ResponsiveTooltipContent side={isMobile ? "right" : "top"}>
-        <span>Restart</span>
-      </ResponsiveTooltipContent>
-    </ResponsiveTooltip>
+      </TooltipTrigger>
+      <TooltipContent side={tooltipSide}>
+        <span>{tooltip}</span>
+      </TooltipContent>
+    </Tooltip>
   );
 };

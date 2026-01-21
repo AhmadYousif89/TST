@@ -10,7 +10,7 @@ export const NormalRound = () => {
         subTitle="Solid run. Keep pushing to beat your high score."
       />
       <ResultSummary />
-      <ResultFooter caption="Beat The Score" />
+      <ResultFooter caption="Go Again" />
     </>
   );
 };

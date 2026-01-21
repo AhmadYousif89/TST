@@ -60,6 +60,7 @@ export type EngineState = {
   volume: number;
   isMuted: boolean;
   cursorStyle: CursorStyle;
+  pendingAction: string | null;
 };
 
 export type EngineConfigCtxType = {
@@ -74,6 +75,7 @@ export type EngineConfigCtxType = {
   isSettingsOpen: boolean;
   isHistoryOpen: boolean;
   isPending: boolean;
+  pendingAction: string | null;
 };
 
 export type EngineMetricsCtxType = {
@@ -92,13 +94,17 @@ export type EngineKeystrokeCtxType = {
 
 export type EngineActionsCtxType = {
   endSession: () => void;
-  resetSession: (opts?: { showOverlay?: boolean }) => void;
+  resetSession: (opts?: { showOverlay?: boolean; actionName?: string }) => void;
   startSession: () => void;
   pauseSession: () => void;
   resumeSession: () => void;
   getTimeElapsed: () => number;
   setStatus: (s: EngineStatus) => void;
   setShowOverlay: (show: boolean) => void;
+  updateURL: (
+    updates: Record<string, string | null>,
+    actionName?: string,
+  ) => void;
   setCursor: (
     cursor: number | ((prev: number) => number),
     extraOffset?: number,
@@ -130,4 +136,5 @@ export type EngineAction =
   | { type: "SET_SOUND"; soundName: SoundNames }
   | { type: "SET_VOLUME"; volume: number }
   | { type: "SET_MUTED"; isMuted: boolean }
-  | { type: "SET_CURSOR_STYLE"; style: CursorStyle };
+  | { type: "SET_CURSOR_STYLE"; style: CursorStyle }
+  | { type: "SET_PENDING_ACTION"; action: string | null };

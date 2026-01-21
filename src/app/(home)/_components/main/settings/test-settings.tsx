@@ -2,7 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import { useUrlState } from "@/hooks/use-url-state";
-import { useEngineConfig } from "@/app/(home)/engine/engine.context";
+import {
+  useEngineActions,
+  useEngineConfig,
+} from "@/app/(home)/engine/engine.context";
 import {
   TextDifficulty,
   TextCategory,
@@ -22,8 +25,13 @@ import { TopLoader } from "@/components/top-loader";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const TestSettings = () => {
-  const { updateURL, getParam, isPending } = useUrlState();
-  const { mode, textData } = useEngineConfig();
+  const { getParam } = useUrlState();
+  const { mode, textData, isPending, pendingAction } = useEngineConfig();
+  const { updateURL } = useEngineActions();
+
+  const isDifficultyPending = isPending && pendingAction === "difficulty";
+  const isCategoryPending = isPending && pendingAction === "category";
+  const isModePending = isPending && pendingAction === "mode";
 
   const buildURLParams = () => {
     const params: Record<string, string> = {};
@@ -36,33 +44,38 @@ export const TestSettings = () => {
 
   const handleDifficultyChange = (val: string) => {
     if (val) {
-      updateURL({
-        ...buildURLParams(),
-        difficulty: val as TextDifficulty,
-        id: null,
-      });
+      updateURL(
+        {
+          ...buildURLParams(),
+          difficulty: val as TextDifficulty,
+          id: null,
+        },
+        "difficulty",
+      );
     }
   };
 
   const handleCategoryChange = (val: string) => {
     if (val) {
-      updateURL({
-        ...buildURLParams(),
-        category: val as TextCategory,
-        id: null,
-      });
+      updateURL(
+        {
+          ...buildURLParams(),
+          category: val as TextCategory,
+          id: null,
+        },
+        "category",
+      );
     }
   };
 
   const handleModeChange = (val: string) => {
     if (val) {
-      updateURL({ ...buildURLParams(), mode: val as TextMode });
+      updateURL({ ...buildURLParams(), mode: val as TextMode }, "mode");
     }
   };
 
   return (
     <>
-      <TopLoader isPending={isPending} />
       <div className="space-y-4">
         <div className="flex items-center gap-4">
           <span className="text-muted-foreground text-6 md:text-5 min-w-14 md:min-w-18">

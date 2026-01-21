@@ -29,7 +29,7 @@ export const NewRecordRound = () => {
         subTitle="You’re getting faster. That was incredible typing."
       />
       <ResultSummary />
-      <ResultFooter isNewRecord caption="Beat The Score" />
+      <ResultFooter isNewRecord caption="Beat This Score" />
     </>
   );
 };
