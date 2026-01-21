@@ -85,13 +85,14 @@
   --neutral-200: oklch(0.8 0 0);
   --neutral-400: oklch(0.6675 0.0044 286.28);
   --neutral-500: oklch(0.551 0.0107 286.04);
+  --neutral-600: oklch(0.4513 0.0153 284.72);
   --neutral-700: oklch(0.3485 0 0);
   --neutral-800: oklch(0.2686 0 0);
   --neutral-900: oklch(0.1822 0 0);
 
-  --orange-400: oklch(75.303% 0.11957 60.286);
+  --orange-400: oklch(0.753 0.11957 60.286);
   --yellow-400: oklch(0.8933 0.1281 96.72);
-  --blue-200: oklch(73.402% 0.1345 250.148);
+  --blue-200: oklch(0.734 0.1345 250.148);
   --blue-400: oklch(0.7109 0.1563 250.76);
   --blue-600: oklch(0.611 0.2123 257.82);
   --green-500: oklch(0.7801 0.175 151.08);
@@ -111,6 +112,7 @@
   --input: var(--neutral-500);
 
   --heatmap-neutral: var(--neutral-500);
+  --chart-neutral: var(--neutral-400);
 }
 
 .dark {
@@ -125,6 +127,7 @@
   --border: var(--neutral-700);
 
   --heatmap-neutral: var(--neutral-200);
+  --chart-neutral: var(--neutral-600);
 }
 
 /* .sepia {

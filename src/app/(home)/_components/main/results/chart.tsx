@@ -127,7 +127,7 @@ export const SessionChart = memo(() => {
           strokeDasharray="2 2"
           strokeOpacity={0.5}
           strokeLinecap="round"
-          stroke="var(--border)"
+          stroke="var(--chart-neutral)"
           vertical={false}
         />
         <XAxis
@@ -135,14 +135,14 @@ export const SessionChart = memo(() => {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tick={{ fill: "var(--border)" }}
+          tick={{ fill: "var(--chart-neutral)" }}
         >
           <Label
             value="Seconds"
             offset={-10}
             fontSize={10}
             position="insideBottom"
-            fill="var(--border)"
+            fill="var(--chart-neutral)"
           />
         </XAxis>
 
@@ -152,20 +152,20 @@ export const SessionChart = memo(() => {
           fontSize={10}
           tickLine={false}
           axisLine={false}
-          tick={{ fill: "var(--border)" }}
+          tick={{ fill: "var(--chart-neutral)" }}
         >
           <Label
             value="Word Per Minute"
             angle={-90}
             fontSize={10}
-            fill="var(--border)"
+            fill="var(--chart-neutral)"
             position="insideLeft"
             style={{ textAnchor: "middle" }}
           />
         </YAxis>
         <Tooltip
           content={<CustomTooltip />}
-          cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+          cursor={{ stroke: "var(--chart-neutral)", strokeWidth: 1 }}
         />
         <Line
           type="monotone"

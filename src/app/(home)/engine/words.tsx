@@ -41,7 +41,7 @@ export const Words = memo(({ characters, isFocused }: WordsProps) => {
     <div
       ref={containerRef}
       className={cn(
-        "relative flex flex-wrap font-mono select-none",
+        "relative flex flex-wrap pl-2 font-mono select-none",
         (status === "idle" || status === "paused") &&
           showOverlay &&
           "opacity-50 blur-xs select-none",

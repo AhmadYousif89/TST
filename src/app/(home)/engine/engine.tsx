@@ -449,7 +449,7 @@ export const EngineContainer = () => {
             className="bg-background/5 absolute top-1/2 z-20 flex h-[inherit] w-full -translate-y-1/2 items-center justify-center"
           >
             <div className="flex flex-col items-center gap-3">
-              <p className="text-orange dark:text-yellow text-2 animate-pulse font-medium">
+              <p className="text-orange dark:text-yellow text-3 animate-pulse font-medium">
                 Test Paused
               </p>
               <p className="text-foreground text-5 flex items-center gap-1 font-medium tracking-wide">

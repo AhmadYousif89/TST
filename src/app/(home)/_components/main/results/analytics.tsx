@@ -29,6 +29,8 @@ export const AnalyticSection = ({
 
   const effectiveShowHistory = isScreenshotting || showHistory;
   const effectiveShowReplay = !isScreenshotting && showReplay;
+  const shouldShowHistory = effectiveShowHistory || isAnimatingHistory;
+  const shouldShowReplay = effectiveShowReplay || isAnimatingReplay;
 
   return (
     <div className="flex w-full flex-col">
@@ -42,17 +44,11 @@ export const AnalyticSection = ({
             isScreenshotting
               ? "block w-full"
               : "grid w-full transition-[grid-template-rows] duration-300 ease-in-out",
-            !isScreenshotting && effectiveShowHistory
-              ? "grid-rows-[1fr]"
-              : "grid-rows-[0fr]",
+            effectiveShowHistory ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
           )}
           onTransitionEnd={() => setIsAnimatingHistory(false)}
         >
-          <Activity
-            mode={
-              effectiveShowHistory || isAnimatingHistory ? "visible" : "hidden"
-            }
-          >
+          <Activity mode={shouldShowHistory ? "visible" : "hidden"}>
             <HeatmapHistory />
           </Activity>
         </div>
@@ -60,19 +56,13 @@ export const AnalyticSection = ({
         <div
           className={cn(
             isScreenshotting
-              ? "block w-full"
+              ? "grid-rows-[0fr]"
               : "grid w-full transition-[grid-template-rows] duration-300 ease-in-out",
-            !isScreenshotting && effectiveShowReplay
-              ? "grid-rows-[1fr]"
-              : "grid-rows-[0fr]",
+            effectiveShowReplay ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
           )}
           onTransitionEnd={() => setIsAnimatingReplay(false)}
         >
-          <Activity
-            mode={
-              effectiveShowReplay || isAnimatingReplay ? "visible" : "hidden"
-            }
-          >
+          <Activity mode={shouldShowReplay ? "visible" : "hidden"}>
             <ReplaySection />
           </Activity>
         </div>

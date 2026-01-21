@@ -13,11 +13,15 @@ export const useReplay = ({ keystrokes, onComplete, playSound }: Props) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastKeystrokesRef = useRef(keystrokes);
 
   // Reset when keystrokes change
   useEffect(() => {
-    setCurrentIndex(0);
-    setIsPlaying(false);
+    if (lastKeystrokesRef.current !== keystrokes) {
+      setCurrentIndex(0);
+      setIsPlaying(false);
+      lastKeystrokesRef.current = keystrokes;
+    }
   }, [keystrokes]);
 
   const play = useCallback(() => {
