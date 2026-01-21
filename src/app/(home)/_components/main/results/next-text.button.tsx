@@ -26,7 +26,7 @@ export const NextTextButton = ({
   nextTextId: nextTextIdProp,
 }: Props) => {
   const result = useOptionalResult();
-  const nextTextId = nextTextIdProp ?? result?.nextTextId;
+  const nextTextId = nextTextIdProp ?? result?.nextText?._id.toString() ?? null;
   const { updateURL, isPending } = useUrlState();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 

@@ -5,13 +5,14 @@ import { RandomButton } from "./random.button";
 import { EngineContainer } from "../../engine/engine";
 
 import { NextTextButton } from "./results/next-text.button";
+import { TextDoc } from "@/lib/types";
 
 type Props = {
-  nextTextId: string | null;
-  randomId: string | null;
+  nextText: TextDoc | null;
+  randomText: TextDoc | null;
 };
 
-export const MainContent = ({ nextTextId, randomId }: Props) => {
+export const MainContent = ({ nextText, randomText }: Props) => {
   return (
     <>
       <main className="flex grow flex-col">
@@ -20,10 +21,10 @@ export const MainContent = ({ nextTextId, randomId }: Props) => {
           <EngineContainer />
           <TextInfo />
           <div className="flex items-center justify-center gap-8 py-4 md:pt-8 md:pb-0">
-            <RandomButton randomId={randomId} />
-            {nextTextId && (
+            <RandomButton randomText={randomText} />
+            {nextText && (
               <NextTextButton
-                nextTextId={nextTextId}
+                nextTextId={nextText._id.toString()}
                 className="text-muted-foreground"
               />
             )}

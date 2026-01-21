@@ -25,13 +25,9 @@ export async function getInitialText(params: TextParams = {}) {
     const { db } = await connectToDB();
     const textDocs = await db.collection<TextDoc>("texts").findOne(filter);
 
-    if (!textDocs) return null;
-
-    const data: TextDoc = {
-      ...textDocs,
-      _id: textDocs._id.toString(),
-    };
-
+    const data = textDocs
+      ? { ...textDocs, _id: textDocs._id.toString() }
+      : null;
     return data;
   } catch (error) {
     console.error("Error fetching text data:", error);
@@ -53,7 +49,14 @@ export async function getRandomText({ id }: { id: string }) {
     const randomIndex = Math.floor(Math.random() * textDocs.length);
     const randomId = textDocs[randomIndex]._id;
 
-    return await db.collection<TextDoc>("texts").findOne({ _id: randomId });
+    const randomText = await db
+      .collection<TextDoc>("texts")
+      .findOne({ _id: randomId });
+
+    const data = randomText
+      ? { ...randomText, _id: randomText._id.toString() }
+      : null;
+    return data;
   } catch (error) {
     console.error("Error fetching random text data:", error);
     return null;
@@ -78,7 +81,10 @@ export async function getNextText({ id, category, difficulty }: TextParams) {
       .collection<TextDoc>("texts")
       .findOne({ _id: nextId });
 
-    return nextText;
+    const data = nextText
+      ? { ...nextText, _id: nextText._id.toString() }
+      : null;
+    return data;
   } catch (error) {
     console.error("Error fetching next text data:", error);
     return null;

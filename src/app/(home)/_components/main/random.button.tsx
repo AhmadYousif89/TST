@@ -11,21 +11,26 @@ import {
 import { RandomIcon } from "@/components/random.icon";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { TopLoader } from "@/components/top-loader";
+import { TextDoc } from "@/lib/types";
 
 type Props = {
-  randomId: string | null;
+  randomText: TextDoc | null;
 };
 
-export const RandomButton = ({ randomId }: Props) => {
+export const RandomButton = ({ randomText }: Props) => {
   const { resetSession } = useEngineActions();
   const { updateURL, isPending } = useUrlState();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
   const handleRandomize = () => {
-    if (!randomId) return;
+    if (!randomText) return;
 
+    const id = randomText._id.toString();
+    const category = randomText.category;
+    const difficulty = randomText.difficulty;
+
+    updateURL({ id, category, difficulty });
     resetSession({ showOverlay: false });
-    updateURL({ id: randomId });
   };
 
   return (

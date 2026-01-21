@@ -18,28 +18,45 @@ import {
   SelectSeparator,
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TopLoader } from "@/components/top-loader";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const TestSettings = () => {
-  const { updateURL, isPending } = useUrlState();
+  const { updateURL, getParam, isPending } = useUrlState();
   const { mode, textData } = useEngineConfig();
+
+  const buildURLParams = () => {
+    const params: Record<string, string> = {};
+    const difficulty = getParam("difficulty");
+    const category = getParam("category");
+    if (difficulty) params.difficulty = difficulty;
+    if (category) params.category = category;
+    return params;
+  };
 
   const handleDifficultyChange = (val: string) => {
     if (val) {
-      updateURL({ difficulty: val as TextDifficulty, id: null });
+      updateURL({
+        ...buildURLParams(),
+        difficulty: val as TextDifficulty,
+        id: null,
+      });
     }
   };
 
   const handleCategoryChange = (val: string) => {
     if (val) {
-      updateURL({ category: val as TextCategory, id: null });
+      updateURL({
+        ...buildURLParams(),
+        category: val as TextCategory,
+        id: null,
+      });
     }
   };
 
   const handleModeChange = (val: string) => {
     if (val) {
-      updateURL({ mode: val as TextMode });
+      updateURL({ ...buildURLParams(), mode: val as TextMode });
     }
   };
 

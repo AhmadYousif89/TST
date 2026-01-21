@@ -1,6 +1,6 @@
 "use client";
 
-import { AnonUserDoc, TypingSessionDoc } from "@/lib/types";
+import { AnonUserDoc, TypingSessionDoc, TextDoc } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { ResultProvider, useResult } from "./results/result.context";
@@ -14,7 +14,7 @@ type Props = {
   text: string;
   user: AnonUserDoc | null;
   session: TypingSessionDoc | null;
-  nextTextId?: string | null;
+  nextText?: TextDoc | null;
   currentAnonUserId?: string;
 };
 
@@ -22,7 +22,7 @@ export const Results = ({
   user,
   text,
   session,
-  nextTextId,
+  nextText,
   currentAnonUserId,
 }: Props) => {
   if (!session) return null;
@@ -35,7 +35,7 @@ export const Results = ({
       text={text}
       session={session}
       isOwner={isOwner}
-      nextTextId={nextTextId}
+      nextText={nextText}
     >
       <ResultLayout />
     </ResultProvider>

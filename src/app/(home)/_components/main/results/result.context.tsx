@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { createContext, useContext, ReactNode, useState } from "react";
 
-import { TypingSessionDoc, AnonUserDoc } from "@/lib/types";
+import { TypingSessionDoc, AnonUserDoc, TextDoc } from "@/lib/types";
 import { TopLoader } from "@/components/top-loader";
 
 type ResultContextType = {
@@ -11,7 +11,7 @@ type ResultContextType = {
   isOwner: boolean;
   session: TypingSessionDoc;
   user: AnonUserDoc | null;
-  nextTextId?: string | null;
+  nextText?: TextDoc | null;
   language?: "en" | "ar";
   loadingProgress: number;
   isScreenshotting: boolean;
@@ -37,7 +37,7 @@ export const ResultProvider = ({
   session,
   text,
   user,
-  nextTextId,
+  nextText,
   isOwner,
   language = "en",
 }: ResultProviderProps) => {
@@ -52,7 +52,7 @@ export const ResultProvider = ({
         session,
         isOwner,
         language,
-        nextTextId,
+        nextText,
         loadingProgress,
         isScreenshotting,
         setLoadingProgress,

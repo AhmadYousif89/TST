@@ -40,9 +40,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     getRandomText({ id: textData._id.toString() }),
   ]);
 
-  const nextId = nextText?._id?.toString() || null;
-  const randomId = randomText?._id?.toString() || null;
-
   return (
     <EngineProvider data={{ textData, mode }}>
       <SoundProvider>
@@ -54,11 +51,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               user={user}
               text={textData.text}
               session={sessionData}
-              nextTextId={nextId}
+              nextText={nextText}
               currentAnonUserId={currentAnonUserId}
             />
           ) : (
-            <MainContent nextTextId={nextId} randomId={randomId} />
+            <MainContent nextText={nextText} randomText={randomText} />
           )}
           <Footer />
         </div>
