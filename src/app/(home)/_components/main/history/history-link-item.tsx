@@ -91,14 +91,13 @@ export const HistoryLinkItem = ({
             })}
           </span>
         </div>
-
-        <div className="absolute top-1/2 -left-5 hidden -translate-y-1/2 group-hover:block has-data-[deleting=true]:block">
-          <DeleteSessionButton
-            sessionId={session._id.toString()}
-            className="size-4"
-          />
-        </div>
       </Link>
+      <div className="absolute top-1/2 left-1 hidden -translate-y-1/2 group-hover:block has-data-[deleting=true]:block">
+        <DeleteSessionButton
+          sessionId={session._id.toString()}
+          className="size-4"
+        />
+      </div>
     </div>
   );
 };
