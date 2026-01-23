@@ -26,7 +26,7 @@ export const TopLoader = ({
     <div className="pointer-events-none fixed inset-0 isolate z-1000 grid size-full place-items-start">
       <div
         className={cn(
-          "bg-green h-0.5 transition-all duration-500 ease-out",
+          "dark:bg-green h-0.5 bg-blue-400 transition-all duration-500 ease-out",
           className,
         )}
         style={{ width: `${progress}%` }}

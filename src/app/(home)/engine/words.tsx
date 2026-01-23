@@ -3,7 +3,7 @@ import { useRef, useState, useEffect, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { getCharStates } from "./engine-logic";
 import { useEngineKeystroke, useEngineConfig } from "./engine.context";
-import { CursorStyle } from "./types";
+import { CharState, CursorStyle } from "./types";
 
 // Group characters into words (prevents mid-word line breaks)
 export const wordsGroup = (characters: string[]) => {
@@ -68,51 +68,9 @@ export const Words = memo(({ characters, isFocused }: WordsProps) => {
 
 type WordProps = {
   word: { char: string; index: number }[];
-  charStates: any[];
+  charStates: CharState[];
   cursor: number;
   className?: string;
-};
-
-const areWordsEqual = (prev: WordProps, next: WordProps) => {
-  if (prev.className !== next.className) return false;
-  if (prev.word !== next.word) return false;
-
-  const startIndex = prev.word[0].index;
-  const endIndex = prev.word[prev.word.length - 1].index;
-
-  // If the cursor enters or leaves the word, it must re-render
-  const wasCursorInWord = prev.cursor >= startIndex && prev.cursor <= endIndex;
-  const isCursorInWord = next.cursor >= startIndex && next.cursor <= endIndex;
-  if (wasCursorInWord !== isCursorInWord) return false;
-
-  // If the cursor is inside the word and it moved, we need to re-render to update the active-cursor
-  if (isCursorInWord && prev.cursor !== next.cursor) return false;
-
-  // wordIsProcessed check (affects error underline)
-  const wasProcessed = prev.cursor > endIndex;
-  const isProcessed = next.cursor > endIndex;
-  if (wasProcessed !== isProcessed) return false;
-
-  // Check if character states changed (only for characters in this word)
-  for (let i = 0; i < prev.word.length; i++) {
-    const idx = prev.word[i].index;
-    const p = prev.charStates[idx];
-    const n = next.charStates[idx];
-
-    const charNotEqual =
-      p.state !== n.state ||
-      p.typedChar !== n.typedChar ||
-      p.extras?.length !== n.extras?.length;
-
-    if (charNotEqual) return false;
-
-    // Deep check for extras if they exist
-    if (p.extras && n.extras)
-      for (let j = 0; j < p.extras.length; j++)
-        if (p.extras[j] !== n.extras[j]) return false;
-  }
-
-  return true;
 };
 
 export const Word = memo(
@@ -165,6 +123,48 @@ export const Word = memo(
   },
   areWordsEqual,
 );
+
+function areWordsEqual(prev: WordProps, next: WordProps) {
+  if (prev.className !== next.className || prev.word !== next.word)
+    return false;
+
+  const startIndex = prev.word[0].index;
+  const endIndex = prev.word[prev.word.length - 1].index;
+
+  // If the cursor enters or leaves the word, it must re-render
+  const wasCursorInWord = prev.cursor >= startIndex && prev.cursor <= endIndex;
+  const isCursorInWord = next.cursor >= startIndex && next.cursor <= endIndex;
+  if (wasCursorInWord !== isCursorInWord) return false;
+
+  // If the cursor is inside the word and it moved, we need to re-render to update the active-cursor
+  if (isCursorInWord && prev.cursor !== next.cursor) return false;
+
+  // wordIsProcessed check (affects error underline)
+  const wasProcessed = prev.cursor > endIndex;
+  const isProcessed = next.cursor > endIndex;
+  if (wasProcessed !== isProcessed) return false;
+
+  // Check if character states changed (only for characters in this word)
+  for (let i = 0; i < prev.word.length; i++) {
+    const idx = prev.word[i].index;
+    const p = prev.charStates[idx];
+    const n = next.charStates[idx];
+
+    const charNotEqual =
+      p.state !== n.state ||
+      p.typedChar !== n.typedChar ||
+      p.extras?.length !== n.extras?.length;
+
+    if (charNotEqual) return false;
+
+    // Deep check for extras if they exist
+    if (p.extras && n.extras)
+      for (let j = 0; j < p.extras.length; j++)
+        if (p.extras[j] !== n.extras[j]) return false;
+  }
+
+  return true;
+}
 
 type CharacterProps = {
   char: string;

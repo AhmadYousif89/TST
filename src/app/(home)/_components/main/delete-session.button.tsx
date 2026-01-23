@@ -1,7 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
-
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TrashIcon } from "@/components/trash.icon";
@@ -13,6 +12,7 @@ import {
   ResponsiveTooltipContent,
   ResponsiveTooltipTrigger,
 } from "@/components/responsive-tooltip";
+import { useEngineActions, useEngineConfig } from "../../engine/engine.context";
 
 type Props = {
   sessionId: string;
@@ -25,24 +25,36 @@ export const DeleteSessionButton = ({
   className,
   inSession,
 }: Props) => {
-  const [isPending, startTransition] = useTransition();
-  const { updateURL, getParam } = useUrlState();
+  const { getParam } = useUrlState();
+  const { updateURL } = useEngineActions();
+  const { isPending, pendingAction } = useEngineConfig();
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const isCurrentSession = getParam("sid") === sessionId;
+  const isPendingDelete =
+    (isPending && pendingAction === "delete-session" && isCurrentSession) ||
+    isDeleting;
+
+  const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!confirm("Are you sure you want to delete this session?")) return;
 
-    startTransition(async () => {
+    setIsDeleting(true);
+    try {
       const res = await deleteSessionAction(sessionId);
       if (res.success) {
         // If we are currently viewing this session, navigate home
-        if (getParam("sid") === sessionId) updateURL({ sid: null });
+        if (isCurrentSession) updateURL({ sid: null }, "delete-session");
       } else {
         alert(res.error);
+        setIsDeleting(false);
       }
-    });
+    } catch (error) {
+      console.error(error);
+      setIsDeleting(false);
+    }
   };
 
   if (inSession) {
@@ -52,14 +64,14 @@ export const DeleteSessionButton = ({
           <Button
             size="icon"
             variant="ghost"
-            disabled={isPending}
+            disabled={isPendingDelete}
             onClick={handleDelete}
             className={cn(
-              "text-muted-foreground hover:bg-red/10 hover:text-red",
+              "text-muted-foreground hover:bg-red/10 hover:text-red dark:hover:bg-red/10 dark:hover:text-red",
               className,
             )}
           >
-            {isPending ? (
+            {isPendingDelete ? (
               <RandomIcon className="animate-spin" />
             ) : (
               <TrashIcon className="size-5" />
@@ -77,15 +89,15 @@ export const DeleteSessionButton = ({
     <Button
       size="icon"
       variant="ghost"
-      data-deleting={isPending}
-      disabled={isPending}
+      disabled={isPendingDelete}
+      data-deleting={isPendingDelete}
       onClick={handleDelete}
       className={cn(
-        "text-muted-foreground hover:bg-red/10 hover:text-red data-[deleting=true]:text-red",
+        "text-muted-foreground hover:bg-red/10 hover:text-red data-[deleting=true]:text-red dark:hover:bg-red/10 dark:hover:text-red",
         className,
       )}
     >
-      {isPending ? (
+      {isPendingDelete ? (
         <RandomIcon className="animate-spin" />
       ) : (
         <TrashIcon className="size-5" />
