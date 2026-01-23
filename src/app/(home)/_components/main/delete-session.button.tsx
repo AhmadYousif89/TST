@@ -31,16 +31,13 @@ export const DeleteSessionButton = ({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isCurrentSession = getParam("sid") === sessionId;
-  const isPendingDelete =
-    (isPending && pendingAction === "delete-session" && isCurrentSession) ||
-    isDeleting;
+  // Toolbar delete btn should receive both local and global pending state
+  const isPendingDelete = inSession
+    ? (isPending && pendingAction === "delete-session" && isCurrentSession) ||
+      isDeleting
+    : isDeleting; // History list items should only show local deletion state
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!confirm("Are you sure you want to delete this session?")) return;
-
+  const handleDelete = async () => {
     setIsDeleting(true);
     try {
       const res = await deleteSessionAction(sessionId);
@@ -57,6 +54,14 @@ export const DeleteSessionButton = ({
     }
   };
 
+  const onOpenConfirm = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const msg =
+      "Are you sure you want to delete this session? This action cannot be undone.";
+    if (confirm(msg)) handleDelete();
+  };
+
   if (inSession) {
     return (
       <ResponsiveTooltip>
@@ -65,7 +70,7 @@ export const DeleteSessionButton = ({
             size="icon"
             variant="ghost"
             disabled={isPendingDelete}
-            onClick={handleDelete}
+            onClick={onOpenConfirm}
             className={cn(
               "text-muted-foreground hover:bg-red/10 hover:text-red dark:hover:bg-red/10 dark:hover:text-red",
               className,
@@ -91,7 +96,7 @@ export const DeleteSessionButton = ({
       variant="ghost"
       disabled={isPendingDelete}
       data-deleting={isPendingDelete}
-      onClick={handleDelete}
+      onClick={onOpenConfirm}
       className={cn(
         "text-muted-foreground hover:bg-red/10 hover:text-red data-[deleting=true]:text-red dark:hover:bg-red/10 dark:hover:text-red",
         className,

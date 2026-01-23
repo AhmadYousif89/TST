@@ -28,7 +28,7 @@ export const HistoryLinkItem = ({
         onClick={onSelect}
         className={cn(
           "relative flex w-full items-center justify-between rounded-md border p-4 transition-all duration-200",
-          "hover:border-muted-foreground hover:bg-blue-400/5",
+          "hover:border-muted dark:hover:border-muted-foreground hover:bg-blue-400/5",
           session.isInvalid && "opacity-60",
           isActive && "border-muted-foreground bg-blue-400/5",
           isBest &&
