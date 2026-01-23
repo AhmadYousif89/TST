@@ -1,6 +1,6 @@
 "use client";
 
-import { AnonUserDoc, TypingSessionDoc, TextDoc } from "@/lib/types";
+import { TypingSessionDoc, TextDoc } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { ResultProvider, useResult } from "./results/result.context";
@@ -12,14 +12,12 @@ import { SharedRound } from "./results/shared.result";
 
 type Props = {
   text: string;
-  user: AnonUserDoc | null;
   session: TypingSessionDoc | null;
   nextText?: TextDoc | null;
   currentAnonUserId?: string;
 };
 
 export const Results = ({
-  user,
   text,
   session,
   nextText,
@@ -31,7 +29,6 @@ export const Results = ({
 
   return (
     <ResultProvider
-      user={user}
       text={text}
       session={session}
       isOwner={isOwner}
@@ -43,11 +40,11 @@ export const Results = ({
 };
 
 const ResultLayout = () => {
-  const { session, isScreenshotting, isOwner, user } = useResult();
+  const { session, isScreenshotting, isOwner } = useResult();
+  const sessionCount = session.validSessionsCount || 0;
 
-  const isNewRecord =
-    user && user.totalSessions > 1 && session.wpm >= user.bestWpm;
-  const isBaseline = !!session.isFirst && !isNewRecord;
+  const isNewRecord = !!session.isBest && sessionCount > 1;
+  const isBaseline = !!session.isFirst;
 
   return (
     <main className="py-4 md:py-6">
@@ -62,10 +59,10 @@ const ResultLayout = () => {
           <InvalidRound />
         ) : !isOwner ? (
           <SharedRound />
-        ) : isBaseline ? (
-          <BaselineRound />
         ) : isNewRecord ? (
           <NewRecordRound />
+        ) : isBaseline ? (
+          <BaselineRound />
         ) : (
           <NormalRound />
         )}

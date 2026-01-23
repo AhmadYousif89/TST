@@ -1,73 +1,33 @@
 "use client";
 
 import { useMemo } from "react";
-import { Keystroke } from "@/app/(home)/engine/types";
-import { getModeLabel } from "@/app/(home)/engine/engine-logic";
+
+import {
+  getModeLabel,
+  calculateRawWpm,
+  calculateConsistency,
+} from "@/app/(home)/engine/engine-logic";
 import { useResult } from "./result.context";
 
 export const SessionStatistics = () => {
   const { session } = useResult();
 
   const stats = useMemo(() => {
-    if (!session.keystrokes || session.keystrokes.length === 0) {
-      return {
-        raw: 0,
-        consistency: 0,
-        testType: { mode: session.mode, info: session.category },
-      };
-    }
+    // If we have keystrokes, calculate on the fly for maximum accuracy
+    // Otherwise, use the pre-calculated stats from the session doc
+    const raw =
+      session.keystrokes && session.keystrokes.length > 0
+        ? calculateRawWpm(session.keystrokes.length, session.durationMs)
+        : session.rawWpm || 0;
 
-    const durationMin = session.durationMs / 60000;
-
-    // Raw WPM: (Total Keystrokes / 5) / Duration (min)
-    const totalKeystrokes = session.keystrokes.length;
-    const raw = Math.round(totalKeystrokes / 5 / durationMin);
-
-    // Consistency: We break down the session into buckets (e.g. 1 second)
-    const durationSec = Math.ceil(session.durationMs / 1000);
-    const wpmValues: number[] = [];
-
-    for (let s = 1; s <= durationSec; s++) {
-      const startTime = (s - 1) * 1000;
-      const bucketDurationMs = Math.min(1000, session.durationMs - startTime);
-      const endTime = startTime + bucketDurationMs;
-
-      const ksInSecond = session.keystrokes.filter(
-        (k) => k.timestampMs >= startTime && k.timestampMs < endTime,
-      );
-
-      const correctInSecond = ksInSecond.filter(
-        (k) => k.isCorrect && k.typedChar !== "Backspace",
-      ).length;
-
-      // WPM for this second = (correct / 5) / (duration / 60)
-      const instantWpm = correctInSecond / 5 / (bucketDurationMs / 60000);
-      wpmValues.push(instantWpm);
-    }
-
-    // Calculate Mean
-    const mean = wpmValues.reduce((a, b) => a + b, 0) / wpmValues.length;
-
-    // Calculate Variance
-    const variance =
-      wpmValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) /
-      wpmValues.length;
-
-    // Calculate Standard Deviation
-    const stdDev = Math.sqrt(variance);
-
-    let consistency = 0;
-    if (mean > 0) {
-      const cv = stdDev / mean; // Coefficient of Variation
-      const slope = 70;
-      // Using a sigmoid linear for simplicity with a slope factor of 70
-      // making the curve steeper and more forgiving to variations
-      consistency = Math.max(0, 100 - cv * slope);
-    }
+    const consistency =
+      session.keystrokes && session.keystrokes.length > 0
+        ? calculateConsistency(session.keystrokes, session.durationMs)
+        : session.consistency || 0;
 
     return {
       raw,
-      consistency: Math.round(consistency),
+      consistency,
       testType: {
         mode: getModeLabel(session.mode),
         cat: session.category,

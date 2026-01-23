@@ -51,12 +51,16 @@ export type TypingSessionDoc = {
   charCount: number;
   errorCount: number;
   durationMs: number;
+  rawWpm: number;
+  consistency: number;
   isInvalid?: boolean; // For spam or invalid sessions
   keystrokes?: KeystrokeDoc[]; // Only for populating session analytics
 
   startedAt: Date;
   finishedAt: Date;
   isFirst?: boolean;
+  isBest?: boolean;
+  validSessionsCount?: number;
 };
 
 // keystrokes collection
@@ -68,3 +72,14 @@ export type KeystrokeDoc = {
   anonUserId: string;
   createdAt: Date;
 } & Keystroke;
+
+export type AnonUserSessions = {
+  trys: number;
+  bestWPM: number;
+  bestAccuracy: number;
+  sids: string[]; // Session IDs
+};
+
+export type AnonUserId = string;
+
+export type RecordOfAnonUserSessions = Record<AnonUserId, AnonUserSessions>;

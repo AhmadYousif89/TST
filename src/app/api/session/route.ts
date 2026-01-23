@@ -10,6 +10,10 @@ import {
   TypingSessionDoc,
 } from "@/lib/types";
 import { Keystroke } from "@/app/(home)/engine/types";
+import {
+  calculateConsistency,
+  calculateRawWpm,
+} from "@/app/(home)/engine/engine-logic";
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
@@ -64,9 +68,14 @@ export async function POST(req: NextRequest) {
     let insertedId: ObjectId | string = "";
 
     await dbSession.withTransaction(async () => {
+      const rawWpm = calculateRawWpm(ks.length, data.durationMs);
+      const consistency = calculateConsistency(ks, data.durationMs);
+
       const sessionData = {
         anonUserId,
         ...data,
+        rawWpm,
+        consistency,
         isInvalid: isSpam,
         startedAt: new Date(data.startedAt),
         finishedAt: new Date(data.finishedAt),

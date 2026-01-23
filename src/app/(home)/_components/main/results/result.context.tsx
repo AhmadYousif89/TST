@@ -3,14 +3,13 @@
 import { createPortal } from "react-dom";
 import { createContext, useContext, ReactNode, useState } from "react";
 
-import { TypingSessionDoc, AnonUserDoc, TextDoc } from "@/lib/types";
+import { TypingSessionDoc, TextDoc } from "@/lib/types";
 import { TopLoader } from "@/components/top-loader";
 
 type ResultContextType = {
   text: string;
   isOwner: boolean;
   session: TypingSessionDoc;
-  user: AnonUserDoc | null;
   nextText?: TextDoc | null;
   language?: "en" | "ar";
   loadingProgress: number;
@@ -36,7 +35,6 @@ export const ResultProvider = ({
   children,
   session,
   text,
-  user,
   nextText,
   isOwner,
   language = "en",
@@ -48,7 +46,6 @@ export const ResultProvider = ({
     <ResultContext.Provider
       value={{
         text,
-        user,
         session,
         isOwner,
         language,

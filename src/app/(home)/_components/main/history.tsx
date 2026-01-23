@@ -19,10 +19,28 @@ export const HistoryPanel = async () => {
   // Find the all-time best valid session
   const bestSession =
     validSessions.length > 0
-      ? validSessions.reduce(
-          (best, s) => (s.wpm > best.wpm ? s : best),
-          validSessions[0],
-        )
+      ? validSessions.reduce((best, curr) => {
+          // Compare WPM
+          if (curr.wpm > best.wpm) return curr;
+          if (curr.wpm < best.wpm) return best;
+          // Tie-break: Accuracy
+          if (curr.accuracy > best.accuracy) return curr;
+          if (curr.accuracy < best.accuracy) return best;
+          // Tie-break: Raw WPM
+          const sRaw = curr.rawWpm || 0;
+          const bestRaw = best.rawWpm || 0;
+          if (sRaw > bestRaw) return curr;
+          if (sRaw < bestRaw) return best;
+          // Tie-break: Consistency
+          const sConsist = curr.consistency || 0;
+          const bestConsist = best.consistency || 0;
+          if (sConsist > bestConsist) return curr;
+          if (sConsist < bestConsist) return best;
+          // Final Tie-break: Date (Newer wins)
+          return new Date(curr.finishedAt) > new Date(best.finishedAt)
+            ? curr
+            : best;
+        }, validSessions[0])
       : null;
 
   // Sort valid: best first, then by date

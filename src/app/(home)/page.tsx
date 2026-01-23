@@ -48,7 +48,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           <LoadingOverlay />
           {!!sessionData ? (
             <Results
-              user={user}
               text={textData.text}
               session={sessionData}
               nextText={nextText}

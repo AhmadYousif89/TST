@@ -42,6 +42,19 @@ export const calculateWpm = (
 };
 
 /**
+ * Calculates raw words per minute (Raw WPM).
+ * Formula: (Total Keystrokes / 5) / Duration (min)
+ */
+export const calculateRawWpm = (
+  totalKeystrokes: number,
+  durationMs: number,
+): number => {
+  const durationMin = durationMs / 60000;
+  if (durationMin <= 0) return 0;
+  return Math.round(totalKeystrokes / 5 / durationMin);
+};
+
+/**
  * Calculates typing accuracy percentage.
  * Formula: (Correct Keystrokes / Total Keystrokes (excluding Backspace)) * 100
  */
@@ -51,6 +64,52 @@ export const calculateAccuracy = (
 ): number => {
   if (totalTyped === 0) return 100;
   return Math.round((correctKeys / totalTyped) * 100);
+};
+
+/**
+ * Calculates typing consistency percentage.
+ * Breakdown based on variation in WPM across 1-second interval buckets.
+ */
+export const calculateConsistency = (
+  keystrokes: Keystroke[],
+  durationMs: number,
+): number => {
+  if (!keystrokes || keystrokes.length === 0 || durationMs <= 0) return 0;
+
+  const durationSec = Math.ceil(durationMs / 1000);
+  const wpmValues: number[] = [];
+
+  for (let s = 1; s <= durationSec; s++) {
+    const startTime = (s - 1) * 1000;
+    const bucketDurationMs = Math.min(1000, durationMs - startTime);
+    const endTime = startTime + bucketDurationMs;
+
+    const ksInSecond = keystrokes.filter(
+      (k) => k.timestampMs >= startTime && k.timestampMs < endTime,
+    );
+
+    const correctInSecond = ksInSecond.filter(
+      (k) => k.isCorrect && k.typedChar !== "Backspace",
+    ).length;
+
+    // WPM for this second = (correct / 5) / (duration / 60)
+    const instantWpm = correctInSecond / 5 / (bucketDurationMs / 60000);
+    wpmValues.push(instantWpm);
+  }
+
+  const mean = wpmValues.reduce((a, b) => a + b, 0) / wpmValues.length;
+  if (mean <= 0) return 0;
+
+  const variance =
+    wpmValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / wpmValues.length;
+  const stdDev = Math.sqrt(variance);
+  const cv = stdDev / mean; // Coefficient of Variation
+  // 70 is the slope of the line that goes from (0, 100) to (1, 0)
+  // So if CV is 0, consistency is 100, and if CV is 1, consistency is 30 (100 - 70)
+  const slope = 70;
+  const consistency = Math.max(0, 100 - cv * slope);
+
+  return Math.round(consistency);
 };
 
 /**
@@ -190,6 +249,9 @@ export const isWordPerfect = (
   return lastCharExtras === 0;
 };
 
+/**
+ * Returns the start and end indices of each word in the text.
+ */
 export function getWordRanges(text: string) {
   let startIdxPointer = 0;
   const words = text.split(" ");
