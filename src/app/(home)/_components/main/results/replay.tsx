@@ -6,9 +6,10 @@ import { useResult } from "./result.context";
 import { Button } from "@/components/ui/button";
 import { useSound } from "@/app/(home)/engine/sound.context";
 import { getCharStates } from "@/app/(home)/engine/engine-logic";
-import { wordsGroup, Cursor, Word } from "@/app/(home)/engine/words";
+import { wordsGroup, Word } from "@/app/(home)/engine/words";
 
 import { useReplay } from "./use-replay";
+import { Cursor } from "@/app/(home)/engine/cursor";
 
 export const ReplaySection = () => {
   const { session, text = "" } = useResult();
@@ -157,6 +158,7 @@ export const ReplaySection = () => {
           cursor={cursorIndex}
           extraOffset={extraOffset}
           cursorStyle="underline"
+          disableOverlayStyles
         />
         {groupedWords.map((word, wordIndex) => (
           <Word

@@ -1,9 +1,9 @@
-import { useRef, useState, useEffect, memo, useMemo } from "react";
+import { useRef, memo, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 import { getCharStates } from "./engine-logic";
 import { useEngineKeystroke, useEngineConfig } from "./engine.context";
-import { CharState, CursorStyle } from "./types";
+import { CharState } from "./types";
 
 // Group characters into words (prevents mid-word line breaks)
 export const wordsGroup = (characters: string[]) => {
@@ -23,10 +23,9 @@ export const wordsGroup = (characters: string[]) => {
 
 type WordsProps = {
   characters: string[];
-  isFocused: boolean;
 };
 
-export const Words = memo(({ characters, isFocused }: WordsProps) => {
+export const Words = memo(({ characters }: WordsProps) => {
   const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
   const { status, showOverlay } = useEngineConfig();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,17 +42,9 @@ export const Words = memo(({ characters, isFocused }: WordsProps) => {
       className={cn(
         "relative flex flex-wrap pl-2 font-mono select-none",
         "transition-[opacity,filter] duration-300 ease-in-out",
-        (status === "idle" || status === "paused") &&
-          showOverlay &&
-          "opacity-50 blur-xs select-none",
+        showOverlay && "opacity-50 blur-xs select-none",
       )}
     >
-      <Cursor
-        containerRef={containerRef}
-        isFocused={isFocused}
-        cursor={cursor}
-        extraOffset={extraOffset}
-      />
       {groupedWords.map((word, wordIndex) => (
         <Word
           key={wordIndex}
@@ -203,89 +194,3 @@ export const Character = memo(
 );
 
 Character.displayName = "Character";
-
-type CursorProps = {
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  isFocused: boolean;
-  cursor: number;
-  extraOffset: number;
-  cursorStyle?: CursorStyle;
-};
-
-type CursorPosition = {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-};
-
-export const Cursor = memo(
-  ({
-    containerRef,
-    isFocused,
-    cursor,
-    extraOffset,
-    cursorStyle: cursorStyleProp,
-  }: CursorProps) => {
-    const { cursorStyle: configCursorStyle } = useEngineConfig();
-    const cursorStyle = cursorStyleProp || configCursorStyle;
-    const [position, setPosition] = useState<CursorPosition>({
-      top: 0,
-      left: 0,
-      width: 0,
-      height: 0,
-    });
-
-    useEffect(() => {
-      if (!containerRef.current) return;
-
-      const cursorEl = containerRef.current.querySelector(
-        ".active-cursor",
-      ) as HTMLElement;
-
-      if (cursorEl) {
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const cursorRect = cursorEl.getBoundingClientRect();
-
-        setPosition({
-          top: cursorRect.top - containerRect.top,
-          left: cursorRect.left - containerRect.left,
-          width: cursorRect.width,
-          height: cursorRect.height,
-        });
-      }
-    }, [containerRef, cursor, extraOffset]);
-
-    return (
-      <div
-        className={cn(
-          "pointer-events-none absolute z-10 rounded bg-blue-400 transition-all duration-100 ease-linear",
-          isFocused && cursor === 0 && "animate-blink",
-          !isFocused && "bg-blue-400/50",
-          cursorStyle === "box" &&
-            "border border-blue-400 bg-transparent opacity-50",
-        )}
-        style={{
-          top: position.top || 0,
-          left: position.left || 0,
-          width:
-            cursorStyle === "box" || cursorStyle === "underline"
-              ? position.width || 0
-              : 3,
-          height:
-            cursorStyle === "box"
-              ? position.height || 0
-              : cursorStyle === "underline"
-                ? 2
-                : (position.height || 0) * 0.8,
-          transform:
-            cursorStyle === "box"
-              ? "none"
-              : cursorStyle === "underline"
-                ? `translateY(${(position.height || 0) - 2}px)`
-                : `translateY(${(position.height || 0) * 0.125}px)`,
-        }}
-      />
-    );
-  },
-);

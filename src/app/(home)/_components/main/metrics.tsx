@@ -38,7 +38,7 @@ export const Metrics = () => {
           <span className="text-muted-foreground text-3-mobile md:text-3">
             Time:
           </span>
-          <span className={`text-2 ${timeLeftStyle}`}>
+          <span className={`text-2 min-w-20 ${timeLeftStyle}`}>
             {formatTime(timeLeft)}
           </span>
         </div>
