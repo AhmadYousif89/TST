@@ -23,10 +23,11 @@ const SOUND_CONFIG: SoundFile = {
   typewriter: { folder: "typewriter", prefix: "typewriter", count: 12 },
 };
 
+export type SoundType = "keystroke" | "warning" | "flash";
+
 type SoundContextType = {
-  playSound: () => void;
-  playWarningSound: () => void;
-  stopWarningSound: () => void;
+  playSound: (type?: SoundType) => void;
+  stopSound: (type: SoundType) => void;
 };
 
 const SoundContext = createContext<SoundContextType | null>(null);
@@ -36,8 +37,10 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const buffersCacheRef = useRef<Map<string, AudioBuffer[]>>(new Map());
-  const warningBufferRef = useRef<AudioBuffer | null>(null);
-  const warningSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const systemBuffersRef = useRef<Map<SoundType, AudioBuffer>>(new Map());
+  const activeSourcesRef = useRef<Map<SoundType, AudioBufferSourceNode>>(
+    new Map(),
+  );
 
   const initAudioCtx = useCallback(() => {
     if (audioCtxRef.current) return audioCtxRef.current;
@@ -48,9 +51,17 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
       .then((res) => res.arrayBuffer())
       .then((data) => ctx.decodeAudioData(data))
       .then((buffer) => {
-        warningBufferRef.current = buffer;
+        systemBuffersRef.current.set("warning", buffer);
       })
       .catch((err) => console.error("Failed to load warning sound:", err));
+
+    fetch("/assets/sounds/flash.mp3")
+      .then((res) => res.arrayBuffer())
+      .then((data) => ctx.decodeAudioData(data))
+      .then((buffer) => {
+        systemBuffersRef.current.set("flash", buffer);
+      })
+      .catch((err) => console.error("Failed to load flash sound:", err));
 
     return ctx;
   }, []);
@@ -104,78 +115,71 @@ export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const playSound = useCallback(async () => {
-    if (isMuted || soundName === "none") return;
-
-    const ctx = initAudioCtx();
-    if (!ctx) return;
-
-    const buffers = await loadSoundSet(soundName);
-    if (buffers.length === 0) return;
-
-    if (ctx.state === "suspended") await ctx.resume();
-
-    const source = ctx.createBufferSource();
-    const randomIndex = Math.floor(Math.random() * buffers.length);
-    source.buffer = buffers[randomIndex];
-    source.playbackRate.value = 0.96 + Math.random() * 0.04;
-
-    const gainNode = ctx.createGain();
-    gainNode.gain.value = volume;
-
-    source.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    source.start(0);
-  }, [loadSoundSet, isMuted, soundName, volume, initAudioCtx]);
-
-  const playWarningSound = useCallback(async () => {
-    if (isMuted) return;
-
-    const ctx = initAudioCtx();
-    const buffer = warningBufferRef.current;
-    if (!ctx || !buffer) return;
-
-    if (ctx.state === "suspended") await ctx.resume();
-
-    if (warningSourceRef.current) {
+  const stopSound = useCallback((type: SoundType) => {
+    const source = activeSourcesRef.current.get(type);
+    if (source) {
       try {
-        warningSourceRef.current.stop();
+        source.stop();
       } catch {
         // Ignore if already stopped
       }
-      warningSourceRef.current = null;
-    }
-
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-
-    const gainNode = ctx.createGain();
-    gainNode.gain.value = volume;
-    gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.9);
-
-    source.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    source.start(0);
-    source.stop(ctx.currentTime + 0.9);
-
-    warningSourceRef.current = source;
-  }, [isMuted, volume, initAudioCtx]);
-
-  const stopWarningSound = useCallback(() => {
-    if (warningSourceRef.current) {
-      try {
-        warningSourceRef.current.stop();
-      } catch {
-        // Ignore if already stopped
-      }
-      warningSourceRef.current = null;
+      activeSourcesRef.current.delete(type);
     }
   }, []);
 
+  const playSound = useCallback(
+    async (type: SoundType = "keystroke") => {
+      if (isMuted) return;
+
+      const ctx = initAudioCtx();
+      if (!ctx) return;
+      if (ctx.state === "suspended") await ctx.resume();
+
+      if (type === "keystroke") {
+        if (soundName === "none") return;
+        const buffers = await loadSoundSet(soundName);
+        if (buffers.length === 0) return;
+
+        const source = ctx.createBufferSource();
+        const randomIndex = Math.floor(Math.random() * buffers.length);
+        source.buffer = buffers[randomIndex];
+        source.playbackRate.value = 0.96 + Math.random() * 0.04;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = volume;
+
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.start(0);
+      } else {
+        const buffer = systemBuffersRef.current.get(type);
+        if (!buffer) return;
+
+        stopSound(type);
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = volume;
+
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.start(0);
+
+        if (type === "warning") {
+          gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.9);
+          source.stop(ctx.currentTime + 0.9);
+        }
+
+        activeSourcesRef.current.set(type, source);
+      }
+    },
+    [loadSoundSet, isMuted, soundName, volume, initAudioCtx, stopSound],
+  );
+
   return (
-    <SoundContext.Provider
-      value={{ playSound, playWarningSound, stopWarningSound }}
-    >
+    <SoundContext.Provider value={{ playSound, stopSound }}>
       {children}
     </SoundContext.Provider>
   );

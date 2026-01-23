@@ -6,7 +6,7 @@ import { useEngineConfig, useEngineMetrics } from "../../engine/engine.context";
 export const TimeWarning = () => {
   const { timeLeft } = useEngineMetrics();
   const { status, mode } = useEngineConfig();
-  const { playWarningSound, stopWarningSound } = useSound();
+  const { playSound, stopSound } = useSound();
 
   const lastPlayedTimeRef = useRef<number | null>(null);
 
@@ -18,14 +18,14 @@ export const TimeWarning = () => {
       timeLeft > 0
     ) {
       if (lastPlayedTimeRef.current !== timeLeft) {
-        playWarningSound();
+        playSound("warning");
         lastPlayedTimeRef.current = timeLeft;
       }
     } else {
-      stopWarningSound();
+      stopSound("warning");
       lastPlayedTimeRef.current = null;
     }
-  }, [timeLeft, status, mode, playWarningSound, stopWarningSound]);
+  }, [timeLeft, status, mode, playSound, stopSound]);
 
   return null;
 };

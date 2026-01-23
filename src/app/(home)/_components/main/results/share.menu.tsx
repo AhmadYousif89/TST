@@ -16,8 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShareIcon } from "@/components/share.icon";
 import { useResult } from "./result.context";
+import { useSound } from "@/app/(home)/engine/sound.context";
 
 export const ShareMenu = () => {
+  const { playSound } = useSound();
   const { setIsScreenshotting, setLoadingProgress } = useResult();
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -45,10 +47,7 @@ export const ShareMenu = () => {
     setIsScreenshotting(true);
     setLoadingProgress(1);
 
-    const audio = new Audio("/assets/sounds/flash.mp3");
-    audio
-      .play()
-      .catch((err) => console.error("Failed to play shutter sound", err));
+    playSound("flash");
 
     try {
       // Small delay to allow the instant layout shift or transitions to finish
