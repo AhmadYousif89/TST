@@ -172,11 +172,13 @@ export const getCharStates = (
     }));
 
   for (const k of keystrokes || []) {
+    const state = states[k.charIndex];
+    if (!state) continue;
+
     const char = characters[k.charIndex];
     const isBackspace = k.typedChar === "Backspace";
 
     if (isBackspace) {
-      const state = states[k.charIndex];
       // Prioritize clearing the main character first
       if (state.typedChar !== "") {
         state.state = "not-typed";
@@ -190,8 +192,6 @@ export const getCharStates = (
       }
       continue;
     }
-
-    const state = states[k.charIndex];
 
     // If it's a space but we typed a letter, it's an extra
     if (char === " " && k.typedChar !== " ") {

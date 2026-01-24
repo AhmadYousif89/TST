@@ -423,6 +423,40 @@ describe("getCharStates - additional edge cases", () => {
   });
 });
 
+describe("getCharStates - robustness", () => {
+  it("ignores keystrokes with out-of-bounds charIndex", () => {
+    const chars = "abc".split("");
+    const keystrokes: Keystroke[] = [
+      {
+        charIndex: 0,
+        expectedChar: "a",
+        typedChar: "a",
+        isCorrect: true,
+        timestampMs: 100,
+      },
+      {
+        charIndex: 3, // Out of bounds
+        expectedChar: " ",
+        typedChar: " ",
+        isCorrect: false,
+        timestampMs: 200,
+      },
+      {
+        charIndex: 5, // Way out of bounds
+        expectedChar: "x",
+        typedChar: "x",
+        isCorrect: false,
+        timestampMs: 300,
+      },
+    ];
+
+    // Should not throw and should only process valid indices
+    const states = getCharStates(chars, keystrokes);
+    expect(states.length).toBe(3);
+    expect(states[0].state).toBe("correct");
+  });
+});
+
 /* ------------------ isWordPerfect ------------------ */
 describe("isWordPerfect", () => {
   it("returns true for perfect range", () => {

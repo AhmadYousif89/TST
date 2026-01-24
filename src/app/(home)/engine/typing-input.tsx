@@ -48,7 +48,7 @@ export const TypingInput = ({
   };
 
   const handleTyping = (typedChar: string) => {
-    if (status === "finished") return;
+    if (status === "finished" || cursor >= characters.length) return;
     if (typedChar === " " && cursor === 0) return;
 
     playSound();
