@@ -1,9 +1,9 @@
-import { useRef, memo, useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
+import { CharState } from "./types";
 import { getCharStates } from "./engine-logic";
 import { useEngineKeystroke, useEngineConfig } from "./engine.context";
-import { CharState } from "./types";
 
 // Group characters into words (prevents mid-word line breaks)
 export const wordsGroup = (characters: string[]) => {
@@ -26,9 +26,8 @@ type WordsProps = {
 };
 
 export const Words = memo(({ characters }: WordsProps) => {
+  const { showOverlay } = useEngineConfig();
   const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
-  const { status, showOverlay } = useEngineConfig();
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
   const charStates = useMemo(
@@ -38,7 +37,6 @@ export const Words = memo(({ characters }: WordsProps) => {
 
   return (
     <div
-      ref={containerRef}
       className={cn(
         "relative flex flex-wrap pl-2 font-mono select-none",
         "transition-[opacity,filter] duration-300 ease-in-out",

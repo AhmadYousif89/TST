@@ -72,7 +72,7 @@ export const Cursor = memo(
           cursorStyle === "box" && "border-2 border-blue-400/90 bg-transparent",
         )}
         style={{
-          top: position.top || 0 + (cursorStyle === "box" ? 5 : 0),
+          top: (position.top || 0) + (cursorStyle === "box" ? 4 : 0),
           left: position.left || 0,
           width:
             cursorStyle === "box" || cursorStyle === "underline"
