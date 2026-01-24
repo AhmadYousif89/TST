@@ -1,6 +1,7 @@
+import { Activity } from "react";
+
 import { cn } from "@/lib/utils";
 import { useEngineConfig, useEngineMetrics } from "./engine.context";
-import { Activity } from "react";
 
 export const LiveMetrics = () => {
   const { status } = useEngineConfig();
@@ -10,7 +11,8 @@ export const LiveMetrics = () => {
     <Activity mode={status === "typing" ? "visible" : "hidden"}>
       <div
         className={cn(
-          "text-1 absolute top-1/2 left-4 hidden -translate-y-52 grid-flow-col items-center gap-4 font-mono duration-500 ease-in-out md:grid",
+          "absolute top-1/2 left-4 -translate-y-52",
+          "text-1 hidden min-w-52 grid-cols-2 items-center font-mono duration-500 ease-in-out md:grid",
           status === "typing" && "animate-in fade-in",
         )}
       >
@@ -18,7 +20,6 @@ export const LiveMetrics = () => {
           <span className="text-5 text-muted-foreground">WPM</span>
           <span className="text-blue-400">{wpm}</span>
         </div>
-        <span className="bg-border h-full w-px rounded" />
         <div className="grid">
           <span className="text-5 text-muted-foreground">Timer</span>
           <span className="text-blue-400">{timeLeft}</span>

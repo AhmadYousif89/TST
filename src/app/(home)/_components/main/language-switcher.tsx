@@ -36,7 +36,7 @@ export const LanguageSwitcher = () => {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="text-muted-foreground gap-3 hover:bg-transparent! hover:text-blue-600 dark:hover:text-blue-400"
+              className="text-muted-foreground justify-start hover:bg-transparent! hover:text-blue-600 dark:hover:text-blue-400"
               disabled={isLangPending}
             >
               <svg
@@ -55,11 +55,7 @@ export const LanguageSwitcher = () => {
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            alignOffset={-35}
-            className="text-6 min-w-40"
-          >
+          <DropdownMenuContent align="center" className="text-6 min-w-40">
             {LANGS.map((lang) => (
               <DropdownMenuItem
                 key={lang.value}

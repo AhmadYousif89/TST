@@ -92,7 +92,7 @@ export const EngineContainer = () => {
           containerRef={containerRef}
           characters={characters}
         />
-        <LiveMetrics />
+        {/* <LiveMetrics /> */}
         <div
           ref={containerRef}
           className="scrollbar-none relative size-full overflow-hidden overscroll-none scroll-smooth"
