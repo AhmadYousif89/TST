@@ -14,7 +14,7 @@ import { useEngineActions, useEngineConfig } from "./engine.context";
 
 export const EngineContainer = () => {
   const { pauseSession, resumeSession, setShowOverlay } = useEngineActions();
-  const { status, textData, showOverlay, isPending } = useEngineConfig();
+  const { status, textData, showOverlay } = useEngineConfig();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const hiddenInputRef = useRef<HTMLTextAreaElement>(null);
@@ -95,7 +95,7 @@ export const EngineContainer = () => {
         <LiveMetrics />
         <div
           ref={containerRef}
-          className="scrollbar-none relative h-full w-full overflow-hidden overscroll-none scroll-smooth"
+          className="scrollbar-none relative size-full overflow-hidden overscroll-none scroll-smooth"
         >
           <Words characters={characters} />
           <TypingCursor containerRef={containerRef} isFocused={isFocused} />

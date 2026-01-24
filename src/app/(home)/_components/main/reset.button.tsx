@@ -11,6 +11,8 @@ import {
   useEngineActions,
   useEngineConfig,
 } from "@/app/(home)/engine/engine.context";
+import { useOptionalResult } from "./results/result.context";
+import { getSessionUrlParams } from "@/app/(home)/engine/engine-utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 
@@ -27,11 +29,17 @@ export const ResetButton = ({
   actionName = "restart",
   tooltipSide = "top",
 }: Props) => {
+  const result = useOptionalResult();
   const { resetSession } = useEngineActions();
   const { isPending, pendingAction } = useEngineConfig();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
   const isResetPending = isPending && pendingAction === actionName;
+
+  const handleReset = () => {
+    const urlUpdates = getSessionUrlParams(result?.session ?? null);
+    resetSession({ showOverlay: false, actionName, urlUpdates });
+  };
 
   return (
     <Tooltip open={isMobile ? false : undefined}>
@@ -39,7 +47,7 @@ export const ResetButton = ({
         <Button
           size="icon"
           variant="ghost"
-          onClick={() => resetSession({ showOverlay: false, actionName })}
+          onClick={handleReset}
           className={cn("text-muted-foreground", className)}
           disabled={isResetPending}
         >

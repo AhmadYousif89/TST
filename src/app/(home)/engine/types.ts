@@ -94,7 +94,11 @@ export type EngineKeystrokeCtxType = {
 
 export type EngineActionsCtxType = {
   endSession: () => void;
-  resetSession: (opts?: { showOverlay?: boolean; actionName?: string }) => void;
+  resetSession: (opts?: {
+    showOverlay?: boolean;
+    actionName?: string;
+    urlUpdates?: Record<string, string | null>;
+  }) => void;
   startSession: () => void;
   pauseSession: () => void;
   resumeSession: () => void;

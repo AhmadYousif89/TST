@@ -21,17 +21,12 @@ import {
   SelectSeparator,
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
-import { TopLoader } from "@/components/top-loader";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const TestSettings = () => {
   const { getParam } = useUrlState();
-  const { mode, textData, isPending, pendingAction } = useEngineConfig();
+  const { mode, textData } = useEngineConfig();
   const { updateURL } = useEngineActions();
-
-  const isDifficultyPending = isPending && pendingAction === "difficulty";
-  const isCategoryPending = isPending && pendingAction === "category";
-  const isModePending = isPending && pendingAction === "mode";
 
   const buildURLParams = () => {
     const params: Record<string, string> = {};

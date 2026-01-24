@@ -94,6 +94,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     dispatch({ type: "SET_CURSOR_STYLE", style: settings.cursorStyle });
   }, []);
 
+  // Handle pending url actions
   useEffect(() => {
     if (!isPending && state.pendingAction) {
       dispatch({ type: "SET_PENDING_ACTION", action: null });
@@ -101,6 +102,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   }, [isPending, state.pendingAction]);
 
   /* -------------------- ACTIONS -------------------- */
+
   const updateURL = useCallback(
     (updates: Record<string, string | null>, actionName?: string) => {
       dispatch({ type: "SET_PENDING_ACTION", action: actionName || "global" });
@@ -114,8 +116,14 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     return accumulatedTimeRef.current + currentElapsed;
   }, []);
 
+  type ResetOptions = {
+    showOverlay?: boolean;
+    actionName?: string;
+    urlUpdates?: Record<string, string | null>;
+  };
+
   const resetSession = useCallback(
-    (opts?: { showOverlay?: boolean; actionName?: string }) => {
+    (opts?: ResetOptions) => {
       dispatch({
         type: "RESET",
         timeLeft: getInitialTime(mode),
@@ -125,7 +133,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       timerRef.current = null;
       sessionStartTimeRef.current = null;
       accumulatedTimeRef.current = 0;
-      updateURL({ sid: null }, opts?.actionName);
+      updateURL({ sid: null, ...opts?.urlUpdates }, opts?.actionName);
     },
     [mode, updateURL],
   );
@@ -297,26 +305,28 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   }, [resetSession, setShowOverlay, pauseSession]);
 
   const prevModeRef = useRef<TextMode>(mode);
-
+  // Reset session when mode changes
   useEffect(() => {
-    if (prevModeRef.current !== mode && !sid) resetSession();
+    if (prevModeRef.current !== mode && !sid) {
+      resetSession();
+    }
     prevModeRef.current = mode;
   }, [mode, resetSession, sid]);
 
   const prevSidRef = useRef<string | null>(sid);
-
+  // Reset session when sid changes
   useEffect(() => {
-    if (prevSidRef.current && !sid) resetSession({ showOverlay: false });
+    if (prevSidRef.current && !sid) {
+      resetSession({ showOverlay: false });
+    }
     prevSidRef.current = sid;
   }, [sid, resetSession]);
 
   const prevIdRef = useRef<string | null>(null);
-
+  // Only show overlay on the very first load
   useEffect(() => {
     if (prevIdRef.current !== id && !sid) {
-      // Only show overlay on the very first load
-      const isInitialLoad = prevIdRef.current === null;
-      resetSession({ showOverlay: isInitialLoad });
+      resetSession({ showOverlay: prevIdRef.current === null });
     }
     prevIdRef.current = id;
   }, [id, resetSession, sid]);
@@ -384,9 +394,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   // Update metrics every second
   const intervalRef = useRef<NodeJS.Timeout>(undefined);
   useEffect(() => {
-    if (state.status !== "typing") return;
-    // Prevent double interval in case of fast re-renders/race conditions
-    if (intervalRef.current) return;
+    if (intervalRef.current || state.status !== "typing") return;
 
     intervalRef.current = setInterval(() => {
       const elapsed = getTimeElapsed();
@@ -405,7 +413,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        intervalRef.current = undefined; // Reset to allow re-start
+        intervalRef.current = undefined;
       }
     };
   }, [state.status, mode, getTimeElapsed]);

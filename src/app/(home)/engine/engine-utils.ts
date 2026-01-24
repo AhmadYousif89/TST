@@ -1,5 +1,19 @@
+import { TypingSessionDoc } from "@/lib/types";
 import { TextCategory, TextDifficulty, TextMode, UserSettings } from "./types";
 
+// Returns the URL parameters for a typing session.
+export function getSessionUrlParams(
+  session: TypingSessionDoc | null,
+): Record<string, string | null> {
+  if (!session) return {};
+  return {
+    mode: session.mode,
+    category: session.category,
+    difficulty: session.difficulty,
+  };
+}
+
+// Returns the test settings from localStorage or the default settings otherwise.
 export const getInitialSettings = (): UserSettings => {
   const defaultSettings: UserSettings = {
     soundName: "creamy",
@@ -36,6 +50,7 @@ export const getInitialSettings = (): UserSettings => {
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
+// Returns the test settings from the URL parameters.
 export function parseSearchParams(sp: SearchParams) {
   const category =
     typeof sp.category === "string" ? (sp.category as TextCategory) : "general";

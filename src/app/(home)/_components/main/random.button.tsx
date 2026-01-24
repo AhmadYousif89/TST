@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/tooltip";
 import { RandomIcon } from "@/components/random.icon";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { TopLoader } from "@/components/top-loader";
 import { TextDoc } from "@/lib/types";
 
 type Props = {

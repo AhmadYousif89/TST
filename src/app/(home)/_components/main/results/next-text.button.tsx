@@ -10,11 +10,11 @@ import { Button } from "@/components/ui/button";
 import { ChevronIcon } from "@/components/chevron.icon";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useOptionalResult } from "./result.context";
-import { TopLoader } from "@/components/top-loader";
 import {
   useEngineActions,
   useEngineConfig,
 } from "@/app/(home)/engine/engine.context";
+import { getSessionUrlParams } from "@/app/(home)/engine/engine-utils";
 
 type Props = {
   className?: string;
@@ -35,6 +35,16 @@ export const NextTextButton = ({
   const isNextPending = isPending && pendingAction === "next";
   const nextTextId = nextTextIdProp ?? result?.nextText?._id.toString() ?? null;
 
+  const handleNext = () => {
+    if (!nextTextId) return;
+    const urlUpdates = {
+      ...getSessionUrlParams(result?.session ?? null),
+      id: nextTextId,
+      sid: null,
+    };
+    updateURL(urlUpdates, "next");
+  };
+
   if (!nextTextId) return null;
 
   return (
@@ -46,7 +56,7 @@ export const NextTextButton = ({
             variant="ghost"
             disabled={isNextPending}
             className={cn("text-foreground", className)}
-            onClick={() => updateURL({ id: nextTextId, sid: null }, "next")}
+            onClick={handleNext}
           >
             <ChevronIcon className={isNextPending ? "opacity-60" : ""} />
           </Button>
