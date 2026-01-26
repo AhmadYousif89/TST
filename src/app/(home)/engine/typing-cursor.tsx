@@ -3,19 +3,42 @@
 import { useEffect, memo } from "react";
 
 import { Cursor } from "./cursor";
+import { EngineStatus, CursorStyle } from "./types";
 import { useEngineConfig, useEngineKeystroke } from "./engine.context";
+import { isRtlLang } from "./engine-utils";
 
-const RIGHT_SIDE_BUFFER = 40;
+const SIDE_BUFFER = 40;
 
 type TypingCursorProps = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   isFocused: boolean;
+  cursor?: number;
+  extraOffset?: number;
+  status?: EngineStatus;
+  cursorStyle?: CursorStyle;
+  disableOverlayStyles?: boolean;
+  isRTL?: boolean;
 };
 
 export const TypingCursor = memo(
-  ({ containerRef, isFocused }: TypingCursorProps) => {
-    const { cursor, extraOffset } = useEngineKeystroke();
-    const { status } = useEngineConfig();
+  ({
+    containerRef,
+    isFocused,
+    cursor: cursorProp,
+    extraOffset: extraOffsetProp,
+    status: statusProp,
+    cursorStyle,
+    disableOverlayStyles,
+    isRTL: isRTLProp,
+  }: TypingCursorProps) => {
+    const { cursor: contextCursor, extraOffset: contextExtraOffset } =
+      useEngineKeystroke();
+    const { status: contextStatus, textData } = useEngineConfig();
+
+    const cursor = cursorProp ?? contextCursor;
+    const extraOffset = extraOffsetProp ?? contextExtraOffset;
+    const status = statusProp ?? contextStatus;
+    const isRTL = isRTLProp ?? isRtlLang(textData?.language);
 
     // Dynamically scroll to cursor position when typing
     useEffect(() => {
@@ -32,13 +55,25 @@ export const TypingCursor = memo(
           const targetTop = relativeTop - containerRect.height / 2;
 
           let targetLeft = container.scrollLeft;
-          if (cursorRect.right > containerRect.right - RIGHT_SIDE_BUFFER) {
-            targetLeft =
-              container.scrollLeft +
-              (cursorRect.right - containerRect.right + RIGHT_SIDE_BUFFER);
-          }
-          if (cursorRect.left < containerRect.left + RIGHT_SIDE_BUFFER) {
-            targetLeft = 0;
+
+          if (isRTL) {
+            if (cursorRect.left < containerRect.left + SIDE_BUFFER) {
+              targetLeft =
+                container.scrollLeft -
+                (containerRect.left + SIDE_BUFFER - cursorRect.left);
+            }
+            if (cursorRect.right > containerRect.right - SIDE_BUFFER) {
+              targetLeft = 0;
+            }
+          } else {
+            if (cursorRect.right > containerRect.right - SIDE_BUFFER) {
+              targetLeft =
+                container.scrollLeft +
+                (cursorRect.right - containerRect.right + SIDE_BUFFER);
+            }
+            if (cursorRect.left < containerRect.left + SIDE_BUFFER) {
+              targetLeft = 0;
+            }
           }
 
           container.scrollTo({
@@ -63,10 +98,13 @@ export const TypingCursor = memo(
 
     return (
       <Cursor
+        isRTL={isRTL}
         containerRef={containerRef}
         isFocused={isFocused}
         cursor={cursor}
         extraOffset={extraOffset}
+        cursorStyle={cursorStyle}
+        disableOverlayStyles={disableOverlayStyles}
       />
     );
   },

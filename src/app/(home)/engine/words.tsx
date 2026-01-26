@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { CharState } from "./types";
 import { getCharStates } from "./engine-logic";
 import { useEngineKeystroke, useEngineConfig } from "./engine.context";
+import { isRtlLang } from "./engine-utils";
 
 // Group characters into words (prevents mid-word line breaks)
 export const wordsGroup = (characters: string[]) => {
@@ -26,7 +27,7 @@ type WordsProps = {
 };
 
 export const Words = memo(({ characters }: WordsProps) => {
-  const { showOverlay } = useEngineConfig();
+  const { showOverlay, textData } = useEngineConfig();
   const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
 
   const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
@@ -35,12 +36,16 @@ export const Words = memo(({ characters }: WordsProps) => {
     [characters, cursor, extraOffset, keystrokes],
   );
 
+  const isRTL = isRtlLang(textData?.language);
+
   return (
     <div
+      dir={isRTL ? "rtl" : "ltr"}
       className={cn(
-        "relative flex flex-wrap pl-2 font-mono select-none",
+        "relative flex flex-wrap select-none",
         "transition-[opacity,filter] duration-300 ease-in-out",
-        showOverlay && "opacity-50 blur-xs select-none",
+        // showOverlay && "opacity-50 blur-xs select-none",
+        isRTL ? "font-arabic pr-2 [word-spacing:.5em]" : "pl-2 font-mono",
       )}
     >
       {groupedWords.map((word, wordIndex) => (
@@ -64,6 +69,9 @@ type WordProps = {
 
 export const Word = memo(
   ({ word, charStates, cursor, className }: WordProps) => {
+    const { textData } = useEngineConfig();
+    const isRTL = isRtlLang(textData?.language);
+
     const lastCharObj = word[word.length - 1];
     const isLastCharSpace = lastCharObj.char === " ";
     const endIndex = lastCharObj.index;
@@ -80,18 +88,19 @@ export const Word = memo(
       <div
         data-error={wordHasError}
         className={cn(
-          "md:text-1-regular text-1-regular-mobile relative flex items-center",
+          "text-1-regular-mobile md:text-1-regular relative",
+          isRTL ? "inline-block tracking-normal" : "flex items-center",
           className,
         )}
       >
         {/* Characters */}
         {word.map(({ char, index }) => {
-          const state = charStates[index].state;
           return (
             <Character
               key={`${index}-${char}`}
+              isRTL={isRTL}
               char={char}
-              state={state}
+              state={charStates[index].state}
               extras={charStates[index].extras}
               className={cn(
                 index === cursor && "active-cursor text-foreground/80",
@@ -103,7 +112,10 @@ export const Word = memo(
         <div
           style={{ width: isLastCharSpace ? "calc(100% - 1ch)" : "100%" }}
           className={cn(
-            "bg-red pointer-events-none absolute bottom-0 left-0 -z-10 h-0.5 origin-left scale-x-0 transform rounded-full transition-transform duration-100 ease-in-out",
+            "bg-red pointer-events-none absolute -z-10 h-0.5 scale-x-0 transform rounded-full transition-transform duration-100 ease-in-out",
+            isRTL
+              ? "right-0 -bottom-0.5 origin-right"
+              : "bottom-px left-0 origin-left",
             wordHasError && "scale-x-100",
           )}
         />
@@ -158,16 +170,20 @@ function areWordsEqual(prev: WordProps, next: WordProps) {
 type CharacterProps = {
   char: string;
   state: "not-typed" | "correct" | "incorrect";
+  isRTL: boolean;
   extras?: string[];
   className?: string;
 };
 
 export const Character = memo(
-  ({ char, state, extras, className }: CharacterProps) => {
+  ({ char, state, isRTL, extras, className }: CharacterProps) => {
     return (
       <>
         {extras?.length ? (
-          <div className="flex">
+          <div
+            className={cn(isRTL ? "inline" : "inline-flex")}
+            style={isRTL ? { letterSpacing: 0 } : undefined}
+          >
             {extras?.map((extra, i) => (
               <span key={i} className="text-red">
                 {extra}
@@ -177,7 +193,8 @@ export const Character = memo(
         ) : null}
         <span
           className={cn(
-            "relative flex transition-colors duration-100 ease-linear",
+            "relative transition-colors duration-100 ease-linear",
+            isRTL ? "inline" : "inline-flex",
             state === "correct" && "text-green",
             state === "incorrect" && "text-red",
             state === "not-typed" && "text-muted-foreground",

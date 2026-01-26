@@ -12,6 +12,7 @@ export type CursorProps = {
   cursor: number;
   extraOffset: number;
   cursorStyle?: CursorStyle;
+  isRTL?: boolean;
   disableOverlayStyles?: boolean;
 };
 
@@ -29,6 +30,7 @@ export const Cursor = memo(
     cursor,
     extraOffset,
     cursorStyle: cursorStyleProp,
+    isRTL,
     disableOverlayStyles,
   }: CursorProps) => {
     const { cursorStyle: configCursorStyle, showOverlay } = useEngineConfig();
@@ -39,6 +41,8 @@ export const Cursor = memo(
       width: 0,
       height: 0,
     });
+
+    const isBoxy = cursorStyle === "box" || cursorStyle === "underline";
 
     useEffect(() => {
       if (!containerRef.current) return;
@@ -52,43 +56,41 @@ export const Cursor = memo(
         const cursorRect = cursorEl.getBoundingClientRect();
         const { scrollTop, scrollLeft } = containerRef.current;
 
+        const left = isRTL
+          ? isBoxy
+            ? cursorRect.left - containerRect.left + scrollLeft
+            : cursorRect.right - containerRect.left + scrollLeft
+          : cursorRect.left - containerRect.left + scrollLeft;
+
         setPosition({
           top: cursorRect.top - containerRect.top + scrollTop,
-          left: cursorRect.left - containerRect.left + scrollLeft,
+          left,
           width: cursorRect.width,
           height: cursorRect.height,
         });
       }
-    }, [containerRef, cursor, extraOffset, showOverlay]);
+    }, [containerRef, cursor, extraOffset, showOverlay, isRTL, cursorStyle]);
+
+    const left = position.left;
+    const width = isBoxy ? position.width || 0 : 2;
+    const height =
+      cursorStyle === "underline" ? 2 : (position.height || 0) * 0.8;
+    const top =
+      cursorStyle === "underline"
+        ? position.top + (position.height || 0) - 3
+        : position.top + ((position.height || 0) - height) / 2;
 
     return (
       <div
+        style={{ top, left, width, height }}
         className={cn(
           "pointer-events-none absolute z-10 rounded bg-blue-400/90 transition-all",
-          !disableOverlayStyles &&
-            showOverlay &&
-            "opacity-50 blur-xs duration-300 ease-in-out",
+          // !disableOverlayStyles &&
+          //   showOverlay &&
+          //   "opacity-50 blur-xs duration-300 ease-in-out",
           isFocused && cursor === 0 && "animate-blink duration-100 ease-linear",
           cursorStyle === "box" && "border-2 border-blue-400/90 bg-transparent",
         )}
-        style={{
-          top: (position.top || 0) + (cursorStyle === "box" ? 4 : 0),
-          left: position.left || 0,
-          width:
-            cursorStyle === "box" || cursorStyle === "underline"
-              ? position.width || 0
-              : 2,
-          height:
-            cursorStyle === "underline"
-              ? 2
-              : (position.height || 0) * (cursorStyle === "box" ? 0.9 : 0.8),
-          transform:
-            cursorStyle === "box"
-              ? "none"
-              : cursorStyle === "underline"
-                ? `translateY(${(position.height || 0) - 2}px)`
-                : `translateY(${(position.height || 0) * 0.125}px)`,
-        }}
       />
     );
   },

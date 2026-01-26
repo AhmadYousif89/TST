@@ -8,13 +8,19 @@ type TextParams = {
   id?: string;
   category?: TextCategory;
   difficulty?: TextDifficulty;
+  language?: string;
 };
 
 export async function getInitialText(params: TextParams = {}) {
-  const { id, category = "general", difficulty = "easy" } = params;
+  const {
+    id,
+    category = "lyrics", // TODO: change to general
+    difficulty = "easy",
+    language = "en",
+  } = params;
 
   try {
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { language };
     if (id) {
       filter._id = new ObjectId(id);
     } else {

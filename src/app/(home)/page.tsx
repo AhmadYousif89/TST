@@ -13,7 +13,8 @@ import { LoadingOverlay } from "./_components/main/loading-overlay";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
-  const { category, difficulty, mode, id, sessionId } = parseSearchParams(sp);
+  const { category, difficulty, mode, id, sessionId, language } =
+    parseSearchParams(sp);
 
   const user = await getUser();
   const currentAnonUserId = await getAnonUserId();
@@ -21,7 +22,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const sessionData = sessionId ? await getSession(sessionId) : null;
   const targetId = sessionData?.textId || id;
 
-  const textData = await getInitialText({ id: targetId, category, difficulty });
+  const textData = await getInitialText({
+    id: targetId,
+    category,
+    difficulty,
+    language,
+  });
 
   if (!textData) {
     return (
@@ -52,6 +58,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               session={sessionData}
               nextText={nextText}
               currentAnonUserId={currentAnonUserId}
+              language={language}
             />
           ) : (
             <MainContent nextText={nextText} randomText={randomText} />

@@ -43,6 +43,8 @@
 @theme inline {
   --font-mono: var(--font-mono);
   --font-sans: var(--font-sora);
+  --font-arabic: var(--font-ibm-arabic);
+
   --text-*: initial;
   --color-*: initial;
   --color-background: var(--background);

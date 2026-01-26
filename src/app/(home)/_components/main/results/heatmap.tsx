@@ -31,107 +31,120 @@ type WordItemProps = {
   word: string;
   stats: WordStats | undefined;
   isHeatmapVisible: boolean;
+  isRTL: boolean;
 };
 
-const WordItem = memo(({ word, stats, isHeatmapVisible }: WordItemProps) => {
-  const wpm = stats?.wpm || 0;
-  const hasError = stats?.hasError;
-  const errorIndices = stats?.errorCharIndices;
-  const extras = stats?.extras;
-  const skipIndex = stats?.skipIndex;
-  const bucket = stats?.bucket;
+const WordItem = memo(
+  ({ word, stats, isHeatmapVisible, isRTL }: WordItemProps) => {
+    const wpm = stats?.wpm || 0;
+    const hasError = stats?.hasError;
+    const errorIndices = stats?.errorCharIndices;
+    const extras = stats?.extras;
+    const skipIndex = stats?.skipIndex;
+    const bucket = stats?.bucket;
 
-  const colorVariable =
-    isHeatmapVisible && bucket !== undefined
-      ? HEATMAP_COLORS[bucket]
-      : undefined;
+    const colorVariable =
+      isHeatmapVisible && bucket !== undefined
+        ? HEATMAP_COLORS[bucket]
+        : undefined;
 
-  const hasExtras = extras && extras.length > 0;
+    const hasExtras = extras && extras.length > 0;
 
-  const renderedWord = useMemo(() => {
-    const chars = word.split("");
-    const result = [];
+    const renderedWord = useMemo(() => {
+      const chars = word.split("");
+      const result = [];
 
-    chars.forEach((char, idx) => {
-      const isUntyped = stats?.typedChars?.[idx] === "\0";
-      const isError = !isHeatmapVisible && errorIndices?.has(idx);
+      chars.forEach((char, idx) => {
+        const isUntyped = stats?.typedChars?.[idx] === "\0";
+        const isError = !isHeatmapVisible && errorIndices?.has(idx);
 
-      if (skipIndex === idx)
-        result.push(<ErrorIndicator key={`skip-${idx}`} className="mx-px" />);
+        if (skipIndex === idx)
+          result.push(<ErrorIndicator key={`skip-${idx}`} className="mx-px" />);
 
-      result.push(
-        <span
-          key={idx}
-          className={cn(
-            isError && "text-red",
-            isUntyped && !isError && "opacity-60",
-          )}
-        >
-          {char}
-        </span>,
-      );
-    });
+        result.push(
+          <span
+            key={idx}
+            className={cn(
+              isError && "text-red",
+              isUntyped && !isError && "opacity-60",
+            )}
+          >
+            {char}
+          </span>,
+        );
+      });
 
-    if (hasExtras)
-      result.push(<ErrorIndicator key="extras-indicator" className="ml-px" />);
+      if (hasExtras)
+        result.push(
+          <ErrorIndicator key="extras-indicator" className="ml-px" />,
+        );
 
-    return result;
-  }, [word, isHeatmapVisible, errorIndices, skipIndex, hasExtras]);
+      return result;
+    }, [word, isHeatmapVisible, errorIndices, skipIndex, hasExtras]);
 
-  const content = (
-    <span
-      className={cn(
-        !isHeatmapVisible &&
-          hasError &&
-          "decoration-red underline decoration-2",
-      )}
-    >
-      {renderedWord}
-    </span>
-  );
+    const content = (
+      <span
+        className={cn(
+          !isHeatmapVisible &&
+            hasError &&
+            "decoration-red underline decoration-2",
+        )}
+      >
+        {renderedWord}
+      </span>
+    );
 
-  return (
-    <ResponsiveTooltip delayDuration={0}>
-      <ResponsiveTooltipTrigger asChild>
-        <div
-          style={{ color: colorVariable }}
-          className={cn(
-            "cursor-default font-mono",
-            isHeatmapVisible ? "text-muted" : "text-muted-foreground",
-            wpm === 0 && "dark:opacity-60",
-          )}
-        >
-          {content}
-        </div>
-      </ResponsiveTooltipTrigger>
-      <ResponsiveTooltipContent side="top">
-        <div className="flex flex-col items-center gap-1">
-          <p className="font-medium">{Math.round(wpm)} wpm</p>
-          <div className="text-muted-foreground text-5 font-mono font-medium">
-            {word.split("").map((char, i) => {
-              if ((skipIndex !== undefined && i >= skipIndex) || wpm === 0)
-                return null; // Don't show skipped chars or 0 wpm words
-
-              const typedChar = stats?.typedChars?.[i];
-              if (typedChar === "\0") return null;
-
-              const isError = errorIndices?.has(i);
-              return (
-                <span key={i} className={cn(isError && "text-red")}>
-                  {typedChar || char}
-                </span>
-              );
-            })}
-            {hasExtras && <span className="text-red">{extras.join("")}</span>}
+    return (
+      <ResponsiveTooltip delayDuration={0}>
+        <ResponsiveTooltipTrigger asChild>
+          <div
+            style={{ color: colorVariable }}
+            className={cn(
+              "cursor-default",
+              isRTL ? "font-arabic" : "font-mono",
+              isHeatmapVisible ? "text-muted" : "text-muted-foreground",
+              wpm === 0 && "dark:opacity-60",
+            )}
+          >
+            {content}
           </div>
-        </div>
-      </ResponsiveTooltipContent>
-    </ResponsiveTooltip>
-  );
-});
+        </ResponsiveTooltipTrigger>
+        <ResponsiveTooltipContent side="top">
+          <div className="flex flex-col items-center gap-1">
+            <p className="font-medium">{Math.round(wpm)} wpm</p>
+            <div
+              className={cn(
+                "text-muted-foreground text-5 font-medium",
+                isRTL ? "font-arabic" : "font-mono",
+              )}
+            >
+              {word.split("").map((char, i) => {
+                if ((skipIndex !== undefined && i >= skipIndex) || wpm === 0)
+                  return null; // Don't show skipped chars or 0 wpm words
+
+                const typedChar = stats?.typedChars?.[i];
+                if (typedChar === "\0") return null;
+
+                const isError = errorIndices?.has(i);
+                return (
+                  <span key={i} className={cn(isError && "text-red")}>
+                    {typedChar || char}
+                  </span>
+                );
+              })}
+              {hasExtras && <span className="text-red">{extras.join("")}</span>}
+            </div>
+          </div>
+        </ResponsiveTooltipContent>
+      </ResponsiveTooltip>
+    );
+  },
+);
 
 export const HeatmapHistory = () => {
-  const { session, text, isScreenshotting } = useResult();
+  const { session, text, isScreenshotting, language } = useResult();
+  const isRTL = language === "ar";
+  console.log(language);
   const [isHeatmapVisible, setHeatmapVisibility] = useState(false);
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
@@ -193,13 +206,20 @@ export const HeatmapHistory = () => {
       </div>
 
       {/* Words History */}
-      <div className="text-5 flex flex-wrap gap-x-3.25 gap-y-1 select-none">
+      <div
+        dir={isRTL ? "rtl" : "ltr"}
+        className={cn(
+          "text-5 flex flex-wrap items-center gap-x-3.25 gap-y-1 pb-2 select-none",
+          isRTL ? "text-right" : "text-left",
+        )}
+      >
         {words.map((word, i) => (
           <WordItem
             key={`${session._id}-${i}`}
             word={word}
             stats={wordStatsMap.get(i)}
             isHeatmapVisible={effectiveIsEnabled}
+            isRTL={isRTL}
           />
         ))}
       </div>

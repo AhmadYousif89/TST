@@ -11,8 +11,7 @@ export type TextDoc = {
   _id: string | ObjectId;
 
   text: string;
-  language: "en" | "ar"; // TODO: add more languages support (Arabic) later on.
-  wordCount: number;
+  language: "en" | "ar";
   charCount: number;
   category: TextCategory;
   difficulty: TextDifficulty;

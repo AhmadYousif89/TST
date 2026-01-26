@@ -80,12 +80,12 @@ export const EngineContainer = () => {
   return (
     <div className="flex grow flex-col justify-center">
       <TimeWarning />
-      {/* <LanguageSwitcher /> */}
+      <LanguageSwitcher />
       <div
         onBlur={handleBlur}
         onFocus={handleFocus}
         onMouseDown={handleMouseDown}
-        className="relative h-43.25 md:h-54.5"
+        className="relative h-43.5 md:h-54.5"
       >
         <TypingInput
           hiddenInputRef={hiddenInputRef}

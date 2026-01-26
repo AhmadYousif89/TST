@@ -1,6 +1,8 @@
 import { TypingSessionDoc } from "@/lib/types";
 import { TextCategory, TextDifficulty, TextMode, UserSettings } from "./types";
 
+export const isRtlLang = (language?: string) => language === "ar";
+
 // Returns the URL parameters for a typing session.
 export function getSessionUrlParams(
   session: TypingSessionDoc | null,
@@ -53,14 +55,20 @@ type SearchParams = { [key: string]: string | string[] | undefined };
 // Returns the test settings from the URL parameters.
 export function parseSearchParams(sp: SearchParams) {
   const category =
-    typeof sp.category === "string" ? (sp.category as TextCategory) : "general";
+    typeof sp.category === "string" ? (sp.category as TextCategory) : undefined;
   const difficulty =
     typeof sp.difficulty === "string"
       ? (sp.difficulty as TextDifficulty)
-      : "easy";
+      : undefined;
   const mode = typeof sp.mode === "string" ? (sp.mode as TextMode) : "t:60";
   const id = typeof sp.id === "string" ? sp.id : undefined;
   const sessionId = typeof sp.sid === "string" ? sp.sid : undefined;
+  const language =
+    typeof sp.lang === "string" && isValidLanguage(sp.lang) ? sp.lang : "en";
 
-  return { category, difficulty, mode, id, sessionId };
+  return { category, difficulty, mode, id, sessionId, language };
+}
+
+export function isValidLanguage(lang: string): lang is "en" | "ar" {
+  return lang === "en" || lang === "ar";
 }

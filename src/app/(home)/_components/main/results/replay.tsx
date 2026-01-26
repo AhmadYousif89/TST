@@ -2,20 +2,23 @@
 
 import { useMemo, useRef } from "react";
 
-import { useResult } from "./result.context";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useSound } from "@/app/(home)/engine/sound.context";
-import { getCharStates } from "@/app/(home)/engine/engine-logic";
-import { wordsGroup, Word } from "@/app/(home)/engine/words";
 
 import { useReplay } from "./use-replay";
-import { Cursor } from "@/app/(home)/engine/cursor";
+import { useResult } from "./result.context";
+import { useSound } from "@/app/(home)/engine/sound.context";
+import { TypingCursor } from "@/app/(home)/engine/typing-cursor";
+import { wordsGroup, Word } from "@/app/(home)/engine/words";
+import { calculateWpm, getCharStates } from "@/app/(home)/engine/engine-logic";
+import { isRtlLang } from "@/app/(home)/engine/engine-utils";
 
 export const ReplaySection = () => {
-  const { session, text = "" } = useResult();
+  const { session, text = "", language } = useResult();
   const { playSound } = useSound();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const isRTL = isRtlLang(language);
   const ks = useMemo(() => session.keystrokes || [], [session.keystrokes]);
 
   const characters = useMemo(() => {
@@ -48,22 +51,16 @@ export const ReplaySection = () => {
     // Iterate through all played keystrokes to calculate current cursor state
     for (const k of replayedKeystrokes) {
       if (k.typedChar === "Backspace") {
-        if (k.skipOrigin !== undefined) {
-          cursor = k.skipOrigin;
-        } else {
-          cursor = k.charIndex;
-        }
+        if (k.skipOrigin !== undefined) cursor = k.skipOrigin;
+        else cursor = k.charIndex;
       } else {
         const isExtra = characters[k.charIndex] === " " && k.typedChar !== " ";
-        if (isExtra) {
-          cursor = k.charIndex;
-        } else {
-          cursor = k.charIndex + 1;
-        }
+        if (isExtra) cursor = k.charIndex;
+        else cursor = k.charIndex + 1;
       }
     }
 
-    // Calculate extra offset based on the current state at the cursor
+    // Get extra offset
     const currentExtras = charStates[cursor]?.extras?.length || 0;
 
     return { cursor, extraOffset: currentExtras };
@@ -72,17 +69,14 @@ export const ReplaySection = () => {
   // Get keystroke timestamp
   const currentTimeMs = useMemo(() => {
     if (currentIndex === 0 || !ks[currentIndex - 1]) return 0;
-
     return ks[currentIndex - 1].timestampMs;
   }, [currentIndex, ks]);
 
   // Get current WPM
   const currentWpm = useMemo(() => {
     if (currentTimeMs === 0) return 0;
-
     const correctChars = charStates.filter((s) => s.state === "correct").length;
-    const elapsedMinutes = currentTimeMs / 60000;
-    return Math.round(correctChars / 5 / elapsedMinutes);
+    return calculateWpm(correctChars, currentTimeMs);
   }, [charStates, currentTimeMs]);
 
   const currentTimeSec = Math.floor(currentTimeMs / 1000);
@@ -150,13 +144,19 @@ export const ReplaySection = () => {
       {/* Replay */}
       <div
         ref={containerRef}
-        className="relative flex flex-wrap items-center justify-start gap-1 font-mono select-none"
+        dir={isRTL ? "rtl" : "ltr"}
+        className={cn(
+          "relative flex flex-wrap items-center gap-1 pb-2 select-none",
+          isRTL ? "font-arabic" : "font-mono",
+        )}
       >
-        <Cursor
+        <TypingCursor
+          isRTL={isRTL}
           containerRef={containerRef}
           isFocused={isPlaying}
           cursor={cursorIndex}
           extraOffset={extraOffset}
+          status={isPlaying ? "typing" : "paused"}
           cursorStyle="underline"
           disableOverlayStyles
         />

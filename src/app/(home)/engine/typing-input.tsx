@@ -14,8 +14,10 @@ import {
   useEngineKeystroke,
 } from "./engine.context";
 import { useSound } from "./sound.context";
+import { isRtlLang } from "./engine-utils";
+import { cn } from "@/lib/utils";
 
-const RIGHT_SIDE_BUFFER = 40;
+const SIDE_BUFFER = 40;
 
 type TypingInputProps = {
   hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -28,7 +30,8 @@ export const TypingInput = ({
   containerRef,
   characters,
 }: TypingInputProps) => {
-  const { status } = useEngineConfig();
+  const { status, textData } = useEngineConfig();
+  const isRTL = isRtlLang(textData?.language);
   const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
   const { setCursor, startSession, resumeSession, endSession, getTimeElapsed } =
     useEngineActions();
@@ -66,9 +69,11 @@ export const TypingInput = ({
         containerRef.current?.querySelector<HTMLElement>(".active-cursor");
       const cursorRect = cursorElement?.getBoundingClientRect();
       if (cursorRect && containerRect) {
-        if (cursorRect.right > containerRect.right - RIGHT_SIDE_BUFFER) {
-          return;
-        }
+        const isOverflowing = isRTL
+          ? cursorRect.left < containerRect.left + SIDE_BUFFER
+          : cursorRect.right > containerRect.right - SIDE_BUFFER;
+
+        if (isOverflowing) return;
       }
     }
 
@@ -272,7 +277,11 @@ export const TypingInput = ({
       ref={hiddenInputRef}
       onKeyDown={handleKeydown}
       onBeforeInput={handleBeforeInput}
-      className="pointer-events-none absolute top-0 left-0 h-14 w-6 resize-none overflow-hidden opacity-0 outline-none"
+      dir={isRTL ? "rtl" : "ltr"}
+      className={cn(
+        "pointer-events-none absolute top-0 h-14 w-6 resize-none overflow-hidden opacity-0 outline-none",
+        isRTL ? "right-0" : "left-0",
+      )}
       autoCapitalize="none"
       autoCorrect="off"
       spellCheck="false"

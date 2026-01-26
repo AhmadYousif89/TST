@@ -15,6 +15,7 @@ type Props = {
   session: TypingSessionDoc | null;
   nextText?: TextDoc | null;
   currentAnonUserId?: string;
+  language?: "en" | "ar";
 };
 
 export const Results = ({
@@ -22,6 +23,7 @@ export const Results = ({
   session,
   nextText,
   currentAnonUserId,
+  language,
 }: Props) => {
   if (!session) return null;
 
@@ -33,6 +35,7 @@ export const Results = ({
       session={session}
       isOwner={isOwner}
       nextText={nextText}
+      language={language}
     >
       <ResultLayout />
     </ResultProvider>
