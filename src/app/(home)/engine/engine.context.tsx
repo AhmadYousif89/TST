@@ -68,12 +68,13 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     timeLeft: getInitialTime(mode),
   });
 
-  const keystrokes = useRef<Keystroke[]>([]);
+  const lockedCursorRef = useRef(0);
+  const accumulatedTimeRef = useRef(0);
   const statusRef = useRef(state.status);
+  const hasUpdatedStatsRef = useRef(false);
+  const keystrokes = useRef<Keystroke[]>([]);
   const timerRef = useRef<number | null>(null);
   const sessionStartTimeRef = useRef<number | null>(null);
-  const accumulatedTimeRef = useRef(0);
-  const hasUpdatedStatsRef = useRef(false);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -133,6 +134,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       timerRef.current = null;
       sessionStartTimeRef.current = null;
       accumulatedTimeRef.current = 0;
+      lockedCursorRef.current = 0;
       updateURL({ sid: null, ...opts?.urlUpdates }, opts?.actionName);
     },
     [mode, updateURL],
@@ -192,6 +194,13 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
   const setShowOverlay = useCallback((show: boolean) => {
     dispatch({ type: "SET_OVERLAY", show });
   }, []);
+
+  const updateLayout = useCallback(
+    (opts?: { shouldReset?: boolean; newStartIndex?: number }) => {
+      dispatch({ type: "UPDATE_LAYOUT", ...opts });
+    },
+    [],
+  );
 
   const setSoundName = useCallback((soundName: SoundNames) => {
     dispatch({ type: "SET_SOUND", soundName });
@@ -434,6 +443,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       isHistoryOpen,
       isPending,
       pendingAction: state.pendingAction,
+      layout: state.layout,
     }),
     [
       mode,
@@ -448,6 +458,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       isHistoryOpen,
       isPending,
       state.pendingAction,
+      state.layout,
     ],
   );
 
@@ -466,10 +477,10 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
     () => ({
       cursor: state.cursor,
       extraOffset: state.extraOffset,
-      progress: state.progress,
       keystrokes,
+      lockedCursorRef,
     }),
-    [state.cursor, state.extraOffset, state.progress],
+    [state.cursor, state.extraOffset],
   );
 
   const actionsValue = useMemo(
@@ -483,6 +494,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       getTimeElapsed,
       setShowOverlay,
+      updateLayout,
       updateURL,
       setSoundName,
       setVolume,
@@ -501,6 +513,7 @@ export const EngineProvider = ({ children, data }: EngineProviderProps) => {
       resumeSession,
       getTimeElapsed,
       setShowOverlay,
+      updateLayout,
       updateURL,
       setSoundName,
       setVolume,

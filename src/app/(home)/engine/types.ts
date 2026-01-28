@@ -61,6 +61,10 @@ export type EngineState = {
   isMuted: boolean;
   cursorStyle: CursorStyle;
   pendingAction: string | null;
+  layout: {
+    startIndex: number; // starting index of the current word
+    version: number; // increments on layout changes to trigger Cursor rerender
+  };
 };
 
 export type EngineConfigCtxType = {
@@ -76,6 +80,10 @@ export type EngineConfigCtxType = {
   isHistoryOpen: boolean;
   isPending: boolean;
   pendingAction: string | null;
+  layout: {
+    startIndex: number;
+    version: number;
+  };
 };
 
 export type EngineMetricsCtxType = {
@@ -90,6 +98,7 @@ export type EngineKeystrokeCtxType = {
   cursor: number;
   extraOffset: number;
   keystrokes: React.RefObject<Keystroke[]>;
+  lockedCursorRef: React.RefObject<number>; // cursor cannot go before this value
 };
 
 export type EngineActionsCtxType = {
@@ -105,6 +114,10 @@ export type EngineActionsCtxType = {
   getTimeElapsed: () => number;
   setStatus: (s: EngineStatus) => void;
   setShowOverlay: (show: boolean) => void;
+  updateLayout: (opts?: {
+    shouldReset?: boolean;
+    newStartIndex?: number;
+  }) => void;
   updateURL: (
     updates: Record<string, string | null>,
     actionName?: string,
@@ -141,4 +154,9 @@ export type EngineAction =
   | { type: "SET_VOLUME"; volume: number }
   | { type: "SET_MUTED"; isMuted: boolean }
   | { type: "SET_CURSOR_STYLE"; style: CursorStyle }
-  | { type: "SET_PENDING_ACTION"; action: string | null };
+  | { type: "SET_PENDING_ACTION"; action: string | null }
+  | {
+      type: "UPDATE_LAYOUT";
+      shouldReset?: boolean;
+      newStartIndex?: number;
+    };

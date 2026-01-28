@@ -14,8 +14,8 @@ import { calculateWpm, getCharStates } from "@/app/(home)/engine/engine-logic";
 import { isRtlLang } from "@/app/(home)/engine/engine-utils";
 
 export const ReplaySection = () => {
-  const { session, text = "", language } = useResult();
   const { playSound } = useSound();
+  const { session, text = "", language } = useResult();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isRTL = isRtlLang(language);
@@ -60,19 +60,16 @@ export const ReplaySection = () => {
       }
     }
 
-    // Get extra offset
     const currentExtras = charStates[cursor]?.extras?.length || 0;
 
     return { cursor, extraOffset: currentExtras };
   }, [replayedKeystrokes, characters, charStates]);
 
-  // Get keystroke timestamp
   const currentTimeMs = useMemo(() => {
     if (currentIndex === 0 || !ks[currentIndex - 1]) return 0;
     return ks[currentIndex - 1].timestampMs;
   }, [currentIndex, ks]);
 
-  // Get current WPM
   const currentWpm = useMemo(() => {
     if (currentTimeMs === 0) return 0;
     const correctChars = charStates.filter((s) => s.state === "correct").length;
@@ -97,23 +94,7 @@ export const ReplaySection = () => {
                 onClick={isPlaying ? pause : play}
                 className="text-muted-foreground size-6 rounded-full"
               >
-                {isPlaying ? (
-                  <svg
-                    className="size-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                  </svg>
-                ) : (
-                  <svg
-                    className="size-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                )}
+                {isPlaying ? <PauseIcon /> : <PlayIcon />}
               </Button>
               {/* Reset button */}
               <Button
@@ -174,3 +155,15 @@ export const ReplaySection = () => {
     </div>
   );
 };
+
+const PlayIcon = () => (
+  <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M8 5v14l11-7z" />
+  </svg>
+);
+
+const PauseIcon = () => (
+  <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+  </svg>
+);

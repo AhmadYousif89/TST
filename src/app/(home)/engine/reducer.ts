@@ -14,6 +14,10 @@ export const initialState: EngineState = {
   soundName: "creamy",
   cursorStyle: "pip",
   pendingAction: null,
+  layout: {
+    startIndex: 0,
+    version: 0,
+  },
 };
 
 export function engineReducer(
@@ -30,6 +34,7 @@ export function engineReducer(
         isMuted: state.isMuted,
         soundName: state.soundName,
         cursorStyle: state.cursorStyle,
+        layout: initialState.layout,
       };
     case "START":
       return {
@@ -193,6 +198,16 @@ export function engineReducer(
       return {
         ...state,
         pendingAction: action.action,
+      };
+    case "UPDATE_LAYOUT":
+      return {
+        ...state,
+        layout: {
+          startIndex: action.shouldReset
+            ? 0
+            : (action.newStartIndex ?? state.layout.startIndex),
+          version: action.shouldReset ? 0 : state.layout.version + 1,
+        },
       };
 
     default:

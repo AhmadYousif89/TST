@@ -17,7 +17,6 @@ const SIDE_BUFFER = 40;
 
 type TypingInputProps = {
   characters: string[];
-  lockedCursorRef: React.RefObject<number>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;
 };
@@ -26,15 +25,16 @@ export const TypingInput = ({
   characters,
   containerRef,
   hiddenInputRef,
-  lockedCursorRef,
 }: TypingInputProps) => {
   const { playSound } = useSound();
   const { status, textData } = useEngineConfig();
-  const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
-  const { setCursor, startSession, resumeSession, endSession, getTimeElapsed } =
-    useEngineActions();
+  const keystrokeCtx = useEngineKeystroke();
+  const ActionsCtx = useEngineActions();
 
   const isRTL = isRtlLang(textData?.language);
+  const { cursor, extraOffset, keystrokes, lockedCursorRef } = keystrokeCtx;
+  const { setCursor, startSession, resumeSession, endSession, getTimeElapsed } =
+    ActionsCtx;
 
   const handleBeforeInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
     const data = e.data;

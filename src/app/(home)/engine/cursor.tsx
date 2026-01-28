@@ -13,7 +13,6 @@ export type CursorProps = {
   cursorStyle?: CursorStyle;
   disableOverlayStyles?: boolean;
   isRTL?: boolean;
-  layoutVersion?: number;
 };
 
 type CursorPosition = {
@@ -32,15 +31,17 @@ export const Cursor = memo(
     cursor: cursorProp,
     extraOffset: extraOffsetProp,
     cursorStyle: cursorStyleProp,
-    layoutVersion,
   }: CursorProps) => {
-    const { cursor: cursorCtx, extraOffset: extraOffsetCtx } =
-      useEngineKeystroke();
-    const {
-      cursorStyle: configCursorStyle,
-      showOverlay,
-      textData,
-    } = useEngineConfig();
+    const config = useEngineConfig();
+    const keystroke = useEngineKeystroke();
+
+    const cursor = cursorProp ?? keystroke?.cursor ?? 0;
+    const extraOffset = extraOffsetProp ?? keystroke?.extraOffset ?? 0;
+    const configCursorStyle = config?.cursorStyle;
+    const showOverlay = config?.showOverlay;
+    const textData = config?.textData;
+    const layout = config?.layout;
+
     const isRTL = isRTLProp || isRtlLang(textData?.language);
     const [position, setPosition] = useState<CursorPosition>({
       top: 0,
@@ -49,10 +50,9 @@ export const Cursor = memo(
       height: 0,
     });
 
-    const cursor = cursorProp ?? cursorCtx;
-    const extraOffset = extraOffsetProp ?? extraOffsetCtx;
-    const cursorStyle = cursorStyleProp ?? configCursorStyle;
+    const cursorStyle = cursorStyleProp ?? configCursorStyle ?? "pip";
     const isBoxy = cursorStyle === "box" || cursorStyle === "underline";
+    const layoutVersion = layout?.version ?? 0;
 
     useEffect(() => {
       if (!containerRef.current) return;
@@ -107,11 +107,11 @@ export const Cursor = memo(
       <div
         style={{ top, left, width, height }}
         className={cn(
-          "pointer-events-none absolute z-10 rounded bg-blue-400/90 transition-all",
+          "pointer-events-none absolute z-10 rounded bg-blue-400/90 transition-[left,top,width,height] ease-in-out will-change-[left,top]",
           !disableOverlayStyles &&
             showOverlay &&
-            "opacity-50 blur-xs duration-300 ease-in-out",
-          isFocused && cursor === 0 && "animate-blink duration-100 ease-linear",
+            "opacity-50 blur-xs duration-300",
+          isFocused && cursor === 0 && "animate-blink ease-linear",
           cursorStyle === "box" && "border-2 border-blue-400/90 bg-transparent",
         )}
       />

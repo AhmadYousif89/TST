@@ -80,6 +80,7 @@
 }
 
 :root {
+  @apply scrollbar-none;
   --radius: 0.625rem;
 
   --neutral-0: oklch(1 0 0);

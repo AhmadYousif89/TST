@@ -1,10 +1,14 @@
-import { memo, useMemo, useState, useEffect } from "react";
+import { memo, useMemo, useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 import { CharState } from "./types";
-import { getCharStates } from "./engine-logic";
-import { useEngineKeystroke, useEngineConfig } from "./engine.context";
 import { isRtlLang } from "./engine-utils";
+import { getCharStates } from "./engine-logic";
+import {
+  useEngineKeystroke,
+  useEngineConfig,
+  useEngineActions,
+} from "./engine.context";
 
 // Group characters into words (prevents mid-word line breaks)
 export const wordsGroup = (characters: string[]) => {
@@ -25,124 +29,117 @@ export const wordsGroup = (characters: string[]) => {
 type WordsProps = {
   characters: string[];
   containerRef: React.RefObject<HTMLDivElement | null>;
-  onLayoutChange?: (shouldReset?: boolean) => void;
-  lockedCursorRef: React.RefObject<number>;
 };
 
-export const Words = memo(
-  ({
-    characters,
-    containerRef,
-    onLayoutChange,
-    lockedCursorRef,
-  }: WordsProps) => {
-    const [startIndex, setStartIndex] = useState(0);
-    const { showOverlay, textData, status } = useEngineConfig();
-    const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
+export const Words = memo(({ characters, containerRef }: WordsProps) => {
+  const configCtx = useEngineConfig();
+  const keystrokeCtx = useEngineKeystroke();
+  const { updateLayout } = useEngineActions();
 
-    const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
-    const charStates = useMemo(
-      () => getCharStates(characters, keystrokes.current || []),
-      [characters, cursor, extraOffset, keystrokes],
-    );
+  const { cursor, extraOffset, keystrokes, lockedCursorRef } = keystrokeCtx;
+  const { showOverlay, textData, status, layout } = configCtx;
+  const startIndex = layout.startIndex;
 
-    useEffect(() => {
-      // Scroll to the engine top when the cursor is at the start position
-      if (cursor === 0) {
-        setStartIndex(0);
-        onLayoutChange?.(true);
-        lockedCursorRef.current = 0;
-        containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    }, [cursor, onLayoutChange]);
+  const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
+  const charStates = useMemo(
+    () => getCharStates(characters, keystrokes.current || []),
+    [characters, cursor, extraOffset, keystrokes],
+  );
 
-    // Update locked cursor when startIndex changes
-    useEffect(() => {
-      if (startIndex > 0 && groupedWords[startIndex]) {
-        const firstVisibleWord = groupedWords[startIndex];
-        const firstCharIndex = firstVisibleWord[0].index;
-        lockedCursorRef.current = firstCharIndex;
-        onLayoutChange?.(); // This force the engine to re-render thus updating the cursor position
-      }
-    }, [startIndex, groupedWords, onLayoutChange]);
+  useEffect(() => {
+    // Scroll to the engine top when the cursor is at the start position
+    if (cursor === 0) {
+      updateLayout({ shouldReset: true });
+      lockedCursorRef.current = 0;
+      containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [cursor, updateLayout]);
 
-    useEffect(() => {
-      if (status !== "typing" || !containerRef.current) return;
+  // Update locked cursor when startIndex changes
+  useEffect(() => {
+    if (startIndex > 0 && groupedWords[startIndex]) {
+      const firstVisibleWord = groupedWords[startIndex];
+      const firstCharIndex = firstVisibleWord[0].index;
+      lockedCursorRef.current = firstCharIndex;
+      updateLayout();
+    }
+  }, [startIndex, groupedWords, updateLayout]);
 
-      const container = containerRef.current;
-      const activeCharEl = container.querySelector(".active-cursor");
-      const activeWordEl = activeCharEl?.closest(
-        "[data-word-index]",
-      ) as HTMLElement;
+  useEffect(() => {
+    if (status !== "typing" || !containerRef.current) return;
 
-      if (!activeWordEl) return;
+    const container = containerRef.current;
+    const activeCharEl = container.querySelector(".active-cursor");
+    const activeWordEl = activeCharEl?.closest(
+      "[data-word-index]",
+    ) as HTMLElement;
 
-      const wordElements = Array.from(
-        container.querySelectorAll("[data-word-index]"),
-      ) as HTMLElement[];
-      if (wordElements.length === 0) return;
+    if (!activeWordEl) return;
 
-      // Detect row offsets
-      const rowOffsets: number[] = [];
-      // 5px tolerance deals with minor sub-pixel rendering or line-height differences
-      // that might make words on the same line have slightly different offsetTop values.
-      const fuzzPxs = 5;
-      for (const el of wordElements) {
-        const top = el.offsetTop;
-        const isDuplicate = rowOffsets.some((o) => Math.abs(o - top) < fuzzPxs);
-        if (!isDuplicate) rowOffsets.push(top);
-      }
+    const wordElements = Array.from(
+      container.querySelectorAll("[data-word-index]"),
+    ) as HTMLElement[];
+    if (wordElements.length === 0) return;
 
-      // Sort offsets to ensure reliable row ordering
-      // DOM order usually matches visual order, but sorting ensures it.
-      rowOffsets.sort((a, b) => a - b);
+    // Detect row offsets
+    const rowOffsets: number[] = [];
+    // 5px tolerance deals with minor sub-pixel rendering or line-height differences
+    // that might make words on the same line have slightly different offsetTop values.
+    const fuzzPxs = 5;
+    for (const el of wordElements) {
+      const top = el.offsetTop;
+      const isDuplicate = rowOffsets.some((o) => Math.abs(o - top) < fuzzPxs);
+      if (!isDuplicate) rowOffsets.push(top);
+    }
 
-      // If we have at least 3 rows and are on the 3rd one, hide the 1st row
-      if (rowOffsets.length >= 3) {
-        const thirdRowTop = rowOffsets[2];
-        if (activeWordEl.offsetTop >= thirdRowTop) {
-          const firstRowTop = rowOffsets[0];
-          let wordsInFirstRow = 0;
-          for (const el of wordElements) {
-            const isTop = Math.abs(el.offsetTop - firstRowTop) < fuzzPxs;
-            if (isTop) wordsInFirstRow++;
-            else break;
-          }
-          if (wordsInFirstRow > 0) {
-            setStartIndex((prev) => prev + wordsInFirstRow);
-          }
+    // Sort offsets to ensure reliable row ordering
+    rowOffsets.sort((a, b) => a - b);
+
+    // If we have at least 3 rows and are on the 3rd one, hide the 1st row
+    if (rowOffsets.length >= 3) {
+      const thirdRowTop = rowOffsets[2];
+      if (activeWordEl.offsetTop >= thirdRowTop) {
+        const firstRowTop = rowOffsets[0];
+        let wordsInFirstRow = 0;
+        for (const el of wordElements) {
+          const isTop = Math.abs(el.offsetTop - firstRowTop) < fuzzPxs;
+          if (isTop) wordsInFirstRow++;
+          else break;
+        }
+        if (wordsInFirstRow > 0) {
+          updateLayout({ newStartIndex: startIndex + wordsInFirstRow });
         }
       }
-    }, [cursor, status]);
+    }
+  }, [cursor, status, startIndex]);
 
-    const isRTL = isRtlLang(textData?.language);
+  const isRTL = isRtlLang(textData?.language);
 
-    return (
-      <div
-        dir={isRTL ? "rtl" : "ltr"}
-        ref={containerRef}
-        className={cn(
-          "relative flex flex-wrap select-none",
-          showOverlay && "opacity-50 blur-xs select-none",
-          isRTL ? "font-arabic pr-2 [word-spacing:1em]" : "pl-2 font-mono",
-        )}
-      >
-        {groupedWords.slice(startIndex).map((word, i) => {
-          const wordIndex = startIndex + i;
-          return (
-            <Word
-              key={wordIndex}
-              word={word}
-              cursor={cursor}
-              wordIndex={wordIndex}
-              charStates={charStates}
-            />
-          );
-        })}
-      </div>
-    );
-  },
-);
+  return (
+    <div
+      ref={containerRef}
+      dir={isRTL ? "rtl" : "ltr"}
+      className={cn(
+        "relative flex flex-wrap transition-[opacity,filter] duration-300 ease-in-out select-none",
+        showOverlay && "opacity-50 blur-xs select-none",
+        isRTL ? "font-arabic pr-2 [word-spacing:1em]" : "pl-2 font-mono",
+      )}
+    >
+      {groupedWords.slice(startIndex).map((word, i) => {
+        const wordIndex = startIndex + i;
+        return (
+          <Word
+            key={wordIndex}
+            word={word}
+            cursor={cursor}
+            wordIndex={wordIndex}
+            charStates={charStates}
+          />
+        );
+      })}
+    </div>
+  );
+});
 
 type WordProps = {
   wordIndex: number;
@@ -217,6 +214,7 @@ function areWordsEqual(prev: WordProps, next: WordProps) {
   if (
     prev.wordIndex !== next.wordIndex ||
     prev.className !== next.className ||
+    prev.isReplay !== next.isReplay ||
     prev.word !== next.word
   )
     return false;
@@ -261,7 +259,7 @@ function areWordsEqual(prev: WordProps, next: WordProps) {
 
 type CharacterProps = {
   char: string;
-  state: "not-typed" | "correct" | "incorrect";
+  state: CharState["state"];
   isRTL: boolean;
   extras?: string[];
   className?: string;
