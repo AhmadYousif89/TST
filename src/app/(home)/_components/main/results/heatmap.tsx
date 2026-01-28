@@ -213,7 +213,7 @@ export const HeatmapHistory = () => {
       <div
         dir={isRTL ? "rtl" : "ltr"}
         className={cn(
-          "text-5 flex flex-wrap items-center gap-x-3.25 gap-y-1 pb-2 select-none",
+          "text-5 flex flex-wrap items-center gap-x-3.25 select-none",
           isRTL ? "text-right" : "text-left",
         )}
       >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState, useCallback } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 
 import { Words } from "./words";
 import { Cursor } from "./cursor";
@@ -13,7 +13,7 @@ import { useEngineActions, useEngineConfig } from "./engine.context";
 
 export const EngineContainer = () => {
   const { pauseSession, resumeSession, setShowOverlay } = useEngineActions();
-  const { status, textData, showOverlay } = useEngineConfig();
+  const { status, textData } = useEngineConfig();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const hiddenInputRef = useRef<HTMLTextAreaElement>(null);
@@ -24,12 +24,9 @@ export const EngineContainer = () => {
     [textData?.text],
   );
 
-  useEffect(() => {
-    if (status === "idle" && !showOverlay) hiddenInputRef.current?.focus();
-  }, [status, showOverlay]);
-
   const pauseTimerRef = useRef<NodeJS.Timeout>(undefined);
   const blurTimeoutRef = useRef<NodeJS.Timeout>(undefined);
+
   useEffect(() => {
     return () => {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);

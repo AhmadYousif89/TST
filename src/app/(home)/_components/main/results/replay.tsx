@@ -9,7 +9,8 @@ import { useReplay } from "./use-replay";
 import { useResult } from "./result.context";
 import { useSound } from "@/app/(home)/engine/sound.context";
 import { Cursor } from "@/app/(home)/engine/cursor";
-import { wordsGroup, Word } from "@/app/(home)/engine/words";
+import { Word } from "@/app/(home)/engine/word";
+import { wordsGroup } from "@/app/(home)/engine/words";
 import { calculateWpm, getCharStates } from "@/app/(home)/engine/engine-logic";
 import { isRtlLang } from "@/app/(home)/engine/engine-utils";
 
@@ -127,7 +128,7 @@ export const ReplaySection = () => {
         ref={containerRef}
         dir={isRTL ? "rtl" : "ltr"}
         className={cn(
-          "relative flex flex-wrap items-center gap-1 pb-2 select-none",
+          "relative flex flex-wrap items-center gap-x-1 pb-2 select-none",
           isRTL ? "font-arabic" : "font-mono",
         )}
       >
@@ -143,8 +144,9 @@ export const ReplaySection = () => {
         {groupedWords.map((word, wordIndex) => (
           <Word
             key={wordIndex}
-            wordIndex={wordIndex}
             word={word}
+            isRTL={isRTL}
+            wordIndex={wordIndex}
             charStates={charStates}
             cursor={cursorIndex}
             className="text-5!"

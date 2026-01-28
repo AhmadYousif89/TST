@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { cn } from "@/lib/utils";
 import {
   getCharStates,
   getWordStart,
@@ -11,7 +13,6 @@ import {
 } from "./engine.context";
 import { useSound } from "./sound.context";
 import { isRtlLang } from "./engine-utils";
-import { cn } from "@/lib/utils";
 
 const SIDE_BUFFER = 40;
 
@@ -27,14 +28,18 @@ export const TypingInput = ({
   hiddenInputRef,
 }: TypingInputProps) => {
   const { playSound } = useSound();
-  const { status, textData } = useEngineConfig();
-  const keystrokeCtx = useEngineKeystroke();
+  const configCtx = useEngineConfig();
   const ActionsCtx = useEngineActions();
+  const keystrokeCtx = useEngineKeystroke();
 
-  const isRTL = isRtlLang(textData?.language);
+  const { status, textData, showOverlay } = configCtx;
   const { cursor, extraOffset, keystrokes, lockedCursorRef } = keystrokeCtx;
   const { setCursor, startSession, resumeSession, endSession, getTimeElapsed } =
     ActionsCtx;
+
+  useEffect(() => {
+    if (status === "idle" && !showOverlay) hiddenInputRef.current?.focus();
+  }, [status, showOverlay]);
 
   const handleBeforeInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
     const data = e.data;
@@ -263,6 +268,8 @@ export const TypingInput = ({
       handleTyping(typedChar);
     }
   };
+
+  const isRTL = isRtlLang(textData?.language);
 
   return (
     <textarea
