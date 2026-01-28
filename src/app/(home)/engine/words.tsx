@@ -116,8 +116,6 @@ export const Words = memo(
     }, [cursor, status]);
 
     const isRTL = isRtlLang(textData?.language);
-    // Only show all words when test is finished
-    const effectiveStartIndex = status === "finished" ? 0 : startIndex;
 
     return (
       <div
@@ -129,8 +127,8 @@ export const Words = memo(
           isRTL ? "font-arabic pr-2 [word-spacing:1em]" : "pl-2 font-mono",
         )}
       >
-        {groupedWords.slice(effectiveStartIndex).map((word, i) => {
-          const wordIndex = effectiveStartIndex + i;
+        {groupedWords.slice(startIndex).map((word, i) => {
+          const wordIndex = startIndex + i;
           return (
             <Word
               key={wordIndex}

@@ -148,11 +148,10 @@ const WordItem = memo(
 
 export const HeatmapHistory = () => {
   const { session, text, isScreenshotting, language } = useResult();
-  const isRTL = language === "ar";
-  console.log(language);
   const [isHeatmapVisible, setHeatmapVisibility] = useState(false);
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
+  const isRTL = language === "ar";
   const effectiveIsEnabled = isScreenshotting || isHeatmapVisible;
 
   const analysis = useMemo(() => {
