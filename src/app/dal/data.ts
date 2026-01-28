@@ -14,7 +14,7 @@ type TextParams = {
 export async function getInitialText(params: TextParams = {}) {
   const {
     id,
-    category = "lyrics", // TODO: change to general
+    category = "general",
     difficulty = "easy",
     language = "en",
   } = params;

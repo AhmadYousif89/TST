@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useReplay } from "./use-replay";
 import { useResult } from "./result.context";
 import { useSound } from "@/app/(home)/engine/sound.context";
-import { TypingCursor } from "@/app/(home)/engine/typing-cursor";
+import { Cursor } from "@/app/(home)/engine/cursor";
 import { wordsGroup, Word } from "@/app/(home)/engine/words";
 import { calculateWpm, getCharStates } from "@/app/(home)/engine/engine-logic";
 import { isRtlLang } from "@/app/(home)/engine/engine-utils";
@@ -150,23 +150,24 @@ export const ReplaySection = () => {
           isRTL ? "font-arabic" : "font-mono",
         )}
       >
-        <TypingCursor
+        <Cursor
           isRTL={isRTL}
           containerRef={containerRef}
           isFocused={isPlaying}
           cursor={cursorIndex}
           extraOffset={extraOffset}
-          status={isPlaying ? "typing" : "paused"}
           cursorStyle="underline"
           disableOverlayStyles
         />
         {groupedWords.map((word, wordIndex) => (
           <Word
             key={wordIndex}
+            wordIndex={wordIndex}
             word={word}
             charStates={charStates}
             cursor={cursorIndex}
             className="text-5!"
+            isReplay
           />
         ))}
       </div>

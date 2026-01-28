@@ -1,5 +1,3 @@
-"use client";
-
 import { useEngineConfig } from "./engine.context";
 import { Button } from "@/components/ui/button";
 import { ArrowIcon } from "@/components/arrow.icon";

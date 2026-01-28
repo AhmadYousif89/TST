@@ -114,7 +114,7 @@ const WordItem = memo(
             <p className="font-medium">{Math.round(wpm)} wpm</p>
             <div
               className={cn(
-                "text-muted-foreground text-5 font-medium",
+                "text-5 font-medium",
                 isRTL ? "font-arabic" : "font-mono",
               )}
             >
@@ -127,7 +127,12 @@ const WordItem = memo(
 
                 const isError = errorIndices?.has(i);
                 return (
-                  <span key={i} className={cn(isError && "text-red")}>
+                  <span
+                    key={i}
+                    className={cn(
+                      isError ? "text-red" : "text-muted-foreground",
+                    )}
+                  >
                     {typedChar || char}
                   </span>
                 );

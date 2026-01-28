@@ -1,7 +1,3 @@
-"use client";
-
-import { useEffect, useRef } from "react";
-
 import {
   getCharStates,
   getWordStart,
@@ -20,29 +16,25 @@ import { cn } from "@/lib/utils";
 const SIDE_BUFFER = 40;
 
 type TypingInputProps = {
-  hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;
-  containerRef: React.RefObject<HTMLDivElement | null>;
   characters: string[];
+  lockedCursorRef: React.RefObject<number>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;
 };
 
 export const TypingInput = ({
-  hiddenInputRef,
-  containerRef,
   characters,
+  containerRef,
+  hiddenInputRef,
+  lockedCursorRef,
 }: TypingInputProps) => {
+  const { playSound } = useSound();
   const { status, textData } = useEngineConfig();
-  const isRTL = isRtlLang(textData?.language);
   const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
   const { setCursor, startSession, resumeSession, endSession, getTimeElapsed } =
     useEngineActions();
-  const { playSound } = useSound();
 
-  const lockedCursorRef = useRef(0);
-
-  // Reset locked cursor when session is reset or cursor is back at start
-  useEffect(() => {
-    if (status === "idle" || cursor === 0) lockedCursorRef.current = 0;
-  }, [status, cursor]);
+  const isRTL = isRtlLang(textData?.language);
 
   const handleBeforeInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
     const data = e.data;

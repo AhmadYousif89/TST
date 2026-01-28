@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 import { CharState } from "./types";
@@ -24,51 +24,139 @@ export const wordsGroup = (characters: string[]) => {
 
 type WordsProps = {
   characters: string[];
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  onLayoutChange?: (shouldReset?: boolean) => void;
+  lockedCursorRef: React.RefObject<number>;
 };
 
-export const Words = memo(({ characters }: WordsProps) => {
-  const { showOverlay, textData } = useEngineConfig();
-  const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
+export const Words = memo(
+  ({
+    characters,
+    containerRef,
+    onLayoutChange,
+    lockedCursorRef,
+  }: WordsProps) => {
+    const [startIndex, setStartIndex] = useState(0);
+    const { showOverlay, textData, status } = useEngineConfig();
+    const { cursor, extraOffset, keystrokes } = useEngineKeystroke();
 
-  const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
-  const charStates = useMemo(
-    () => getCharStates(characters, keystrokes.current || []),
-    [characters, cursor, extraOffset, keystrokes],
-  );
+    const groupedWords = useMemo(() => wordsGroup(characters), [characters]);
+    const charStates = useMemo(
+      () => getCharStates(characters, keystrokes.current || []),
+      [characters, cursor, extraOffset, keystrokes],
+    );
 
-  const isRTL = isRtlLang(textData?.language);
+    useEffect(() => {
+      // Scroll to the engine top when the cursor is at the start position
+      if (cursor === 0) {
+        setStartIndex(0);
+        onLayoutChange?.(true);
+        lockedCursorRef.current = 0;
+        containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, [cursor, onLayoutChange]);
 
-  return (
-    <div
-      dir={isRTL ? "rtl" : "ltr"}
-      className={cn(
-        "relative flex flex-wrap select-none",
-        "transition-[opacity,filter] duration-300 ease-in-out",
-        // showOverlay && "opacity-50 blur-xs select-none",
-        isRTL ? "font-arabic pr-2 [word-spacing:.5em]" : "pl-2 font-mono",
-      )}
-    >
-      {groupedWords.map((word, wordIndex) => (
-        <Word
-          key={wordIndex}
-          word={word}
-          cursor={cursor}
-          charStates={charStates}
-        />
-      ))}
-    </div>
-  );
-});
+    // Update locked cursor when startIndex changes
+    useEffect(() => {
+      if (startIndex > 0 && groupedWords[startIndex]) {
+        const firstVisibleWord = groupedWords[startIndex];
+        const firstCharIndex = firstVisibleWord[0].index;
+        lockedCursorRef.current = firstCharIndex;
+        onLayoutChange?.(); // This force the engine to re-render thus updating the cursor position
+      }
+    }, [startIndex, groupedWords, onLayoutChange]);
+
+    useEffect(() => {
+      if (status !== "typing" || !containerRef.current) return;
+
+      const container = containerRef.current;
+      const activeCharEl = container.querySelector(".active-cursor");
+      const activeWordEl = activeCharEl?.closest(
+        "[data-word-index]",
+      ) as HTMLElement;
+
+      if (!activeWordEl) return;
+
+      const wordElements = Array.from(
+        container.querySelectorAll("[data-word-index]"),
+      ) as HTMLElement[];
+      if (wordElements.length === 0) return;
+
+      // Detect row offsets
+      const rowOffsets: number[] = [];
+      // 5px tolerance deals with minor sub-pixel rendering or line-height differences
+      // that might make words on the same line have slightly different offsetTop values.
+      const fuzzPxs = 5;
+      for (const el of wordElements) {
+        const top = el.offsetTop;
+        const isDuplicate = rowOffsets.some((o) => Math.abs(o - top) < fuzzPxs);
+        if (!isDuplicate) rowOffsets.push(top);
+      }
+
+      // Sort offsets to ensure reliable row ordering
+      // DOM order usually matches visual order, but sorting ensures it.
+      rowOffsets.sort((a, b) => a - b);
+
+      // If we have at least 3 rows and are on the 3rd one, hide the 1st row
+      if (rowOffsets.length >= 3) {
+        const thirdRowTop = rowOffsets[2];
+        if (activeWordEl.offsetTop >= thirdRowTop) {
+          const firstRowTop = rowOffsets[0];
+          let wordsInFirstRow = 0;
+          for (const el of wordElements) {
+            const isTop = Math.abs(el.offsetTop - firstRowTop) < fuzzPxs;
+            if (isTop) wordsInFirstRow++;
+            else break;
+          }
+          if (wordsInFirstRow > 0) {
+            setStartIndex((prev) => prev + wordsInFirstRow);
+          }
+        }
+      }
+    }, [cursor, status]);
+
+    const isRTL = isRtlLang(textData?.language);
+    // Only show all words when test is finished
+    const effectiveStartIndex = status === "finished" ? 0 : startIndex;
+
+    return (
+      <div
+        dir={isRTL ? "rtl" : "ltr"}
+        ref={containerRef}
+        className={cn(
+          "relative flex flex-wrap select-none",
+          showOverlay && "opacity-50 blur-xs select-none",
+          isRTL ? "font-arabic pr-2 [word-spacing:1em]" : "pl-2 font-mono",
+        )}
+      >
+        {groupedWords.slice(effectiveStartIndex).map((word, i) => {
+          const wordIndex = effectiveStartIndex + i;
+          return (
+            <Word
+              key={wordIndex}
+              word={word}
+              cursor={cursor}
+              wordIndex={wordIndex}
+              charStates={charStates}
+            />
+          );
+        })}
+      </div>
+    );
+  },
+);
 
 type WordProps = {
+  wordIndex: number;
   word: { char: string; index: number }[];
   charStates: CharState[];
   cursor: number;
   className?: string;
+  isReplay?: boolean;
 };
 
 export const Word = memo(
-  ({ word, charStates, cursor, className }: WordProps) => {
+  ({ wordIndex, word, charStates, cursor, className, isReplay }: WordProps) => {
     const { textData } = useEngineConfig();
     const isRTL = isRtlLang(textData?.language);
 
@@ -87,6 +175,7 @@ export const Word = memo(
     return (
       <div
         data-error={wordHasError}
+        data-word-index={wordIndex}
         className={cn(
           "text-1-regular-mobile md:text-1-regular relative",
           isRTL ? "inline-block tracking-normal" : "flex items-center",
@@ -115,7 +204,8 @@ export const Word = memo(
             "bg-red pointer-events-none absolute -z-10 h-0.5 scale-x-0 transform rounded-full transition-transform duration-100 ease-in-out",
             isRTL
               ? "right-0 -bottom-0.5 origin-right"
-              : "bottom-px left-0 origin-left",
+              : "bottom-0.5 left-0 origin-left",
+            isReplay && "bottom-0",
             wordHasError && "scale-x-100",
           )}
         />
@@ -126,7 +216,11 @@ export const Word = memo(
 );
 
 function areWordsEqual(prev: WordProps, next: WordProps) {
-  if (prev.className !== next.className || prev.word !== next.word)
+  if (
+    prev.wordIndex !== next.wordIndex ||
+    prev.className !== next.className ||
+    prev.word !== next.word
+  )
     return false;
 
   const startIndex = prev.word[0].index;

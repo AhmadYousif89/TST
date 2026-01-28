@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 
 import { Words } from "./words";
 import { EngineOverlay } from "./overlay";
 import { LiveMetrics } from "./live-metrics";
 import { TypingInput } from "./typing-input";
-import { TypingCursor } from "./typing-cursor";
+import { Cursor } from "./cursor";
 
 import { TimeWarning } from "../_components/main/timer-warning";
 import { LanguageSwitcher } from "../_components/main/language-switcher";
@@ -16,9 +16,11 @@ export const EngineContainer = () => {
   const { pauseSession, resumeSession, setShowOverlay } = useEngineActions();
   const { status, textData, showOverlay } = useEngineConfig();
 
+  const lockedCursorRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const hiddenInputRef = useRef<HTMLTextAreaElement>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [layoutVersion, setLayoutVersion] = useState(0);
 
   const characters = useMemo(
     () => textData?.text.split("") || [],
@@ -75,30 +77,42 @@ export const EngineContainer = () => {
     hiddenInputRef.current?.focus();
   };
 
+  // This is used to force a remount of the Cursor component
+  const updateLayout = useCallback((shouldReset?: boolean) => {
+    setLayoutVersion((v) => (shouldReset ? 0 : v + 1));
+  }, []);
+
   if (!textData) return null;
 
   return (
     <div className="flex grow flex-col justify-center">
       <TimeWarning />
-      <LanguageSwitcher />
+      {/* <LanguageSwitcher /> */}
       <div
         onBlur={handleBlur}
         onFocus={handleFocus}
         onMouseDown={handleMouseDown}
-        className="relative h-43.5 md:h-54.5"
+        className="relative h-34 md:h-40"
       >
         <TypingInput
-          hiddenInputRef={hiddenInputRef}
-          containerRef={containerRef}
           characters={characters}
+          containerRef={containerRef}
+          hiddenInputRef={hiddenInputRef}
+          lockedCursorRef={lockedCursorRef}
         />
         {/* <LiveMetrics /> */}
-        <div
-          ref={containerRef}
-          className="scrollbar-none relative size-full overflow-hidden overscroll-none scroll-smooth"
-        >
-          <Words characters={characters} />
-          <TypingCursor containerRef={containerRef} isFocused={isFocused} />
+        <div ref={containerRef} className="relative size-full overflow-hidden">
+          <Words
+            characters={characters}
+            containerRef={containerRef}
+            onLayoutChange={updateLayout}
+            lockedCursorRef={lockedCursorRef}
+          />
+          <Cursor
+            isFocused={isFocused}
+            containerRef={containerRef}
+            layoutVersion={layoutVersion}
+          />
         </div>
         <EngineOverlay
           hiddenInputRef={hiddenInputRef}
